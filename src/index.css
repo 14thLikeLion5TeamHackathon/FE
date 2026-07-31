@@ -1,0 +1,68 @@
+@import 'tailwindcss';
+
+/* 디자인 토큰만 여기에. 컴포넌트에서 raw hex/px 금지 → text-primary, shadow-card 형태로만 사용. */
+@theme {
+  /* Color — 시안 확정되면 교체 */
+  --color-primary: #5a81fa;
+  --color-primary-deep: #0d36b7;
+  --color-primary-light: #bbc8f0;
+  --color-primary-bg: #f1f4ff;
+
+  --color-gray-1: #fafafa;
+  --color-gray-2: #f4f4f5;
+  --color-gray-3: #c4c4c4;
+  --color-gray-4: #71717a;
+  --color-gray-5: #3f3f46;
+  --color-gray-6: #18181b;
+
+  --color-danger: #ff5353;
+
+  /* Radius / Shadow */
+  --radius-btn: 20px;
+  --shadow-card: 0 2px 2px rgba(0, 0, 0, 0.05);
+  --shadow-dialog: 0 1px 10px rgba(0, 0, 0, 0.1);
+
+  /* Font */
+  --font-sans: system-ui, 'Apple SD Gothic Neo', sans-serif;
+}
+
+/* 타이포는 유틸 클래스로 고정 → 컴포넌트에서 font-size 직접 지정 금지. 시안 확정되면 값만 교체. */
+.typo-head-1 {
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 32px;
+}
+
+.typo-head-2 {
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 22px;
+}
+
+.typo-body-1 {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 22px;
+}
+
+.typo-sub-1 {
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 16px;
+}
+
+/* 가로 스크롤 영역의 스크롤바 숨김 */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  color: var(--color-gray-6);
+  background: #fff;
+}

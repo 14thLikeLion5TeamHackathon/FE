@@ -1,0 +1,32 @@
+name: Branch Name Check
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+jobs:
+  check-branch-name:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate branch name
+        run: |
+          branch="${{ github.head_ref }}"
+          pattern='^(feature|fix|chore|design|docs|refactor|test)/[0-9]+$'
+
+          # 배포용 dev -> main PR은 head가 dev라 패턴에 맞지 않는다. 예외 처리.
+          if [ "$branch" = "dev" ]; then
+            echo "Allowing release branch: $branch"
+            exit 0
+          fi
+
+          if [[ ! "$branch" =~ $pattern ]]; then
+            echo "Invalid branch name: $branch"
+            echo "Expected format: <type>/<issue-number>"
+            echo "Example: feature/12"
+            exit 1
+          fi
+
+          echo "Valid branch name: $branch"

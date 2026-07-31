@@ -1,0 +1,45 @@
+name: PR Template Check
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  check-pr-template:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate PR title and body
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const title = pr.title || '';
+            const body = pr.body || '';
+            const errors = [];
+
+            const titlePattern = /^(feat|fix|docs|style|refactor|chore|design|test)\s*:\s+\S.*/i;
+            if (!titlePattern.test(title)) {
+              errors.push(
+                'PR 제목은 "type: 내용" 형식으로 작성해 주세요. 허용 type: feat, fix, docs, style, refactor, chore, design, test',
+              );
+            }
+
+            const requiredSections = ['## 작업 내용', '## 관련 이슈', '## 확인 사항'];
+            for (const section of requiredSections) {
+              if (!body.includes(section)) {
+                errors.push(`PR 본문에 "${section}" 섹션이 필요합니다.`);
+              }
+            }
+
+            const issuePattern = /(Refs|Closes|Fixes|Resolves) #\d+/i;
+            if (!issuePattern.test(body)) {
+              errors.push('PR 본문에 관련 이슈를 "Refs #12" 또는 "Closes #12" 형식으로 연결해 주세요.');
+            }
+
+            if (errors.length > 0) {
+              core.setFailed(errors.join('\n'));
+            }
