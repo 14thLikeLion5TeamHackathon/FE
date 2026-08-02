@@ -138,6 +138,34 @@ git commit -m "feat: 로그인 페이지 구현 (#12)"
 
 이슈를 자동으로 닫으려면 `Closes #12`를 사용합니다. `dev`로 머지될 때 닫힙니다.
 
+## GitHub 보호 규칙
+
+기본 브랜치는 `dev`입니다. PR을 열면 base가 자동으로 `dev`로 잡힙니다.
+
+`main`과 `dev`에 아래 규칙이 걸려 있습니다.
+
+- 직접 push 불가 — PR로만 반영
+- 승인 리뷰 1명 이상 필요
+- CI 3종(`lint-and-build`, `check-branch-name`, `check-pr-template`) 통과 필수
+- force push와 브랜치 삭제 차단
+- merge 전 base 브랜치 최신 상태 반영 필요
+
+머지 버튼이 비활성화되면 대부분 아래 둘 중 하나입니다.
+
+- CI가 실패했거나 아직 실행 중
+- `dev`가 그 사이 업데이트되어 브랜치를 최신화해야 하는 경우
+
+두 번째는 이렇게 해결합니다.
+
+```bash
+git checkout feature/12
+git fetch origin
+git merge origin/dev
+git push
+```
+
+레포 admin은 위 규칙을 우회할 수 있습니다. CI 설정 자체가 깨져 모든 PR이 막히는 상황을 풀기 위한 예외이며, 평상시에는 admin도 PR로 작업합니다.
+
 ## Issue 라벨
 
 `feature`, `bug`, `docs`, `chore`, `design`, `refactor`, `test`, `question`
