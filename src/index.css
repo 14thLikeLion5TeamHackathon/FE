@@ -1,54 +1,147 @@
 @import 'tailwindcss';
 
-/* 디자인 토큰만 여기에. 컴포넌트에서 raw hex/px 금지 → text-primary, shadow-card 형태로만 사용. */
+/*
+ * Pretendard 1.3.9 (SIL OFL 1.1) — public/fonts/ 에 자체 호스팅. 라이선스 전문은 같은 폴더.
+ * KS X 1001 서브셋(한글 2350자)이라 굵기당 약 260KB. 토큰이 쓰는 400/500/700만 넣었다.
+ * 굵기를 추가하려면 폰트 파일부터 넣어야 한다 — 없는 굵기는 브라우저가 합성해 뭉개진다.
+ * local()은 일부러 뺐다. 로컬에 Pretendard가 깔린 사람 화면에서만 정상으로 보여
+ * 배포본이 깨진 걸 못 잡는 사고를 막기 위함.
+ */
+@font-face {
+  font-family: 'Pretendard';
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src: url('/fonts/Pretendard-Regular.subset.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Pretendard';
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+  src: url('/fonts/Pretendard-Medium.subset.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Pretendard';
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  src: url('/fonts/Pretendard-Bold.subset.woff2') format('woff2');
+}
+
+/*
+ * 디자인 토큰만 여기에. 컴포넌트에서 raw hex/px 금지 → bg-surface-raised, text-text-secondary 형태로만 사용.
+ * 출처: Figma "A안 컬러 시스템" 프레임 (node 158:1271) — 토큰 이름을 시안과 1:1로 맞췄다.
+ * 시안이 갱신되면 이름이 아니라 값만 바뀌도록 유지할 것.
+ */
 @theme {
-  /* Color — 시안 확정되면 교체 */
-  --color-primary: #5a81fa;
-  --color-primary-deep: #0d36b7;
-  --color-primary-light: #bbc8f0;
-  --color-primary-bg: #f1f4ff;
+  /* --- 1. Surface — 배경 층위 ---------------------------------------------
+   * 아래로 갈수록 위에 떠 있는 면. 순흑(#000)은 쓰지 않는다.
+   */
+  --color-surface-sunken: #101113; /* 탭바. 배경보다 뒤로 물러남 */
+  --color-surface-canvas: #131416; /* 앱 기본 배경 */
+  --color-surface-raised: #1b1d20; /* 카드 (브리핑·케어카드) */
+  --color-surface-elevated: #24262a; /* 카드 안 블록·칩·화살표 */
+  --color-surface-overlay: #2c3034; /* 모달·바텀시트 */
+  --color-surface-fill: #24262a; /* 입력창·진행바 등 채워지는 면 */
+  --color-surface-fill-strong: #3b3f45; /* 위와 같은 역할의 강한 단계 */
 
-  --color-gray-1: #fafafa;
-  --color-gray-2: #f4f4f5;
-  --color-gray-3: #c4c4c4;
-  --color-gray-4: #71717a;
-  --color-gray-5: #3f3f46;
-  --color-gray-6: #18181b;
+  --color-border-subtle: #2e3135; /* 카드 보더·구분선·진행바 트랙 */
+  --color-border-strong: #3b3f45; /* 외곽선 버튼·인디케이터 */
 
-  --color-danger: #ff5353;
+  /* --- 2. Primary — 스카이 (Swellnessy) -----------------------------------
+   * 주요 액션과 현재 위치에만. 화면당 4곳을 넘기지 않는다:
+   * 선택 날짜 · D-day 칩 · 진행바 · 주요 버튼.
+   */
+  --color-primary: #8dc9f7;
+  --color-primary-hover: #a5d6fa;
+  --color-primary-pressed: #6fb4e8;
+  --color-primary-tint: #17252f; /* 칩·배지 배경 */
+  --color-primary-disabled: #3a4a57;
+  --color-primary-on: #0b1926; /* 스카이 위 글자 */
 
-  /* Radius / Shadow */
-  --radius-btn: 20px;
-  --shadow-card: 0 2px 2px rgba(0, 0, 0, 0.05);
-  --shadow-dialog: 0 1px 10px rgba(0, 0, 0, 0.1);
+  /* --- 3. Sub-accent — 샌드 -----------------------------------------------
+   * 스카이가 "지금 해야 할 것"이면 샌드는 "기록·지난 것".
+   * 같은 화면에서 둘 다 주요 버튼에 쓰지 않는다.
+   */
+  --color-accent: #d8cfc2;
+  --color-accent-tint: #2a2620;
+  --color-accent-on: #1a1611;
 
-  /* Font */
-  --font-sans: system-ui, 'Apple SD Gothic Neo', sans-serif;
+  /* --- 4. Semantic — 신호등 (액센트와 독립) --------------------------------
+   * 자외선·미세먼지·습도의 위험도. 브랜드 색이 바뀌어도 이 값은 유지된다.
+   * 색만으로 구분되지 않도록 값 텍스트를 항상 함께 노출한다.
+   */
+  --color-level-low: #7fd48f; /* 좋음 · 낮음 */
+  --color-level-moderate: #e3c05a; /* 보통 */
+  --color-level-high: #ee8b4a; /* 나쁨 · 높음 */
+  --color-level-severe: #f0736f; /* 매우 나쁨 */
+
+  /* 폼 검증 실패·삭제 등 오류 상태. 시안에 별도 정의가 없어 level/severe를 임시로 잇는다.
+   * 디자인 시스템 확정 시 별도 값이 나오면 교체할 것. */
+  --color-danger: #f0736f;
+
+  /* --- 5. Text ------------------------------------------------------------ */
+  --color-text-primary: #ffffff; /* 제목·본문·AI 문구 */
+  --color-text-secondary: #9ba0a6; /* 날씨·보조 설명 */
+  --color-text-tertiary: #6c7178; /* 캡션·라벨 */
+  --color-text-disabled: #4a4f55;
+
+  /* --- Radius --- 시안 실측값 (CareCard 20 / Button 12 / DDay 칩 20 / 진행바 3) */
+  --radius-card: 20px;
+  --radius-btn: 12px;
+  --radius-chip: 20px;
+  --radius-bar: 3px;
+
+  /* --- Font --- 위 @font-face 참고. 폰트 로딩 전에는 폴백으로 그려진다. */
+  --font-sans: 'Pretendard', system-ui, 'Apple SD Gothic Neo', sans-serif;
 }
 
-/* 타이포는 유틸 클래스로 고정 → 컴포넌트에서 font-size 직접 지정 금지. 시안 확정되면 값만 교체. */
-.typo-head-1 {
-  font-size: 24px;
-  font-weight: 800;
-  line-height: 32px;
-}
-
-.typo-head-2 {
+/*
+ * 타이포는 유틸 클래스로 고정 → 컴포넌트에서 font-size 직접 지정 금지.
+ * 값은 A안 메인페이지·케어카드 실측 기준. 디자인 시스템 프레임 확정 시 재확인 필요.
+ */
+.typo-title {
   font-size: 20px;
-  font-weight: 800;
-  line-height: 22px;
+  font-weight: 700;
+  line-height: 26px;
 }
 
-.typo-body-1 {
+/* 카드 제목 (케어명 등) */
+.typo-card-title {
   font-size: 16px;
   font-weight: 700;
-  line-height: 22px;
+  line-height: 19px;
 }
 
-.typo-sub-1 {
+/* 섹션 헤더 */
+.typo-section {
   font-size: 14px;
+  font-weight: 700;
+  line-height: 18px;
+}
+
+/* 본문·AI 문구 — 여러 줄이라 line-height를 넉넉히 */
+.typo-body {
+  font-size: 13px;
   font-weight: 400;
-  line-height: 16px;
+  line-height: 1.55;
+}
+
+/* 버튼 라벨·보조 설명 */
+.typo-label {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 14px;
+}
+
+/* 캡션·칩·D-day */
+.typo-caption {
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 13px;
 }
 
 /* 가로 스크롤 영역의 스크롤바 숨김 */
@@ -60,9 +153,14 @@
   display: none;
 }
 
+/* 다크 전용 서비스 — 폼 컨트롤·스크롤바가 라이트로 렌더되지 않게 브라우저에 알린다. */
+:root {
+  color-scheme: dark;
+}
+
 body {
   margin: 0;
   font-family: var(--font-sans);
-  color: var(--color-gray-6);
-  background: #fff;
+  color: var(--color-text-primary);
+  background: var(--color-surface-canvas);
 }

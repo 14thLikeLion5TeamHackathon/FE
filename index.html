@@ -6,8 +6,17 @@
     <!-- TODO: 파비콘 교체 -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <!-- TODO: 서비스명 확정되면 교체 (Vite 기본 타이틀이 그대로 배포되는 사고 방지) -->
-    <title>FE</title>
+    <!-- 다크 배경 서비스: 로드 전 흰 화면이 번쩍이지 않게 브라우저 UI 색을 맞춘다. -->
+    <meta name="theme-color" content="#131416" />
+    <!-- 본문이 제일 먼저 그려지는 굵기라 Regular만 미리 받는다. Medium/Bold는 필요할 때 로드. -->
+    <link
+      rel="preload"
+      href="/fonts/Pretendard-Regular.subset.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <title>마디</title>
   </head>
   <body>
     <div id="root"></div>
