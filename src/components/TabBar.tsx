@@ -30,12 +30,21 @@ function TabItem({ to, label }: { to: string; label: string }) {
 /**
  * 하단 탭바. 오늘 · 회복 · [기록] · 마이 4슬롯이고 3번은 탭이 아니라 액션 버튼이다.
  * "장소가 아니라 행위"라 탭과 구분해 떠 있는 원형 버튼으로 둔다(명세: 하단 네비게이션 > 액션 버튼).
+ *
+ * index.html에 viewport-fit=cover가 있어 세이프 에어리어를 직접 처리해야 한다.
+ * 안 하면 아이폰 홈 인디케이터가 탭 라벨을 덮는다.
+ * 높이 상수는 TabLayout의 하단 패딩과 맞물리므로 TAB_BAR_HEIGHT를 같이 쓴다.
  */
+export const TAB_BAR_HEIGHT = 61;
+
 export default function TabBar() {
   const navigate = useNavigate();
 
   return (
-    <nav className="bg-surface-sunken fixed bottom-0 left-1/2 flex h-[61px] w-full max-w-[430px] -translate-x-1/2 items-center">
+    <nav
+      className="bg-surface-sunken fixed bottom-0 left-1/2 flex w-full max-w-[430px] -translate-x-1/2 items-center pb-[env(safe-area-inset-bottom)]"
+      style={{ height: `calc(${TAB_BAR_HEIGHT}px + env(safe-area-inset-bottom))` }}
+    >
       {TABS.map((tab) => (
         <TabItem key={tab.to} {...tab} />
       ))}
@@ -46,7 +55,7 @@ export default function TabBar() {
           type="button"
           onClick={() => navigate('/records/new')}
           aria-label="상태 기록"
-          className="bg-primary text-primary-on absolute -top-[9px] flex size-11 items-center justify-center rounded-full shadow-lg"
+          className="bg-primary text-primary-on shadow-fab absolute -top-[9px] flex size-11 items-center justify-center rounded-full"
         >
           <svg viewBox="0 0 20 20" className="size-5" fill="none" aria-hidden>
             <path

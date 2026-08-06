@@ -48,10 +48,16 @@ export default function MyPage() {
 
   const { notifications } = data;
 
-  /** 토글 하나만 바꿔서 통째로 저장한다. all을 끄면 하위는 화면에서 비활성. */
+  /** 토글 하나만 바꿔서 통째로 저장한다. */
   const toggle = (key: keyof NotificationSettings) => (checked: boolean) => {
     saveNotifications({ ...notifications, [key]: checked });
   };
+
+  /**
+   * 마스터(all)가 꺼지면 하위 알림은 실제로 발송되지 않으므로 꺼진 것으로 보여준다.
+   * 개별 값 자체는 유지해서 마스터를 다시 켜면 원래 설정으로 돌아온다.
+   */
+  const effective = (key: keyof NotificationSettings) => notifications.all && notifications[key];
 
   return (
     <div className="flex flex-col gap-3.5 px-5 pt-5 pb-6">
@@ -68,24 +74,24 @@ export default function MyPage() {
         </div>
       </Card>
 
+      {/*
+        아직 이동할 화면이 없는 행은 onClick을 주지 않는다.
+        빈 () => {} 를 넣으면 눌리는 것처럼 보이는 button이 되어 사용자를 속인다.
+        화면이 생기면 onClick={() => navigate('...')} 만 붙이면 된다.
+      */}
       <Group label="개인정보">
         <Card variant="list">
-          <SettingRow label="이름" value={data.name} href onClick={() => {}} />
-          <SettingRow label="생년월일" value={data.birthDate} href onClick={() => {}} />
-          <SettingRow label="성별" value={GENDER_LABEL[data.gender]} href onClick={() => {}} />
+          <SettingRow label="이름" value={data.name} chevron />
+          <SettingRow label="생년월일" value={data.birthDate} chevron />
+          <SettingRow label="성별" value={GENDER_LABEL[data.gender]} chevron />
         </Card>
       </Group>
 
       <Group label="연동 서비스">
         <Card variant="list">
-          <SettingRow
-            label="Google 캘린더"
-            value={data.calendarEmail ?? '연동 안 됨'}
-            href
-            onClick={() => {}}
-          />
-          <SettingRow label="계정 변경" href onClick={() => {}} />
-          <SettingRow label="연동 해제" href onClick={() => {}} />
+          <SettingRow label="Google 캘린더" value={data.calendarEmail ?? '연동 안 됨'} chevron />
+          <SettingRow label="계정 변경" chevron />
+          <SettingRow label="연동 해제" chevron />
         </Card>
       </Group>
 
@@ -115,7 +121,7 @@ export default function MyPage() {
             action={
               <Switch
                 label="오늘의 케어 안내"
-                checked={notifications.dailyCare}
+                checked={effective('dailyCare')}
                 onChange={toggle('dailyCare')}
                 disabled={!notifications.all}
               />
@@ -127,7 +133,7 @@ export default function MyPage() {
             action={
               <Switch
                 label="기록 리마인드"
-                checked={notifications.recordReminder}
+                checked={effective('recordReminder')}
                 onChange={toggle('recordReminder')}
                 disabled={!notifications.all}
               />
@@ -139,7 +145,7 @@ export default function MyPage() {
             action={
               <Switch
                 label="사전 경고"
-                checked={notifications.preWarning}
+                checked={effective('preWarning')}
                 onChange={toggle('preWarning')}
                 disabled={!notifications.all}
               />
@@ -150,8 +156,8 @@ export default function MyPage() {
 
       <Group label="계정">
         <Card variant="list">
-          <SettingRow label="로그아웃" href onClick={() => {}} />
-          <SettingRow label="회원탈퇴" tone="danger" href onClick={() => {}} />
+          <SettingRow label="로그아웃" chevron />
+          <SettingRow label="회원탈퇴" tone="danger" chevron />
         </Card>
       </Group>
     </div>
