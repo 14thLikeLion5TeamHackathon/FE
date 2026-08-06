@@ -11,7 +11,9 @@ function RootLayout() {
 
 /** lazy 라우트 청크 로딩 중 표시 (레이아웃 흔들림 최소화) */
 function RouteFallback() {
-  return <div className="min-h-screen bg-gray-1" aria-busy="true" aria-label="불러오는 중" />;
+  return (
+    <div className="bg-surface-canvas min-h-screen" aria-busy="true" aria-label="불러오는 중" />
+  );
 }
 
 export default function AppRoutes() {
