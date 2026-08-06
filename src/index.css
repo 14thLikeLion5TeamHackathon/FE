@@ -90,6 +90,10 @@
   --color-text-tertiary: #6c7178; /* 캡션·라벨 */
   --color-text-disabled: #4a4f55;
 
+  /* --- Shadow --- 다크 배경에선 그림자가 거의 안 보인다. 떠 있는 요소에만 진하게 준다. */
+  --shadow-fab: 0 4px 12px rgba(0, 0, 0, 0.45); /* 탭바 중앙 기록 버튼 */
+  --shadow-sheet: 0 -4px 20px rgba(0, 0, 0, 0.5); /* 바텀시트 상단 */
+
   /* --- Radius --- 시안 실측값 (CareCard 20 / Button 12 / DDay 칩 20 / 진행바 3) */
   --radius-card: 20px;
   --radius-btn: 12px;

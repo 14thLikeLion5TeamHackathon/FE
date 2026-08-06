@@ -45,6 +45,7 @@ src/
 ├── api/          # Axios 기반 API 호출과 공통 응답 처리
 ├── hooks/        # TanStack Query 도메인 훅
 ├── types/        # Zod 스키마와 API 타입
+├── lib/          # 프레임워크 무관 유틸 (cn 등)
 └── mocks/        # 개발 환경 MSW 핸들러
 ```
 
@@ -66,9 +67,15 @@ export async function getHome(): Promise<HomeResponse> {
 ### 스타일 규칙
 
 - 색·radius·shadow·font는 `src/index.css`의 `@theme` 토큰으로만 정의합니다.
-- 타이포는 `.typo-*` 유틸 클래스를 사용합니다.
-- **컴포넌트에서 raw hex나 font-size 직접 지정 금지** — `text-primary`, `shadow-card`, `typo-head-2` 형태로만 씁니다.
+  토큰 이름은 Figma `Wireframe` 변수와 1:1이라 **코드에서 임의로 바꾸지 않습니다** — 시안이 먼저 바뀌고 코드가 따라갑니다.
+- **다크 테마 전용**입니다. 라이트 모드 대응은 하지 않습니다.
+- 타이포는 `.typo-*` 유틸 6종만 씁니다 — `typo-title` `typo-card-title` `typo-section` `typo-body` `typo-label` `typo-caption`
+- **컴포넌트에서 raw hex나 font-size 직접 지정 금지** — `bg-surface-raised`, `text-text-secondary`, `typo-card-title` 형태로만 씁니다.
 - 조건부 클래스는 `src/lib/cn.ts`의 `cn()`을 사용합니다.
+
+> ⚠️ `text-primary`는 **글자색이 아니라 스카이(`#8DC9F7`)** 입니다. 본문 글자는 `text-text-primary`입니다.
+
+전체 토큰 목록과 자주 하는 실수는 [디자인 토큰 치트시트](https://app.notion.com/p/3b437e6b127e81bfb1eaed6601d61d6f)에 있습니다.
 
 ### MSW
 
