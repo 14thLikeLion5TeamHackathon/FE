@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router';
 
 // 라우트별 코드 스플리팅: 방문하는 화면 청크만 로드된다.
 const HomePage = lazy(() => import('../pages/home/HomePage'));
+const RecoveryPage = lazy(() => import('../pages/recovery/RecoveryPage'));
 const MyPage = lazy(() => import('../pages/my/MyPage'));
 
 // 레이아웃은 모든 탭 화면에서 쓰이므로 lazy로 쪼개지 않는다.
@@ -22,6 +23,7 @@ export default function AppRoutes() {
         {/* 탭 화면 — 하단 TabBar 공유 */}
         <Route element={<TabLayout />}>
           <Route path="/" element={<HomePage />} />
+          <Route path="/recovery" element={<RecoveryPage />} />
           <Route path="/my" element={<MyPage />} />
         </Route>
 
