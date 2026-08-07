@@ -98,15 +98,15 @@ export const today = {
     { id: 'c-2', label: '선크림 2중 도포', done: false, source: '스컬트라 D+7' },
     { id: 'c-3', label: '물 2L 마시기', done: false, source: '포텐자 D+3' },
   ],
-  calendar: [
-    { date: '2026-08-02', marked: true, outOfForecast: false },
-    { date: '2026-08-03', marked: true, outOfForecast: false },
-    { date: '2026-08-04', marked: false, outOfForecast: false },
-    { date: '2026-08-05', marked: true, outOfForecast: false },
-    { date: '2026-08-06', marked: false, outOfForecast: false },
-    { date: '2026-08-07', marked: false, outOfForecast: false },
-    { date: '2026-08-08', marked: false, outOfForecast: false },
-  ],
+  // 8월 한 달치. 주의일은 일정·자외선·회복 분기점이 있는 날, 예보 범위는 8/16까지.
+  calendar: Array.from({ length: 31 }, (_, i) => {
+    const day = i + 1;
+    return {
+      date: `2026-08-${String(day).padStart(2, '0')}`,
+      marked: [2, 3, 5, 9, 12, 14].includes(day),
+      outOfForecast: day > 16,
+    };
+  }),
   forecastNote: '예보는 8월 16일까지 제공돼요',
 };
 
