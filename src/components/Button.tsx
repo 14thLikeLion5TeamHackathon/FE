@@ -1,45 +1,38 @@
-import type { ButtonHTMLAttributes, ReactNode } from 'react';
+import type { ButtonHTMLAttributes } from 'react';
 
 import { cn } from '../lib/cn';
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
-  children: ReactNode;
   /**
-   * 버튼의 시각적 스타일 변주
-   * - primary: 기본 브랜드 메인 버튼
+   * 버튼 스타일 변형
+   * - primary: 주요 동작 버튼 (기본값)
+   * - secondary: 보조 동작 버튼
    */
-  variant?: 'primary';
-  className?: string;
+  variant?: 'primary' | 'secondary';
 };
 
-/**
- * 시안의 기본 `Button`.
- * - 패딩: py-2 px-[10px] (8px 10px)
- * - 폰트: typo-label (12px / font-medium(500) / line-height 14px)
- * - 활성화: bg-primary, text-primary-on
- * - 비활성화: border-border-strong, text-text-tertiary
- */
 export default function Button({
-  children,
   variant = 'primary',
-  type = 'button',
-  disabled = false,
+  disabled,
   className,
+  children,
   ...props
 }: ButtonProps) {
   return (
     <button
-      type={type}
       disabled={disabled}
       className={cn(
-        // 공통 레이아웃 및 폰트 스펙 (typo-label 적용)
-        'inline-flex items-center justify-center rounded-sm py-2 px-[10px] typo-label font-medium transition-colors',
+        // 공통 기본 스타일 (패딩: 8/10, typo-body 활용)
+        'w-full py-[8px] px-[10px] rounded-sm typo-body font-bold transition-colors select-none flex items-center justify-center',
+        
+        // 1. Primary Variant
+        variant === 'primary' && !disabled && 'bg-primary text-primary-on hover:opacity-90',
 
-        // 1. 활성화 상태 (bg-primary + text-primary-on)
-        !disabled && variant === 'primary' && 'bg-primary text-primary-on',
+        // 2. Secondary Variant
+        variant === 'secondary' && !disabled && 'bg-surface-sunken text-text-primary border border-border-strong hover:bg-surface',
 
-        // 2. 비활성화 상태 (border-border-strong + text-text-tertiary)
-        disabled && 'border border-border-strong text-text-tertiary cursor-not-allowed',
+        // 3. Disabled State (변형 상관없이 비활성화 스타일 적용)
+        disabled && 'bg-surface-sunken text-text-disabled border border-border-strong cursor-not-allowed',
 
         className,
       )}
