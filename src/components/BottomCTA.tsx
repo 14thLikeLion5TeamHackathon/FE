@@ -8,16 +8,15 @@ type BottomCTAProps = {
   secondary?: { label: string; onClick?: () => void; tone?: 'default' | 'danger' };
 };
 
-/** 하단 CTA 바 높이(px). SubLayout의 하단 패딩과 맞물린다. */
-export const BOTTOM_CTA_HEIGHT = 88;
-
 /**
  * 하단 고정 CTA 바.
  *
  * 시안 규칙: **입력 화면에만** 쓴다.
  * 결과·조회 화면(AI 피드백·카드 상세)의 버튼은 콘텐츠 흐름 안에 둔다.
  *
- * TabBar와 마찬가지로 fixed라 세이프 에어리어를 직접 처리한다.
+ * fixed라 문서 흐름에서 빠진다 — **이 컴포넌트를 쓰는 화면은 콘텐츠 하단에 `pb-28`(112px)을 준다.**
+ * 시안의 Content padding-bottom 값이며, 바 높이(약 84px)에 여유를 더한 값이다.
+ * 세이프 에어리어는 바가 자체 처리하므로 화면이 신경 쓸 필요 없다.
  */
 export default function BottomCTA({ label, onClick, disabled = false, secondary }: BottomCTAProps) {
   return (
