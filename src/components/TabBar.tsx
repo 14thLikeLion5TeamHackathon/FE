@@ -42,7 +42,7 @@ export default function TabBar() {
 
   return (
     <nav
-      className="bg-surface-sunken fixed bottom-0 left-1/2 flex w-full max-w-[430px] -translate-x-1/2 items-center pb-[env(safe-area-inset-bottom)]"
+      className="bg-surface-sunken fixed bottom-0 left-1/2 flex w-full max-w-app -translate-x-1/2 items-center pb-[env(safe-area-inset-bottom)]"
       style={{ height: `calc(${TAB_BAR_HEIGHT}px + env(safe-area-inset-bottom))` }}
     >
       {TABS.map((tab) => (
