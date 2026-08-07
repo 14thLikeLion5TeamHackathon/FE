@@ -41,8 +41,9 @@ export default function CareCard({ card, onDetail, onRecord }: CareCardProps) {
           </div>
           <div className="flex items-center justify-between">
             <span className="typo-caption text-text-secondary">회복 진행</span>
+            {/* 완료된 카드는 경과일이 총일수를 넘어 `34 / 29일`처럼 어색해진다 */}
             <span className="typo-caption text-text-secondary">
-              {card.dday} / {card.totalDays}일
+              {done ? '완료' : `${card.dday} / ${card.totalDays}일`}
             </span>
           </div>
         </div>

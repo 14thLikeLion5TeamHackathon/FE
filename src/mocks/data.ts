@@ -170,6 +170,30 @@ export const feedback = {
   },
 };
 
+/**
+ * 문의 권고 케이스. 시안 「AI 피드백 — 문의 권고」에 해당한다.
+ * `/records/warn/feedback`으로 들어가면 이 응답이 온다 — 정상 케이스와 나란히 확인하려는 목적.
+ */
+export const feedbackWarning = {
+  ...feedback,
+  id: 'fb-2',
+  deltas: [
+    { key: 'SWELLING', before: 1, after: 3, trend: 'UP' },
+    { key: 'PAIN', before: 1, after: 3, trend: 'UP' },
+    { key: 'REDNESS', before: 2, after: 2, trend: 'SAME' },
+    { key: 'DRYNESS', before: 1, after: 2, trend: 'UP' },
+  ],
+  quotedMemo: '어제보다 더 부은 것 같아요',
+  analysis:
+    '부기와 통증이 예상 범위를 벗어나고 있어요. D+7이면 줄어드는 시기인데 이틀째 \'심함\'으로 기록되고 있습니다.',
+  intensityReview: "기록하신 부기 '심함'은 사진과도 일치해요. D+7 평균보다 높은 편입니다.",
+  advice: {
+    required: true,
+    message: '부기와 통증이 이틀 연속 \'심함\'이에요. 시술 기관에 문의해보시는 걸 권해드려요.',
+    criteria: '강도 3이 2일 이상 지속',
+  },
+};
+
 export const recovery = {
   inProgress: [cards[0], cards[1]],
   done: [cards[2]],

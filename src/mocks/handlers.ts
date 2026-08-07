@@ -63,7 +63,10 @@ export const handlers = [
   http.post('/api/records', () => ok({ recordId: 'rec-2' })),
 
   /* ── AI 피드백 ────────────────────────────────────────── */
-  http.get('/api/records/:recordId/feedback', () => ok(db.feedback)),
+  http.get('/api/records/:recordId/feedback', ({ params }) =>
+    // 시안의 두 케이스를 나란히 확인하려고 recordId로 분기한다
+    ok(params.recordId === 'warn' ? db.feedbackWarning : db.feedback),
+  ),
 
   /* ── 회복 ─────────────────────────────────────────────── */
   http.get('/api/recovery', () => ok(db.recovery)),
