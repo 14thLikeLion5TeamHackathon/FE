@@ -6,32 +6,31 @@ type FieldProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> & {
   className?: string;
 };
 
-export default function Field({
-  value,
-  className,
-  disabled,
-  ...props
-}: FieldProps) {
-  // value 존재 여부로 입력 상태 판단 (uncontrolled warning 방지)
+/**
+ * 시안 `Field` (Figma `공용 컴포넌트` > Field).
+ * **입력칸만 담당한다** — 라벨과 필수/선택 마커는 쓰는 쪽 화면에서 그린다.
+ *
+ * 값이 있으면 테두리가 primary 1.5px로 바뀐다(시안 `State=Filled`).
+ */
+export default function Field({ value, className, disabled, ...props }: FieldProps) {
   const hasValue = Boolean(value && String(value).length > 0);
 
   return (
     <div
       className={cn(
-        // typo-body 내부 설정(13px)을 온전히 사용하도록 text-sm 제거
-        'flex items-center w-full px-[14px] py-[12px] rounded-md bg-surface-sunken border transition-colors typo-body',
-        
-        // 테두리 조건
-        hasValue ? 'border-primary' : 'border-border-strong',
+        // 공통 — 패딩 14, 배경은 surface-raised (sunken은 탭바 전용이라 쓰지 않는다)
+        'typo-body rounded-md bg-surface-raised flex w-full items-center border p-3.5 transition-colors',
 
-        disabled && 'opacity-50 cursor-not-allowed',
+        hasValue ? 'border-primary border-[1.5px]' : 'border-border-subtle',
+
+        disabled && 'cursor-not-allowed opacity-50',
         className,
       )}
     >
       <input
         value={value}
         disabled={disabled}
-        className="w-full bg-transparent text-text-primary placeholder:text-text-tertiary focus:outline-none"
+        className="text-text-primary placeholder:text-text-tertiary w-full bg-transparent focus:outline-none"
         {...props}
       />
     </div>
