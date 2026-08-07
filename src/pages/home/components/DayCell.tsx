@@ -1,5 +1,5 @@
 import { cn } from '../../../lib/cn';
-import { DOW_LABELS } from '../../../lib/date';
+import { DOW_LABELS, formatDayLabel } from '../../../lib/date';
 
 type DayCellProps = {
   date: Date;
@@ -22,11 +22,25 @@ export default function DayCell({
   showDow = false,
   onSelect,
 }: DayCellProps) {
+  /**
+   * 화면에는 숫자만 보이므로 읽을 이름을 따로 준다.
+   * 숫자 42개가 늘어선 그리드라 "7, 버튼"만으로는 아무것도 알 수 없다.
+   * 점·흐림 같은 시각 표시도 말로 옮긴다 — 색과 모양으로만 전달하지 않는다.
+   */
+  const label = [
+    formatDayLabel(date),
+    marked ? '케어 주의일' : null,
+    outOfForecast ? '예보 범위 밖' : null,
+  ]
+    .filter(Boolean)
+    .join(', ');
+
   return (
     <button
       type="button"
       onClick={() => onSelect?.(date)}
       aria-pressed={selected}
+      aria-label={label}
       className={cn(
         'rounded-sm flex flex-col items-center gap-1 p-2 transition-colors',
         selected && 'bg-primary',
@@ -34,20 +48,26 @@ export default function DayCell({
       )}
     >
       {showDow && (
-        <span className={cn('typo-caption', selected ? 'text-primary-on' : 'text-text-secondary')}>
+        <span
+          aria-hidden
+          className={cn('typo-caption', selected ? 'text-primary-on' : 'text-text-secondary')}
+        >
           {DOW_LABELS[date.getDay()]}
         </span>
       )}
-      <span className={cn('typo-section', selected ? 'text-primary-on' : 'text-text-primary')}>
+      <span
+        aria-hidden
+        className={cn('typo-section', selected ? 'text-primary-on' : 'text-text-primary')}
+      >
         {date.getDate()}
       </span>
       {/* 점이 없어도 자리를 차지해야 날짜 높이가 흔들리지 않는다 */}
       <span
+        aria-hidden
         className={cn(
           'size-1 rounded-full',
           marked ? (selected ? 'bg-primary-on' : 'bg-primary') : 'bg-transparent',
         )}
-        aria-hidden
       />
     </button>
   );

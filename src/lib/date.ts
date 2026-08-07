@@ -4,9 +4,7 @@
  * 로컬 타임존 기준으로만 다루고 UTC 변환은 하지 않는다 — 캘린더는 사용자 로컬 날짜가 전부다.
  */
 
-const DOW = ['일', '월', '화', '수', '목', '금', '토'] as const;
-
-export const DOW_LABELS = DOW;
+export const DOW_LABELS = ['일', '월', '화', '수', '목', '금', '토'] as const;
 
 /** 시/분/초를 버린 같은 날짜 */
 export function startOfDay(date: Date): Date {
@@ -43,7 +41,7 @@ export function isSameDay(a: Date, b: Date): boolean {
 
 /** "8월 3일 (월)" */
 export function formatDayLabel(date: Date): string {
-  return `${date.getMonth() + 1}월 ${date.getDate()}일 (${DOW[date.getDay()]})`;
+  return `${date.getMonth() + 1}월 ${date.getDate()}일 (${DOW_LABELS[date.getDay()]})`;
 }
 
 /** "2026년 8월" — 월 모드 헤더 */
