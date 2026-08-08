@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
 
-import Card from './Card';
 import { cn } from '../lib/cn';
 
 type EmptyStateCardProps = {
@@ -17,10 +16,15 @@ export default function EmptyStateCard({
   className,
 }: EmptyStateCardProps) {
   return (
-    <Card className={cn('flex flex-col items-stretch gap-3', className)}>
-      <p className="typo-body text-text-secondary self-stretch">{title}</p>
+    <div
+      className={cn(
+        'bg-surface-raised border-border-subtle flex flex-col items-center gap-3 rounded-md border p-4',
+        className,
+      )}
+    >
+      <p className="typo-card-title">{title}</p>
       {description && <p className="typo-caption text-text-tertiary">{description}</p>}
       {action}
-    </Card>
+    </div>
   );
 }
