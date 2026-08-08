@@ -12,21 +12,32 @@ type RecoveryCurveProps = {
 /** 비교할 시점을 고르는 칩. 지금은 목록을 순환하고, 드롭다운은 시안 확정 후 붙인다. */
 function PeriodChip({
   label,
+  slotLabel,
+  disabled,
   onClick,
 }: {
   label: string;
+  slotLabel: string;
+  disabled: boolean;
   onClick: () => void;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="bg-surface-fill border-border-subtle rounded-chip flex items-center gap-1 border px-3 py-1.5"
+      disabled={disabled}
+      aria-label={`${slotLabel} ${label}${disabled ? '' : ', 눌러서 변경'}`}
+      className={cn(
+        'bg-surface-fill border-border-subtle rounded-chip flex items-center gap-1 border px-3 py-1.5',
+        disabled && 'opacity-60',
+      )}
     >
       <span className="typo-label text-text-primary">{label}</span>
-      <span className="typo-caption text-text-secondary" aria-hidden>
-        ⌄
-      </span>
+      {!disabled && (
+        <span className="typo-caption text-text-secondary" aria-hidden>
+          ⌄
+        </span>
+      )}
     </button>
   );
 }
@@ -40,7 +51,32 @@ function PeriodChip({
  */
 export default function RecoveryCurve({ curve, onRecord }: RecoveryCurveProps) {
   const { points } = curve;
-  const [compared, setCompared] = useState<[number, number]>(curve.comparedIndexes);
+
+  /**
+   * 서버가 준 인덱스는 범위를 보장하지 않는다(Zod는 숫자 두 개인지만 검증한다).
+   * 범위를 벗어나면 `points[i]`가 undefined가 되어 화면이 죽으므로 여기서 잘라 준다.
+   */
+  const clamp = (index: number, fallback: number) =>
+    Number.isInteger(index) && index >= 0 && index < points.length ? index : fallback;
+
+  const [compared, setCompared] = useState<[number, number]>(() => [
+    clamp(curve.comparedIndexes[0], 0),
+    clamp(curve.comparedIndexes[1], Math.max(0, points.length - 1)),
+  ]);
+
+  /**
+   * 기록을 저장하면 points가 늘어난다. useState는 첫 렌더 값만 쓰므로
+   * 그대로 두면 "방금 기록"이 아니라 이전 기록이 비교 대상으로 남는다.
+   * 길이가 바뀌면 처음↔마지막으로 되돌린다.
+   */
+  const [knownLength, setKnownLength] = useState(points.length);
+  if (knownLength !== points.length) {
+    setKnownLength(points.length);
+    setCompared([0, Math.max(0, points.length - 1)]);
+  }
+
+  /** 선택지가 둘뿐이면 시점을 바꿀 여지가 없다 */
+  const canCycle = points.length > 2;
 
   // 사진이 1장 이하면 곡선 대신 기록을 유도한다
   if (points.length <= 1) {
@@ -86,11 +122,21 @@ export default function RecoveryCurve({ curve, onRecord }: RecoveryCurveProps) {
 
       {/* 기간 선택 — 비교할 두 시점 */}
       <div className="flex items-center gap-2">
-        <PeriodChip label={points[compared[0]].ddayLabel} onClick={() => cycle(0)} />
+        <PeriodChip
+          slotLabel="비교 시작"
+          label={points[compared[0]].ddayLabel}
+          disabled={!canCycle}
+          onClick={() => cycle(0)}
+        />
         <span className="typo-label text-text-tertiary" aria-hidden>
           →
         </span>
-        <PeriodChip label={points[compared[1]].ddayLabel} onClick={() => cycle(1)} />
+        <PeriodChip
+          slotLabel="비교 끝"
+          label={points[compared[1]].ddayLabel}
+          disabled={!canCycle}
+          onClick={() => cycle(1)}
+        />
       </div>
 
       {/* 두 시점 사진 비교 */}

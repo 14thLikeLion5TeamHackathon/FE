@@ -1,4 +1,4 @@
-import { NavLink, useNavigate } from 'react-router';
+import { NavLink } from 'react-router';
 
 import { cn } from '../lib/cn';
 
@@ -37,9 +37,12 @@ function TabItem({ to, label }: { to: string; label: string }) {
  */
 export const TAB_BAR_HEIGHT = 61;
 
-export default function TabBar() {
-  const navigate = useNavigate();
+type TabBarProps = {
+  /** 기록 버튼 — 곧장 이동하지 않고 카드 선택 시트를 먼저 연다 */
+  onRecord: () => void;
+};
 
+export default function TabBar({ onRecord }: TabBarProps) {
   return (
     <nav
       className="bg-surface-sunken fixed bottom-0 left-1/2 flex w-full max-w-app -translate-x-1/2 items-center pb-[env(safe-area-inset-bottom)]"
@@ -53,8 +56,9 @@ export default function TabBar() {
       <div className="relative flex flex-1 flex-col items-center gap-1">
         <button
           type="button"
-          onClick={() => navigate('/records/new')}
+          onClick={onRecord}
           aria-label="상태 기록"
+          aria-haspopup="dialog"
           className="bg-primary text-primary-on shadow-fab absolute -top-[9px] flex size-11 items-center justify-center rounded-full"
         >
           <svg viewBox="0 0 20 20" className="size-5" fill="none" aria-hidden>

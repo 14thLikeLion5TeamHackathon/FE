@@ -1,13 +1,17 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router';
 
 import BottomCTA from '../../components/BottomCTA';
-import Chip from '../../components/Chip';
 import NavHeader from '../../components/NavHeader';
-import Segment from '../../components/Segment';
 
 import { useCreateRecord } from '../../hooks/record/useRecord';
 import { cn } from '../../lib/cn';
-import { SYMPTOM_LABEL, type Intensity, type SymptomKey } from '../../types/common';
+import type { CareCard } from '../../types/card';
+import type { Intensity, SymptomKey } from '../../types/common';
+
+import IntensitySelectBlock from './components/IntensitySelectBlock';
+import PhotoUploadBlock from './components/PhotoUploadBlock';
+import SymptomSelectBlock from './components/SymptomSelectBlock';
 
 /** 공용 블록 Wrapper */
 function Section({
@@ -29,20 +33,11 @@ function Section({
   );
 }
 
-const ALL_SYMPTOMS: SymptomKey[] = ['REDNESS', 'SWELLING', 'PAIN', 'DRYNESS'];
-const INTENSITY_OPTIONS: { label: string; value: Intensity }[] = [
-  { label: '없음', value: 0 },
-  { label: '약간', value: 1 },
-  { label: '보통', value: 2 },
-  { label: '심함', value: 3 },
-];
-
 interface RecordCreatePageProps {
-  /** BE 연동/Zod 스키마 수신 데이터 (기본값 제공) */
+  selectedCard?: CareCard;
   cardId?: string;
   treatmentName?: string;
   treatmentDateInfo?: string;
-  /** 🔥 유저 일일 분석 사용 현황 데이터 (BE 연동 준비) */
   dailyUsage?: {
     maxCount: number;
     todayCount: number;
@@ -50,12 +45,22 @@ interface RecordCreatePageProps {
 }
 
 export default function RecordCreatePage({
+  selectedCard,
   cardId = 'card-1',
   treatmentName = '포텐자',
   treatmentDateInfo = 'D+7 · 2026.07.25 시술',
-  dailyUsage = { maxCount: 3, todayCount: 1 }, // BE 연동 전 임시 기본값
+  dailyUsage = { maxCount: 3, todayCount: 0 },
 }: RecordCreatePageProps) {
+  const navigate = useNavigate();
   const { mutate: createRecord, isPending } = useCreateRecord();
+
+  const targetCardId = selectedCard?.id ?? cardId;
+  const displayTitle = selectedCard?.name ?? treatmentName;
+  const displayDateInfo = selectedCard
+    ? `D+${selectedCard.dday} · ${selectedCard.treatedAt} 시술`
+    : treatmentDateInfo;
+
+  const isLimitReached = dailyUsage.todayCount >= dailyUsage.maxCount;
 
   // 입력 상태
   const [memo, setMemo] = useState('');
@@ -91,96 +96,53 @@ export default function RecordCreatePage({
   };
 
   const handleSubmit = () => {
-    createRecord({
-      cardId,
-      memo,
-      photoUrls: [], // S3 / Image Upload API 스키마 확정 시 매핑 연결
-      symptoms: selectedSymptoms.map((symptom) => ({
-        key: symptom,
-        intensity: symptomLevels[symptom],
-      })),
-    });
+    createRecord(
+      {
+        cardId: targetCardId,
+        memo,
+        photoUrls: [],
+        symptoms: selectedSymptoms.map((symptom) => ({
+          key: symptom,
+          intensity: symptomLevels[symptom],
+        })),
+        usePreviousAnalysis: isLimitReached,
+      } as Parameters<typeof createRecord>[0],
+      {
+        onSuccess: (data: { recordId: string }) => {
+          const recordId = data?.recordId ?? 'temp-record-id';
+          navigate(`/records/${recordId}/feedback`);
+        },
+      }
+    );
   };
 
-  // 🔥 동적 서브텍스트 생성
-  const subText = `하루 ${dailyUsage.maxCount}회까지 분석할 수 있어요 · 오늘 ${dailyUsage.todayCount}회 사용`;
+  const subText = isLimitReached
+    ? `오늘 분석 횟수(${dailyUsage.maxCount}회)를 모두 사용했어요 · 직전 피드백이 재사용돼요`
+    : `하루 ${dailyUsage.maxCount}회까지 분석할 수 있어요 · 오늘 ${dailyUsage.todayCount}회 사용`;
 
   return (
     <div className="min-h-screen bg-surface-canvas">
-      {/* Content 영역 */}
       <main className="flex w-full flex-col gap-3.5 px-5 pt-5 pb-28">
-        {/* NavHeader */}
         <NavHeader title="상태 기록" />
 
         {/* TargetCard */}
         <div className="flex w-full items-center justify-between rounded-btn bg-surface-fill px-3 py-2">
-          <span className="typo-label text-text-primary">{treatmentName}</span>
+          <span className="typo-label text-text-primary">{displayTitle}</span>
           <span className="typo-caption text-right text-text-tertiary">
-            {treatmentDateInfo}
+            {displayDateInfo}
           </span>
         </div>
 
-        {/* PhotoBlock */}
+        {/* 1. 사진 블록 */}
         <Section label="사진" labelColor="text-text-primary">
-          <input
-            id="camera-input"
-            type="file"
-            accept="image/*"
-            capture="environment"
-            className="hidden"
-            onChange={handlePhotoSelect}
+          <PhotoUploadBlock
+            photos={photos}
+            onSelectPhoto={handlePhotoSelect}
+            onRemovePhoto={handleRemovePhoto}
           />
-          <input
-            id="album-input"
-            type="file"
-            accept="image/*"
-            multiple
-            className="hidden"
-            onChange={handlePhotoSelect}
-          />
-
-          <div className="flex w-full items-start gap-2">
-            <label
-              htmlFor="camera-input"
-              className="flex flex-1 cursor-pointer flex-col items-center justify-center gap-1.5 rounded-md border border-dashed border-border-subtle bg-surface-raised py-7 transition-colors hover:bg-surface-elevated"
-            >
-              <span className="typo-label text-center text-text-secondary">촬영</span>
-            </label>
-
-            <label
-              htmlFor="album-input"
-              className="flex flex-1 cursor-pointer flex-col items-center justify-center gap-1.5 rounded-md border border-dashed border-border-subtle bg-surface-raised py-7 transition-colors hover:bg-surface-elevated"
-            >
-              <span className="typo-label text-center text-text-secondary">앨범에서 선택</span>
-            </label>
-          </div>
-
-          {photos.length > 0 && (
-            <div className="mt-1 grid grid-cols-3 gap-2">
-              {photos.map((file, idx) => (
-                <div
-                  key={idx}
-                  className="relative h-20 w-full overflow-hidden rounded-md bg-surface-raised"
-                >
-                  <img
-                    src={URL.createObjectURL(file)}
-                    alt={`선택 사진 ${idx + 1}`}
-                    className="h-full w-full object-cover"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => handleRemovePhoto(idx)}
-                    className="absolute top-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-surface-overlay text-text-primary-on typo-caption"
-                  >
-                    ✕
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
         </Section>
 
-        {/* StateBlock */}
+        {/* 2. 상태 입력 블록 */}
         <Section label="지금 상태" labelColor="text-text-primary">
           <textarea
             value={memo}
@@ -191,71 +153,29 @@ export default function RecordCreatePage({
           />
         </Section>
 
-        {/* SymptomBlock */}
+        {/* 3. 증상 선택 블록 */}
         <Section label="증상" labelColor="text-text-primary">
-          <div className="flex w-full items-start gap-2">
-            {ALL_SYMPTOMS.map((key) => {
-              const isSelected = selectedSymptoms.includes(key);
-              return (
-                <Chip
-                  key={key}
-                  className={cn(
-                    'flex-1 cursor-pointer justify-center px-3 py-[6px] text-center transition-colors border',
-                    isSelected
-                      ? 'border-primary bg-primary-tint text-primary'
-                      : 'border-border-strong bg-transparent text-text-secondary'
-                  )}
-                  onClick={() => toggleSymptom(key)}
-                >
-                  {SYMPTOM_LABEL[key] ?? key}
-                </Chip>
-              );
-            })}
-          </div>
+          <SymptomSelectBlock
+            selectedSymptoms={selectedSymptoms}
+            onToggleSymptom={toggleSymptom}
+          />
         </Section>
 
-        {/* IntensityBlock */}
+        {/* 4. 증상 정도 선택 블록 */}
         {selectedSymptoms.length > 0 && (
           <Section label="증상 정도" labelColor="text-text-primary" gapClass="gap-[10px]">
-            <div className="flex w-full flex-col gap-[10px]">
-              {selectedSymptoms.map((symptomKey) => (
-                <div key={symptomKey} className="flex w-full items-center gap-[10px]">
-                  <span className="typo-body w-12 shrink-0 text-text-secondary">
-                    {SYMPTOM_LABEL[symptomKey]}
-                  </span>
-
-                  {/* segments */}
-                  <div className="flex flex-1 items-center gap-[2px] rounded-btn bg-surface-fill p-[3px]">
-                    {INTENSITY_OPTIONS.map((option) => {
-                      const isSelected = symptomLevels[symptomKey] === option.value;
-                      return (
-                        <Segment
-                          key={option.value}
-                          selected={isSelected}
-                          className={cn(
-                            'typo-body border-none rounded-[6px] py-[6px] px-0',
-                            isSelected
-                              ? 'bg-primary text-primary-on'
-                              : 'bg-transparent text-text-secondary'
-                          )}
-                          onClick={() => handleIntensityChange(symptomKey, option.value)}
-                        >
-                          {option.label}
-                        </Segment>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
+            <IntensitySelectBlock
+              selectedSymptoms={selectedSymptoms}
+              symptomLevels={symptomLevels}
+              onChangeIntensity={handleIntensityChange}
+            />
           </Section>
         )}
       </main>
 
-      {/* 하단 CTA */}
       <BottomCTA
         label={isPending ? '등록 중...' : '기록 등록하기'}
-        disabled={isPending || dailyUsage.todayCount >= dailyUsage.maxCount}
+        disabled={isPending}
         onClick={handleSubmit}
         subText={subText}
       />
