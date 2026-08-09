@@ -1,5 +1,4 @@
 import { useState } from 'react';
-// 🔥 useSearchParams 추가 import
 import { useNavigate, useSearchParams } from 'react-router';
 
 import BottomCTA from '../../components/BottomCTA';
