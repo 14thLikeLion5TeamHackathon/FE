@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router';
+// 🔥 useSearchParams 추가 import
+import { useNavigate, useSearchParams } from 'react-router';
 
 import BottomCTA from '../../components/BottomCTA';
 import NavHeader from '../../components/NavHeader';
@@ -52,9 +53,14 @@ export default function RecordCreatePage({
   dailyUsage = { maxCount: 3, todayCount: 0 },
 }: RecordCreatePageProps) {
   const navigate = useNavigate();
+  // 1. URL Query Parameter에서 cardId 읽어오기
+  const [searchParams] = useSearchParams();
+  const queryCardId = searchParams.get('cardId');
+
   const { mutate: createRecord, isPending } = useCreateRecord();
 
-  const targetCardId = selectedCard?.id ?? cardId;
+  // Props -> Query Param -> Default순으로 Target Card ID 결정
+  const targetCardId = selectedCard?.id ?? queryCardId ?? cardId;
   const displayTitle = selectedCard?.name ?? treatmentName;
   const displayDateInfo = selectedCard
     ? `D+${selectedCard.dday} · ${selectedCard.treatedAt} 시술`
@@ -65,10 +71,12 @@ export default function RecordCreatePage({
   // 입력 상태
   const [memo, setMemo] = useState('');
   const [photos, setPhotos] = useState<File[]>([]);
-  const [selectedSymptoms, setSelectedSymptoms] = useState<SymptomKey[]>(['REDNESS', 'SWELLING']);
+
+  // 2. 증상 초기값을 빈 값([] / 전부 0)으로 변경하여 미선택 데이터 오염 방지
+  const [selectedSymptoms, setSelectedSymptoms] = useState<SymptomKey[]>([]);
   const [symptomLevels, setSymptomLevels] = useState<Record<SymptomKey, Intensity>>({
-    REDNESS: 1,
-    SWELLING: 2,
+    REDNESS: 0,
+    SWELLING: 0,
     PAIN: 0,
     DRYNESS: 0,
   });
@@ -96,6 +104,7 @@ export default function RecordCreatePage({
   };
 
   const handleSubmit = () => {
+    // 3. 스키마에 없는 필드 및 as 캐스팅 제거
     createRecord(
       {
         cardId: targetCardId,
@@ -105,8 +114,7 @@ export default function RecordCreatePage({
           key: symptom,
           intensity: symptomLevels[symptom],
         })),
-        usePreviousAnalysis: isLimitReached,
-      } as Parameters<typeof createRecord>[0],
+      },
       {
         onSuccess: (data: { recordId: string }) => {
           const recordId = data?.recordId ?? 'temp-record-id';
