@@ -58,21 +58,21 @@ export const treatments = [
     name: '초음파 보톡스',
     description: '사각턱, 승모근 등 근육 축소',
     category: 'DRUG',
-    thumbnailUrl: null,
+    thumbnailUrl: 'https://picsum.photos/seed/t-1/200/200',
   },
   {
     id: 't-2',
     name: '튠 프리미엄',
     description: '페이스 리프팅 및 탄력 개선',
-    category: 'DEVICE',
-    thumbnailUrl: null,
+    category: 'DRUG',
+    thumbnailUrl: 'https://picsum.photos/seed/t-2/200/200',
   },
   {
     id: 't-3',
     name: '릴리이드 하이드로',
     description: '피부 속 건조 해결 및 수분 충전',
-    category: 'FNB',
-    thumbnailUrl: null,
+    category: 'DRUG',
+    thumbnailUrl: 'https://picsum.photos/seed/t-3/200/200',
   },
 ];
 
