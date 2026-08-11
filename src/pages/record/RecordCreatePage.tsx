@@ -4,9 +4,9 @@ import { useNavigate, useSearchParams } from 'react-router';
 import BottomCTA from '../../components/BottomCTA';
 import NavHeader from '../../components/NavHeader';
 
+import { useCardDetail } from '../../hooks/card/useCard'; // 🎯 올바른 import 경로
 import { useCreateRecord } from '../../hooks/record/useRecord';
 import { cn } from '../../lib/cn';
-import type { CareCard } from '../../types/card';
 import type { Intensity, SymptomKey } from '../../types/common';
 
 import IntensitySelectBlock from './components/IntensitySelectBlock';
@@ -33,45 +33,33 @@ function Section({
   );
 }
 
-interface RecordCreatePageProps {
-  selectedCard?: CareCard;
-  cardId?: string;
-  treatmentName?: string;
-  treatmentDateInfo?: string;
-  dailyUsage?: {
-    maxCount: number;
-    todayCount: number;
-  };
-}
-
-export default function RecordCreatePage({
-  selectedCard,
-  cardId = 'card-1',
-  treatmentName = '포텐자',
-  treatmentDateInfo = 'D+7 · 2026.07.25 시술',
-  dailyUsage = { maxCount: 3, todayCount: 0 },
-}: RecordCreatePageProps) {
+export default function RecordCreatePage() {
   const navigate = useNavigate();
+
   // 1. URL Query Parameter에서 cardId 읽어오기
   const [searchParams] = useSearchParams();
-  const queryCardId = searchParams.get('cardId');
+  const cardId = searchParams.get('cardId') ?? '';
 
+  // 2. 상우님 피드백 반영: Props 대신 useCardDetail 훅으로 카드 정보 직접 조회
+  const { data: cardDetail, isLoading: isCardLoading } = useCardDetail(cardId);
   const { mutate: createRecord, isPending } = useCreateRecord();
 
-  // Props -> Query Param -> Default순으로 Target Card ID 결정
-  const targetCardId = selectedCard?.id ?? queryCardId ?? cardId;
-  const displayTitle = selectedCard?.name ?? treatmentName;
-  const displayDateInfo = selectedCard
-    ? `D+${selectedCard.dday} · ${selectedCard.treatedAt} 시술`
-    : treatmentDateInfo;
+  // 카드 상세 데이터 및 디스플레이 텍스트 바인딩
+  const targetCardId = cardDetail?.id ?? cardId;
+  const displayTitle = cardDetail?.name ?? '시술 정보 불러오는 중...';
+  const displayDateInfo = cardDetail
+    ? `D+${cardDetail.dday} · ${cardDetail.treatedAt} 시술`
+    : '';
 
+  // 🎯 dailyUsage를 상수로 분리하여 CareCard 타입 관련 TS 에러 해결
+  const dailyUsage = { maxCount: 3, todayCount: 0 };
   const isLimitReached = dailyUsage.todayCount >= dailyUsage.maxCount;
 
   // 입력 상태
   const [memo, setMemo] = useState('');
   const [photos, setPhotos] = useState<File[]>([]);
 
-  // 2. 증상 초기값을 빈 값([] / 전부 0)으로 변경하여 미선택 데이터 오염 방지
+  // 증상 초기값
   const [selectedSymptoms, setSelectedSymptoms] = useState<SymptomKey[]>([]);
   const [symptomLevels, setSymptomLevels] = useState<Record<SymptomKey, Intensity>>({
     REDNESS: 0,
@@ -103,7 +91,8 @@ export default function RecordCreatePage({
   };
 
   const handleSubmit = () => {
-    // 3. 스키마에 없는 필드 및 as 캐스팅 제거
+    if (!targetCardId) return;
+
     createRecord(
       {
         cardId: targetCardId,
@@ -132,9 +121,11 @@ export default function RecordCreatePage({
       <main className="flex w-full flex-col gap-3.5 px-5 pt-5 pb-28">
         <NavHeader title="상태 기록" />
 
-        {/* TargetCard */}
+        {/* TargetCard : 훅에서 전달받은 카드 정보 동적 노출 */}
         <div className="flex w-full items-center justify-between rounded-btn bg-surface-fill px-3 py-2">
-          <span className="typo-label text-text-primary">{displayTitle}</span>
+          <span className="typo-label text-text-primary">
+            {isCardLoading ? '불러오는 중...' : displayTitle}
+          </span>
           <span className="typo-caption text-right text-text-tertiary">
             {displayDateInfo}
           </span>
@@ -182,7 +173,7 @@ export default function RecordCreatePage({
 
       <BottomCTA
         label={isPending ? '등록 중...' : '기록 등록하기'}
-        disabled={isPending}
+        disabled={isPending || isCardLoading}
         onClick={handleSubmit}
         subText={subText}
       />
