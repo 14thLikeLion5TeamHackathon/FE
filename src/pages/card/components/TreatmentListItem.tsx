@@ -8,28 +8,18 @@ type TreatmentListItemProps = {
   onToggle: () => void;
 };
 
-/** 시술 목록 한 줄 — 썸네일 + 이름/설명 + 우측 선택 토글(체크·플러스). 복수 선택 가능. */
+/** 시술 목록 한 줄 — 이름/설명 + 우측 선택 토글(체크·플러스). 복수 선택 가능. */
 export default function TreatmentListItem({ treatment, selected, onToggle }: TreatmentListItemProps) {
   return (
     <button type="button" onClick={onToggle} aria-pressed={selected} className="block w-full text-left">
       <Card
         variant="block"
         className={cn(
-          'flex items-center gap-3.5',
+          'flex items-center gap-3.5 py-3.5',
           'border',
           selected ? 'border-primary border-[1.5px]' : 'border-transparent',
         )}
       >
-        {treatment.thumbnailUrl ? (
-          <img
-            src={treatment.thumbnailUrl}
-            alt=""
-            className="size-12 shrink-0 rounded-btn object-cover"
-          />
-        ) : (
-          <div className="bg-surface-elevated size-12 shrink-0 rounded-btn" aria-hidden />
-        )}
-
         <div className="min-w-0 flex-1">
           <p className="typo-card-title truncate">{treatment.name}</p>
           <p className="typo-caption text-text-secondary mt-1 truncate">{treatment.description}</p>
