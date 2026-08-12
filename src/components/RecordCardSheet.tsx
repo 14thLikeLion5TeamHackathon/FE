@@ -25,13 +25,14 @@ type RecordCardSheetProps = {
 export default function RecordCardSheet({ open, onClose, onSelect }: RecordCardSheetProps) {
   const { data, isLoading, isError } = useCards();
 
+  // 주석 명세 반영: 완료된 카드는 목록에서 제외
   const cards = (data ?? []).filter((card: CareCard) => card.status === 'IN_PROGRESS');
 
   return (
     <BottomSheet open={open} onClose={onClose} label="기록할 케어 선택">
       <div className="flex flex-col gap-4">
         <header className="flex flex-col gap-1">
-          <h2 className="typo-card-title">어떤 케어를 기록할까요?</h2>
+          <h2 className="typo-card-title text-text-primary">어떤 케어를 기록할까요?</h2>
           <p className="typo-caption text-text-secondary">
             {isLoading
               ? '진행 중인 케어를 불러오고 있어요'
@@ -41,8 +42,8 @@ export default function RecordCardSheet({ open, onClose, onSelect }: RecordCardS
 
         {isLoading && (
           <div className="flex flex-col gap-2.5" aria-busy="true">
-            <div className="bg-surface-raised rounded-md h-[61px] animate-pulse" />
-            <div className="bg-surface-raised rounded-md h-[61px] animate-pulse" />
+            <div className="bg-surface-raised rounded-card h-[68px] animate-pulse" />
+            <div className="bg-surface-raised rounded-card h-[68px] animate-pulse" />
           </div>
         )}
 
@@ -64,21 +65,33 @@ export default function RecordCardSheet({ open, onClose, onSelect }: RecordCardS
                   type="button"
                   onClick={() => onSelect(card.id)}
                   className={cn(
-                    'rounded-md flex w-full items-center justify-between gap-2 px-3.5 py-3.5 text-left transition-colors',
-                    // 오늘이 기록 권장일인 카드를 강조한다 — 사용자가 고민 없이 고르게 하는 게 목적이다
+                    'rounded-card flex w-full items-center justify-between gap-2 px-3.5 py-3.5 text-left transition-colors',
                     card.recordRecommended
                       ? 'bg-primary-tint border-primary border'
-                      : 'bg-surface-raised hover:bg-surface-elevated',
+                      : 'bg-surface-raised hover:bg-surface-elevated border border-transparent',
                   )}
                 >
-                  <span className="flex flex-col gap-1">
-                    <span className="typo-card-title">{card.name}</span>
-                    <span className="typo-caption text-text-secondary">
+                  <span className="flex flex-1 flex-col gap-1 self-stretch">
+                    <span className="typo-card-title text-text-primary self-stretch">
+                      {card.name}
+                    </span>
+                    <span
+                      className={cn(
+                        'typo-caption self-stretch',
+                        card.recordRecommended ? 'text-primary' : 'text-text-tertiary',
+                      )}
+                    >
                       시술일 {card.treatedAt}
                       {card.recordRecommended && ' · 오늘 기록 권장'}
                     </span>
                   </span>
-                  <Chip className={cn(card.recordRecommended && 'bg-primary text-primary-on')}>
+
+                  <Chip
+                    className={cn(
+                      'flex items-center justify-center px-[10px] py-[5px] rounded-chip typo-caption shrink-0 text-primary-on',
+                      card.recordRecommended ? 'bg-primary' : 'bg-surface-fill',
+                    )}
+                  >
                     D+{card.dday}
                   </Chip>
                 </button>
@@ -87,7 +100,11 @@ export default function RecordCardSheet({ open, onClose, onSelect }: RecordCardS
           </ul>
         )}
 
-        <button type="button" onClick={onClose} className="typo-body text-text-secondary py-3.5">
+        <button
+          type="button"
+          onClick={onClose}
+          className="typo-body text-text-secondary w-full py-3.5 text-center transition-colors hover:text-text-primary"
+        >
           취소
         </button>
       </div>
