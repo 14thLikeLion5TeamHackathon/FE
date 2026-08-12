@@ -2,6 +2,7 @@ import axios, { type AxiosError, type AxiosResponse, type InternalAxiosRequestCo
 
 import { clearAccessToken, getAccessToken } from './token';
 import { ErrorCode, type ApiError, type ApiResponse } from './types';
+import { notifyUnauthorized } from './unauthorized';
 
 const axiosInstance = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
@@ -49,9 +50,11 @@ axiosInstance.interceptors.response.use(
   (error: AxiosError<ApiResponse<unknown>>) => {
     const apiError = toApiError(error);
 
-    // 401 — 토큰 무효. 로그인 리다이렉트는 인증 붙일 때 연결.
+    // 401 — 토큰 무효. 지우고 로그인으로 돌려보낸다.
+    // status와 code 둘 다 본다: 게이트웨이가 만든 401은 code가 없고, code만 오는 경우도 있다.
     if (apiError.status === 401 || apiError.code === ErrorCode.UNAUTHORIZED) {
       clearAccessToken();
+      notifyUnauthorized();
     }
 
     return Promise.reject(apiError);
