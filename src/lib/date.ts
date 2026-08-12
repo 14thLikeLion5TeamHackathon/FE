@@ -78,3 +78,26 @@ export function monthMatrix(date: Date): (Date | null)[][] {
 
   return Array.from({ length: 6 }, (_, w) => cells.slice(w * 7, w * 7 + 7));
 }
+
+/* ── 폼 날짜 입력(DateField)용 — "YYYY.MM.DD" 문자열 포맷 ──────────────── */
+
+/** "YYYY.MM.DD" → 네이티브 date input이 요구하는 "YYYY-MM-DD" */
+export function toDateInputValue(date: string): string {
+  return date.replaceAll('.', '-');
+}
+
+/** "YYYY-MM-DD"(네이티브 date input 값) → 앱 표준 포맷 "YYYY.MM.DD" */
+export function fromDateInputValue(value: string): string {
+  return value.replaceAll('-', '.');
+}
+
+/** "YYYY.MM.DD" → "YYYY. MM. DD (요일)" 화면 표시용. 파싱 실패하면 원본을 그대로 보여준다. */
+export function formatDateDisplay(date: string): string {
+  const [y, m, d] = date.split('.');
+  if (!y || !m || !d) return date;
+
+  const parsed = new Date(Number(y), Number(m) - 1, Number(d));
+  if (Number.isNaN(parsed.getTime())) return date;
+
+  return `${y}. ${m}. ${d} (${DOW_LABELS[parsed.getDay()]})`;
+}
