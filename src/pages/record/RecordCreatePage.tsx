@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router';
 import BottomCTA from '../../components/BottomCTA';
 import NavHeader from '../../components/NavHeader';
 
-import { useCardDetail } from '../../hooks/card/useCard'; // 🎯 올바른 import 경로
+import { useCardDetail } from '../../hooks/card/useCard';
 import { useCreateRecord } from '../../hooks/record/useRecord';
 import { cn } from '../../lib/cn';
 import type { Intensity, SymptomKey } from '../../types/common';
@@ -12,6 +12,9 @@ import type { Intensity, SymptomKey } from '../../types/common';
 import IntensitySelectBlock from './components/IntensitySelectBlock';
 import PhotoUploadBlock from './components/PhotoUploadBlock';
 import SymptomSelectBlock from './components/SymptomSelectBlock';
+
+// 필수 증상 4가지 정의
+const ALL_SYMPTOMS: SymptomKey[] = ['REDNESS', 'SWELLING', 'PAIN', 'DRYNESS'];
 
 /** 공용 블록 Wrapper */
 function Section({
@@ -40,7 +43,7 @@ export default function RecordCreatePage() {
   const [searchParams] = useSearchParams();
   const cardId = searchParams.get('cardId') ?? '';
 
-  // 2. 상우님 피드백 반영: Props 대신 useCardDetail 훅으로 카드 정보 직접 조회
+  // 2. useCardDetail 훅으로 카드 정보 직접 조회
   const { data: cardDetail, isLoading: isCardLoading } = useCardDetail(cardId);
   const { mutate: createRecord, isPending } = useCreateRecord();
 
@@ -51,7 +54,6 @@ export default function RecordCreatePage() {
     ? `D+${cardDetail.dday} · ${cardDetail.treatedAt} 시술`
     : '';
 
-  // 🎯 dailyUsage를 상수로 분리하여 CareCard 타입 관련 TS 에러 해결
   const dailyUsage = { maxCount: 3, todayCount: 0 };
   const isLimitReached = dailyUsage.todayCount >= dailyUsage.maxCount;
 
@@ -59,8 +61,10 @@ export default function RecordCreatePage() {
   const [memo, setMemo] = useState('');
   const [photos, setPhotos] = useState<File[]>([]);
 
-  // 증상 초기값
-  const [selectedSymptoms, setSelectedSymptoms] = useState<SymptomKey[]>([]);
+  // 🎯 1. 증상 4개를 기본적으로 모두 선택된 상태로 설정
+  const [selectedSymptoms, setSelectedSymptoms] = useState<SymptomKey[]>(ALL_SYMPTOMS);
+
+  // 🎯 2. 증상 정도 초기값 (기본 0 또는 사용자 선택 필요)
   const [symptomLevels, setSymptomLevels] = useState<Record<SymptomKey, Intensity>>({
     REDNESS: 0,
     SWELLING: 0,
@@ -78,10 +82,9 @@ export default function RecordCreatePage() {
     setPhotos((prev) => prev.filter((_, i) => i !== index));
   };
 
+  // 🎯 3. 증상 필수 입력을 위해 토글 클릭시 해제되지 않도록 보장 (항상 4개 유지)
   const toggleSymptom = (symptom: SymptomKey) => {
-    if (selectedSymptoms.includes(symptom)) {
-      setSelectedSymptoms(selectedSymptoms.filter((s) => s !== symptom));
-    } else {
+    if (!selectedSymptoms.includes(symptom)) {
       setSelectedSymptoms([...selectedSymptoms, symptom]);
     }
   };
@@ -90,15 +93,19 @@ export default function RecordCreatePage() {
     setSymptomLevels((prev) => ({ ...prev, [symptom]: level }));
   };
 
+  // 🎯 4. 유효성 검사: 4개 증상 정도(Intensity)가 모두 선택되었는지 확인 (0 이상 또는 1 이상 조건 필요 시 수정)
+  // 만약 정도 선택(1, 2, 3 단계 등)을 반드시 눌러야 하는 조건이라면 아래 조건 활용
+  const isAllSymptomsRated = ALL_SYMPTOMS.every((key) => symptomLevels[key] !== undefined);
+
   const handleSubmit = () => {
-    if (!targetCardId) return;
+    if (!targetCardId || !isAllSymptomsRated) return;
 
     createRecord(
       {
         cardId: targetCardId,
         memo,
         photoUrls: [],
-        symptoms: selectedSymptoms.map((symptom) => ({
+        symptoms: ALL_SYMPTOMS.map((symptom) => ({
           key: symptom,
           intensity: symptomLevels[symptom],
         })),
@@ -121,7 +128,7 @@ export default function RecordCreatePage() {
       <main className="flex w-full flex-col gap-3.5 px-5 pt-5 pb-28">
         <NavHeader title="상태 기록" />
 
-        {/* TargetCard : 훅에서 전달받은 카드 정보 동적 노출 */}
+        {/* TargetCard */}
         <div className="flex w-full items-center justify-between rounded-btn bg-surface-fill px-3 py-2">
           <span className="typo-label text-text-primary">
             {isCardLoading ? '불러오는 중...' : displayTitle}
@@ -151,29 +158,27 @@ export default function RecordCreatePage() {
           />
         </Section>
 
-        {/* 3. 증상 선택 블록 */}
-        <Section label="증상" labelColor="text-text-primary">
+        {/* 3. 증상 선택 블록 (4개 필수 고정) */}
+        <Section label="증상 (필수 4종)" labelColor="text-text-primary">
           <SymptomSelectBlock
             selectedSymptoms={selectedSymptoms}
             onToggleSymptom={toggleSymptom}
           />
         </Section>
 
-        {/* 4. 증상 정도 선택 블록 */}
-        {selectedSymptoms.length > 0 && (
-          <Section label="증상 정도" labelColor="text-text-primary" gapClass="gap-[10px]">
-            <IntensitySelectBlock
-              selectedSymptoms={selectedSymptoms}
-              symptomLevels={symptomLevels}
-              onChangeIntensity={handleIntensityChange}
-            />
-          </Section>
-        )}
+        {/* 4. 증상 강도 선택 블록 */}
+        <Section label="증상 강도" labelColor="text-text-primary" gapClass="gap-[10px]">
+          <IntensitySelectBlock
+            selectedSymptoms={selectedSymptoms}
+            symptomLevels={symptomLevels}
+            onChangeIntensity={handleIntensityChange}
+          />
+        </Section>
       </main>
 
       <BottomCTA
         label={isPending ? '등록 중...' : '기록 등록하기'}
-        disabled={isPending || isCardLoading}
+        disabled={isPending || isCardLoading || !isAllSymptomsRated}
         onClick={handleSubmit}
         subText={subText}
       />
