@@ -64,15 +64,36 @@ export const treatments = [
     id: 't-2',
     name: '튠 프리미엄',
     description: '페이스 리프팅 및 탄력 개선',
-    category: 'DRUG',
+    category: 'DEVICE',
     thumbnailUrl: 'https://picsum.photos/seed/t-2/200/200',
   },
   {
     id: 't-3',
     name: '릴리이드 하이드로',
     description: '피부 속 건조 해결 및 수분 충전',
-    category: 'DRUG',
+    category: 'FNB',
     thumbnailUrl: 'https://picsum.photos/seed/t-3/200/200',
+  },
+  {
+    id: 't-4',
+    name: '리쥬란 힐러',
+    description: '피부 재생 및 잔주름 개선 물질 주입',
+    category: 'DRUG',
+    thumbnailUrl: 'https://picsum.photos/seed/t-4/200/200',
+  },
+  {
+    id: 't-5',
+    name: '연어주사',
+    description: '콜라겐 생성 촉진 및 피부 탄력 개선',
+    category: 'DRUG',
+    thumbnailUrl: 'https://picsum.photos/seed/t-5/200/200',
+  },
+  {
+    id: 't-6',
+    name: '홈케어 마스크팩',
+    description: '시술 후 진정 및 보습 관리용 마스크팩',
+    category: 'ETC',
+    thumbnailUrl: 'https://picsum.photos/seed/t-6/200/200',
   },
 ];
 
