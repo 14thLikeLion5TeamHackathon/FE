@@ -6,10 +6,22 @@
  * 카카오는 브랜드 색(#FEE500)을 그대로 쓴다 — 토큰으로 만들지 말 것.
  * 실 OAuth와 별개로, 데모용 우회 진입(import.meta.env.DEV 가드)도 함께 만든다.
  */
-import { useNavigate } from 'react-router';
+import { useLocation, useNavigate } from 'react-router';
+
+import { useLogin } from '../../hooks/auth/useAuth';
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { mutate: login, isPending } = useLogin();
+
+  // 가드가 튕겨낼 때 넘겨준 원래 목적지. 직접 들어왔으면 홈.
+  const from = (location.state as { from?: { pathname: string } } | null)?.from?.pathname ?? '/';
+
+  /** 실 OAuth 붙기 전까지 쓰는 데모용 진입. 토큰이 저장돼야 가드를 통과한다. */
+  function skipLogin() {
+    login(undefined, { onSuccess: () => navigate(from, { replace: true }) });
+  }
 
   return (
     <div className="bg-surface-canvas max-w-app mx-auto flex min-h-dvh w-full flex-col justify-between px-5 py-10">
@@ -38,7 +50,8 @@ export default function LoginPage() {
 
         {import.meta.env.DEV && (
           <button
-            onClick={() => navigate('/')}
+            onClick={skipLogin}
+            disabled={isPending}
             className="typo-caption text-text-tertiary mt-2 text-center underline"
           >
             (DEV) 로그인 건너뛰기
