@@ -45,11 +45,16 @@ export default function RecordCreatePage() {
 
   // 2. useCardDetail 훅으로 카드 정보 직접 조회
   const { data: cardDetail, isLoading: isCardLoading } = useCardDetail(cardId);
-  const { mutate: createRecord, isPending } = useCreateRecord();
+  const { mutate: createRecord, isPending } = useCreateRecord(cardId);
+
+  // cardId가 없으면 기록 등록 불가
+  const hasCardId = Boolean(cardId);
 
   // 카드 상세 데이터 및 디스플레이 텍스트 바인딩
   const targetCardId = cardDetail?.id ?? cardId;
-  const displayTitle = cardDetail?.name ?? '시술 정보 불러오는 중...';
+  const displayTitle = !hasCardId
+    ? '카드를 선택해주세요'
+    : cardDetail?.name ?? '시술 정보 불러오는 중...';
   const displayDateInfo = cardDetail
     ? `D+${cardDetail.dday} · ${cardDetail.treatedAt} 시술`
     : '';
@@ -61,15 +66,15 @@ export default function RecordCreatePage() {
   const [memo, setMemo] = useState('');
   const [photos, setPhotos] = useState<File[]>([]);
 
-  // 🎯 1. 증상 4개를 기본적으로 모두 선택된 상태로 설정
-  const [selectedSymptoms, setSelectedSymptoms] = useState<SymptomKey[]>(ALL_SYMPTOMS);
+  // 🎯 1. 증상 4개는 필수 고정
+  const selectedSymptoms: SymptomKey[] = ALL_SYMPTOMS;
 
-  // 🎯 2. 증상 정도 초기값 (기본 0 또는 사용자 선택 필요)
-  const [symptomLevels, setSymptomLevels] = useState<Record<SymptomKey, Intensity>>({
-    REDNESS: 0,
-    SWELLING: 0,
-    PAIN: 0,
-    DRYNESS: 0,
+  // 🎯 2. 증상 정도 — 초기값 undefined (사용자가 실제로 선택해야 유효)
+  const [symptomLevels, setSymptomLevels] = useState<Record<SymptomKey, Intensity | undefined>>({
+    REDNESS: undefined,
+    SWELLING: undefined,
+    PAIN: undefined,
+    DRYNESS: undefined,
   });
 
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -82,37 +87,32 @@ export default function RecordCreatePage() {
     setPhotos((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // 🎯 3. 증상 필수 입력을 위해 토글 클릭시 해제되지 않도록 보장 (항상 4개 유지)
-  const toggleSymptom = (symptom: SymptomKey) => {
-    if (!selectedSymptoms.includes(symptom)) {
-      setSelectedSymptoms([...selectedSymptoms, symptom]);
-    }
-  };
-
   const handleIntensityChange = (symptom: SymptomKey, level: Intensity) => {
     setSymptomLevels((prev) => ({ ...prev, [symptom]: level }));
   };
 
-  // 🎯 4. 유효성 검사: 4개 증상 정도(Intensity)가 모두 선택되었는지 확인 (0 이상 또는 1 이상 조건 필요 시 수정)
-  // 만약 정도 선택(1, 2, 3 단계 등)을 반드시 눌러야 하는 조건이라면 아래 조건 활용
-  const isAllSymptomsRated = ALL_SYMPTOMS.every((key) => symptomLevels[key] !== undefined);
+  // 🎯 4. 유효성 검사: 4개 증상 정도가 모두 실제로 선택되었는지 확인 (1 이상)
+  const isAllSymptomsRated = ALL_SYMPTOMS.every(
+    (key) => symptomLevels[key] !== undefined && symptomLevels[key] > 0
+  );
 
   const handleSubmit = () => {
-    if (!targetCardId || !isAllSymptomsRated) return;
+    if (!hasCardId || !targetCardId || !isAllSymptomsRated || photos.length === 0) return;
 
     createRecord(
       {
-        cardId: targetCardId,
-        memo,
-        photoUrls: [],
-        symptoms: ALL_SYMPTOMS.map((symptom) => ({
-          key: symptom,
-          intensity: symptomLevels[symptom],
-        })),
+        photo: photos[0],
+        statusDescription: memo,
+        tags: JSON.stringify(
+          ALL_SYMPTOMS.map((symptom) => ({
+            name: symptom,
+            intensity: symptomLevels[symptom],
+          }))
+        ),
       },
       {
-        onSuccess: (data: { recordId: string }) => {
-          const recordId = data?.recordId ?? 'temp-record-id';
+        onSuccess: (data) => {
+          const recordId = data?.recordId ?? 0;
           navigate(`/records/${recordId}/feedback`);
         },
       }
@@ -162,7 +162,7 @@ export default function RecordCreatePage() {
         <Section label="증상 (필수 4종)" labelColor="text-text-primary">
           <SymptomSelectBlock
             selectedSymptoms={selectedSymptoms}
-            onToggleSymptom={toggleSymptom}
+            disabled
           />
         </Section>
 
@@ -178,7 +178,7 @@ export default function RecordCreatePage() {
 
       <BottomCTA
         label={isPending ? '등록 중...' : '기록 등록하기'}
-        disabled={isPending || isCardLoading || !isAllSymptomsRated}
+        disabled={isPending || isCardLoading || !hasCardId || !isAllSymptomsRated || photos.length === 0}
         onClick={handleSubmit}
         subText={subText}
       />
