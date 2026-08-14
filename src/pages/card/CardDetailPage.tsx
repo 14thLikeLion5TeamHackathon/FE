@@ -111,14 +111,6 @@ export default function CardDetailPage() {
     mapUrl: 'https://map.kakao.com/link/map/엠레드 강남점,37.498085,127.027621',
   };
 
-  // 증상 한글 라벨 맵
-  const symptomLabelMap: Record<string, string> = {
-    REDNESS: '붉은기',
-    SWELLING: '부기',
-    PAIN: '통증',
-    DRYNESS: '건조함',
-  };
-
   return (
     <div className="flex flex-col gap-3.5 px-5 pt-5 pb-6">
       {/* 0. 상단 네비게이션 바 */}
@@ -153,16 +145,16 @@ export default function CardDetailPage() {
         {/* 회복 기록 카드 목록 */}
         <div className="mt-1 flex flex-col gap-3">
           {records.map((record) => {
-            const formattedTags = record.symptoms?.map(
-              (s) => symptomLabelMap[s.key] ?? s.key
+            const formattedTags = record.tags?.map(
+              (t) => t.name
             ) ?? [];
 
             return (
               <RecordCard
-                key={record.id}
+                key={record.recordId}
                 title={`${record.recordedAt} · ${cardDetail.name}`}
                 dday={`D+${record.dday}`}
-                memo={record.memo}
+                memo={record.statusDescription}
                 tags={formattedTags}
                 aiFeedback="이전 기록과 비교 분석 중입니다."
               />
