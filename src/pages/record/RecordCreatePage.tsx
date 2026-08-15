@@ -63,8 +63,8 @@ export default function RecordCreatePage() {
     ? `D+${cardDetail.dday} · ${cardDetail.treatmentDate} 시술`
     : '';
 
-  const dailyUsage = { maxCount: 3, todayCount: 0 };
-  const isLimitReached = dailyUsage.todayCount >= dailyUsage.maxCount;
+  const feedbackQuota = cardDetail?.feedbackQuota ?? { used: 0, total: 3 };
+  const isLimitReached = feedbackQuota.used >= feedbackQuota.total;
 
   // 입력 상태
   const [memo, setMemo] = useState('');
@@ -124,8 +124,8 @@ export default function RecordCreatePage() {
   };
 
   const subText = isLimitReached
-    ? `오늘 분석 횟수(${dailyUsage.maxCount}회)를 모두 사용했어요 · 직전 피드백이 재사용돼요`
-    : `하루 ${dailyUsage.maxCount}회까지 분석할 수 있어요 · 오늘 ${dailyUsage.todayCount}회 사용`;
+    ? `오늘 분석 횟수(${feedbackQuota.total}회)를 모두 사용했어요 · 직전 피드백이 재사용돼요`
+    : `하루 ${feedbackQuota.total}회까지 분석할 수 있어요 · 오늘 ${feedbackQuota.used}회 사용`;
 
   return (
     <div className="min-h-screen bg-surface-canvas">
