@@ -56,9 +56,14 @@ export type OAuthRedirectResult =
   | { status: 'logged-in' }
   | { status: 'failed' };
 
-/** ⚠️ 확정 아님 — 서버가 어떤 이름으로 토큰을 주는지 몰라 후보를 넓게 받는다. */
-const ACCESS_TOKEN_PARAMS = ['accessToken', 'access_token', 'access', 'token'];
-const REFRESH_TOKEN_PARAMS = ['refreshToken', 'refresh_token', 'refresh'];
+/**
+ * ⚠️ 확정 아님 — 서버가 어떤 이름으로 토큰을 주는지 몰라 후보를 넓게 받는다.
+ *
+ * `token`·`access`처럼 흔한 이름은 일부러 뺐다. 이 함수는 라우트와 무관하게 **모든 페이지 로드**에서
+ * 돌기 때문에, 초대 링크나 외부 유입의 `?token=`을 액세스 토큰으로 삼켜 버린다.
+ */
+const ACCESS_TOKEN_PARAMS = ['accessToken', 'access_token'];
+const REFRESH_TOKEN_PARAMS = ['refreshToken', 'refresh_token'];
 const NEW_USER_PARAMS = ['isNewUser', 'is_new_user', 'newUser'];
 
 /** 후보 이름 중 먼저 값이 있는 것을 고른다. */
@@ -68,6 +73,19 @@ function pick(params: URLSearchParams, names: string[]) {
     if (value) return value;
   }
   return null;
+}
+
+/**
+ * JWT 모양인지. 이름만 맞는 엉뚱한 값을 토큰으로 저장하지 않으려는 최소한의 방어다.
+ * 서명을 검증하는 게 아니라 형태만 본다 — 진짜 검증은 서버가 한다.
+ */
+function looksLikeJwt(value: string) {
+  return /^[\w-]+\.[\w-]+\.[\w-]+$/.test(value);
+}
+
+/** 참을 나타내는 표기가 서버마다 달라서 넓게 받는다. */
+function isTrue(value: string | null) {
+  return value !== null && ['true', '1', 'y', 'yes'].includes(value.toLowerCase());
 }
 
 /**
@@ -82,15 +100,22 @@ export function consumeOAuthRedirect(): OAuthRedirectResult | null {
 
   const accessToken = pick(search, ACCESS_TOKEN_PARAMS) ?? pick(hash, ACCESS_TOKEN_PARAMS);
 
-  if (!accessToken) {
+  if (!accessToken || !looksLikeJwt(accessToken)) {
     // 실패 형태는 확인된 값이다: /login?error=oauth2_failure&message=...
-    return search.get('error') ? { status: 'failed' } : null;
+    if (search.get('error') ?? hash.get('error')) return { status: 'failed' };
+
+    // 이름이 후보 목록에 없으면 조용히 지나간다. 파라미터 이름이 확정되기 전까지
+    // "왜 로그인이 안 되지"를 추적할 단서가 이것뿐이라 개발 중에만 남긴다.
+    if (import.meta.env.DEV && accessToken) {
+      console.warn('[oauth] 토큰 모양이 아닌 값을 무시했습니다. 파라미터 이름을 확인하세요.');
+    }
+    return null;
   }
 
   const refreshToken = pick(search, REFRESH_TOKEN_PARAMS) ?? pick(hash, REFRESH_TOKEN_PARAMS);
   if (refreshToken) setRefreshToken(refreshToken);
   setAccessToken(accessToken);
 
-  const isNewUser = (pick(search, NEW_USER_PARAMS) ?? pick(hash, NEW_USER_PARAMS)) === 'true';
+  const isNewUser = isTrue(pick(search, NEW_USER_PARAMS) ?? pick(hash, NEW_USER_PARAMS));
   return { status: isNewUser ? 'new-user' : 'logged-in' };
 }

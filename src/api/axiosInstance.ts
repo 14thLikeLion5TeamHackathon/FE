@@ -73,6 +73,9 @@ function refreshAccessToken(): Promise<string> {
 /** 이 요청으로 이미 갱신을 시도했는지. 실패한 갱신이 무한 재시도가 되지 않게 막는다. */
 type RetriableConfig = InternalAxiosRequestConfig & { _retried?: boolean };
 
+/** 같은 순간에 몰린 401들이 로그아웃을 여러 번 실행하지 않게 막는다. */
+let loggingOut = false;
+
 /**
  * 응답 인터셉터
  * - 성공: AxiosResponse 그대로 반환 (본문은 ApiResponse<T>)
@@ -91,17 +94,35 @@ axiosInstance.interceptors.response.use(
       config._retried = true;
 
       try {
-        const accessToken = await refreshAccessToken();
+        // 이 요청이 들고 나간 토큰이 이미 낡았으면 갱신하지 않고 새 토큰으로 다시 쏜다.
+        // 갱신이 끝난 직후 도착한 401까지 갱신을 부르면, 리프레시 토큰이 회전하는 서버에서
+        // "직전 토큰 재사용"으로 탐지돼 전원 로그아웃이 될 수 있다.
+        const sent = String(config.headers.Authorization ?? '').replace('Bearer ', '');
+        const current = getAccessToken();
+        const accessToken = sent && current && sent !== current ? current : await refreshAccessToken();
+
         config.headers.Authorization = `Bearer ${accessToken}`;
         return await axiosInstance(config);
-      } catch {
-        // 갱신 실패 = 재로그인 외에 방법이 없다. 아래 로그아웃 처리로 떨어진다.
+      } catch (refreshError) {
+        // 네트워크 장애로 갱신이 실패한 것뿐이면 토큰을 지우지 않는다 —
+        // 멀쩡한 리프레시 토큰을 버리고 재로그인을 강요하게 된다.
+        const status = (refreshError as { response?: { status?: number } })?.response?.status;
+        if (status !== undefined && status !== HttpStatus.UNAUTHORIZED && status !== HttpStatus.FORBIDDEN) {
+          return Promise.reject(apiError);
+        }
       }
     }
 
     if (apiError.status === HttpStatus.UNAUTHORIZED) {
-      clearAccessToken();
-      notifyUnauthorized();
+      // 화면 하나가 API를 여럿 부르면 401도 한꺼번에 터진다. 로그아웃은 한 번만 돈다.
+      if (!loggingOut) {
+        loggingOut = true;
+        clearAccessToken();
+        notifyUnauthorized();
+        queueMicrotask(() => {
+          loggingOut = false;
+        });
+      }
     }
 
     return Promise.reject(apiError);
