@@ -259,9 +259,12 @@ export const schedules = [
 ];
 
 export const myProfile = {
+  userId: 1,
   name: '최서연',
-  birthDate: '2007.05.17',
+  birthDate: '2007-05-17',
   gender: 'FEMALE',
-  calendarEmail: 'kimsu3047@gmail.com',
-  notifications: { all: true, dailyCare: true, recordReminder: true, preWarning: true },
+  hasAacOfflineExperience: true,
+  agreePersonalInfo: true,
+  agreeHealthData: true,
+  agreeCalendarData: true,
 };

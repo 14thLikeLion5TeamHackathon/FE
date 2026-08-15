@@ -32,12 +32,17 @@ export const handlers = [
   // 로그아웃은 BE에 배포돼 있으므로(POST /api/v1/mypage/auth/logout) 목을 두지 않는다.
 
   /* ── 마이 ─────────────────────────────────────────────── */
-  http.get('/api/users/me', () => ok(db.myProfile)),
-  http.patch('/api/users/me/notifications', async ({ request }) => {
-    const next = (await request.json()) as typeof db.myProfile.notifications;
-    db.myProfile.notifications = next;
-    return ok(next);
+  http.get('/api/v1/mypage/users/me', () => ok(db.myProfile)),
+  http.put('/api/v1/mypage/users/me', async ({ request }) => {
+    const body = (await request.json()) as { name: string; birthDate: string; gender: string };
+    db.myProfile.name = body.name;
+    db.myProfile.birthDate = body.birthDate;
+    db.myProfile.gender = body.gender;
+    return ok({ userId: db.myProfile.userId });
   }),
+  http.delete('/api/v1/mypage/users/me', () => ok({})),
+  http.post('/api/v1/mypage/auth/logout', () => ok({})),
+  http.delete('/api/v1/mypage/notification/kakao', () => ok({})),
 
   /* ── 오늘 ─────────────────────────────────────────────── */
   http.get('/api/today', () => ok(db.today)),
