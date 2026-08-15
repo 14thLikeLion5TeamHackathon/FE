@@ -1,31 +1,46 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { createCard, getCardDetail, getCards, getTreatments } from '../../api/card';
+import { createCard, getCardDetail, getCardRecords, getCards, getTreatments } from '../../api/card';
 
 const cardKeys = {
   all: ['card'] as const,
   list: ['card', 'list'] as const,
-  detail: (cardId: string) => ['card', 'detail', cardId] as const,
-  treatments: (category?: string, q?: string) => ['card', 'treatments', category, q] as const,
+  // 위치가 응답의 todayCare(날씨 기반)를 바꾸므로 키에 포함한다.
+  // 빠뜨리면 기준 위치를 옮겨도 이전 위치의 상세가 캐시에서 그대로 나온다.
+  detail: (cardId: string, city: string, district: string) =>
+    ['card', 'detail', cardId, city, district] as const,
+  records: (cardId: string) => ['card', 'records', cardId] as const,
+  treatments: (category?: string, keyword?: string) => ['card', 'treatments', category, keyword] as const,
 };
 
+/** GET /api/v1/cards — 케어카드 목록 */
 export function useCards() {
   return useQuery({ queryKey: cardKeys.list, queryFn: getCards });
 }
 
-export function useCardDetail(cardId: string) {
+/** GET /api/v1/cards/{cardId} — 케어카드 상세 */
+export function useCardDetail(cardId: string, params: { city: string; district: string }) {
   return useQuery({
-    queryKey: cardKeys.detail(cardId),
-    queryFn: () => getCardDetail(cardId),
+    queryKey: cardKeys.detail(cardId, params.city, params.district),
+    queryFn: () => getCardDetail(cardId, params),
+    enabled: Boolean(cardId),
+  });
+}
+
+/** GET /api/v1/cards/{cardId}/records — 카드별 이전 기록(회복 타임라인) */
+export function useCardRecords(cardId: string) {
+  return useQuery({
+    queryKey: cardKeys.records(cardId),
+    queryFn: () => getCardRecords(cardId),
     enabled: Boolean(cardId),
   });
 }
 
 /** 카드 생성 화면의 시술 목록. 카테고리 칩·검색어로 좁힌다. */
-export function useTreatments(category?: string, q?: string) {
+export function useTreatments(category?: string, keyword?: string) {
   return useQuery({
-    queryKey: cardKeys.treatments(category, q),
-    queryFn: () => getTreatments({ category, q }),
+    queryKey: cardKeys.treatments(category, keyword),
+    queryFn: () => getTreatments({ category, keyword }),
   });
 }
 

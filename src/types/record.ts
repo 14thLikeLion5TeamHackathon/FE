@@ -1,47 +1,44 @@
 import { z } from 'zod';
 
-import { Intensity, SymptomKey } from './common';
-
-/**
- * 상태 기록 — 사진·메모·증상 강도.
- * 강도는 사용자가 직접 매긴다(AI 오판 위험 없음). 회복 곡선의 데이터 소스.
- */
-
-export const SymptomEntry = z.object({
-  key: SymptomKey,
-  intensity: Intensity,
+/** 상태 태그 (목록 조회용) */
+export const StatusTag = z.object({
+  tagId: z.number(),
+  name: z.string(),
 });
-export type SymptomEntry = z.infer<typeof SymptomEntry>;
+export type StatusTag = z.infer<typeof StatusTag>;
 
+/** 태그 항목 (상태 태그 + 강도, 기록 응답용) */
+export const RecordTag = z.object({
+  tagId: z.number(),
+  name: z.string(),
+  intensity: z.number(),
+});
+export type RecordTag = z.infer<typeof RecordTag>;
+
+/** 기록 상세 (응답 DTO) */
 export const RecordDetail = z.object({
-  id: z.string(),
-  cardId: z.string(),
-  /** MM.DD */
+  recordId: z.number(),
+  cardId: z.number(),
+  photoUrl: z.string(),
+  statusDescription: z.string(),
   recordedAt: z.string(),
-  dday: z.number().int(),
-  photoUrls: z.array(z.string()),
-  /** 지금 상태를 적은 자유 텍스트 */
-  memo: z.string(),
-  symptoms: z.array(SymptomEntry),
+  tags: z.array(RecordTag),
+  dday: z.number(),
 });
 export type RecordDetail = z.infer<typeof RecordDetail>;
 
 /**
- * 기록 생성 요청.
- *
- * ⚠️ 사진 업로드 방식(presigned URL / multipart)이 BE와 아직 안 정해졌다.
- *    지금은 업로드 후 받은 URL을 넘기는 형태로 두고, 정해지면 이 부분만 고친다.
+ * 기록 생성 요청 — multipart/form-data로 전송.
+ * cardId는 path parameter로 전달.
+ * POST /api/v1/now/care-cards/{cardId}/records
  */
 export const CreateRecordRequest = z.object({
-  cardId: z.string(),
-  photoUrls: z.array(z.string()),
-  memo: z.string(),
-  symptoms: z.array(SymptomEntry),
+  photo: z.instanceof(File),
+  statusDescription: z.string(),
+  tags: z.string(),
 });
 export type CreateRecordRequest = z.infer<typeof CreateRecordRequest>;
 
-/** 기록을 저장하면 AI 피드백 화면으로 넘어간다 */
-export const CreateRecordResponse = z.object({
-  recordId: z.string(),
-});
+/** 기록 생성 응답 — RecordDetail과 동일 구조 */
+export const CreateRecordResponse = RecordDetail;
 export type CreateRecordResponse = z.infer<typeof CreateRecordResponse>;

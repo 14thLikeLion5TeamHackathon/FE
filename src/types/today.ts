@@ -118,19 +118,3 @@ export function eventDateKey(event: CalendarEvent): string | null {
   const match = /^\d{4}-\d{2}-\d{2}/.exec(raw);
   return match ? match[0] : null;
 }
-
-/**
- * 캘린더에 회복 분기점을 찍으려고 카드 목록에서 날짜만 꺼내는 좁은 스키마.
- *
- * `types/card.ts`를 쓰지 않는 이유는 그 파일이 PR #37에서 통째로 교체되는 중이라서다.
- * #37이 머지되면 이 스키마를 지우고 카드 도메인 타입을 그대로 쓴다.
- */
-export const TodayCardMarker = z
-  .object({
-    cardId: z.number(),
-    /** YYYY-MM-DD */
-    treatmentDate: z.string(),
-    recoveryTotalDays: z.number().nullable(),
-  })
-  .passthrough();
-export type TodayCardMarker = z.infer<typeof TodayCardMarker>;

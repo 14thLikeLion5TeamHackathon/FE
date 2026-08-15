@@ -11,7 +11,7 @@ const INTENSITY_OPTIONS: { label: string; value: Intensity }[] = [
 
 interface IntensitySelectBlockProps {
   selectedSymptoms: SymptomKey[];
-  symptomLevels: Record<SymptomKey, Intensity>;
+  symptomLevels: Record<SymptomKey, Intensity | undefined>;
   onChangeIntensity: (symptom: SymptomKey, level: Intensity) => void;
 }
 

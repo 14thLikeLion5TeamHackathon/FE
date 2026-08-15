@@ -24,14 +24,14 @@ export default function CardCreatePage() {
 
   const [category, setCategory] = useState<TreatmentCategory>(CATEGORIES[0]);
   const [query, setQuery] = useState('');
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [unknownTreatment, setUnknownTreatment] = useState(false);
   const [treatedAt, setTreatedAt] = useState('');
 
   const { data: treatments, isLoading, isError } = useTreatments(category, query || undefined);
   const { mutate: createCard, isPending } = useCreateCard();
 
-  const toggleTreatment = (id: string) => {
+  const toggleTreatment = (id: number) => {
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]));
   };
 
@@ -39,8 +39,14 @@ export default function CardCreatePage() {
 
   const handleSubmit = () => {
     createCard(
-      { treatmentIds: selectedIds, treatedAt, unknownTreatment },
-      { onSuccess: (card) => navigate(`/cards/${card.id}`) },
+      {
+        treatmentDate: treatedAt,
+        treatments: selectedIds.map((id) => ({
+          treatmentId: id,
+          customName: unknownTreatment ? '정확한 시술명 모름' : null,
+        })),
+      },
+      { onSuccess: (card) => navigate(`/cards/${card.cardId}`) },
     );
   };
 
@@ -100,11 +106,11 @@ export default function CardCreatePage() {
       {!isLoading && !isError && (treatments?.length ?? 0) > 0 && (
         <ul className="flex flex-col gap-2.5">
           {treatments?.map((treatment) => (
-            <li key={treatment.id}>
+            <li key={treatment.treatmentId}>
               <TreatmentListItem
                 treatment={treatment}
-                selected={selectedIds.includes(treatment.id)}
-                onToggle={() => toggleTreatment(treatment.id)}
+                selected={selectedIds.includes(treatment.treatmentId)}
+                onToggle={() => toggleTreatment(treatment.treatmentId)}
               />
             </li>
           ))}

@@ -1,16 +1,14 @@
 import { useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import {
-  getBriefing,
-  getCalendarEvents,
-  getCardMarkers,
-  getChecklist,
-  updateChecklistItem,
-} from '../../api/today';
+import { getCards } from '../../api/card';
+import { getBriefing, getCalendarEvents, getChecklist, updateChecklistItem } from '../../api/today';
 import { addDays, toKey } from '../../lib/date';
 import type { TodayLocation } from '../../lib/location';
 import { eventDateKey } from '../../types/today';
+
+/** 카드 목록은 카드 도메인과 같은 캐시를 쓴다 — 같은 리소스를 두 번 받지 않으려는 것 */
+const cardKeys = { list: ['card', 'list'] as const };
 
 const todayKeys = {
   all: ['today'] as const,
@@ -18,7 +16,6 @@ const todayKeys = {
     ['today', 'briefing', date, `${location.city}_${location.district}`] as const,
   checklist: () => ['today', 'checklist'] as const,
   events: () => ['today', 'events'] as const,
-  cardMarkers: () => ['today', 'card-markers'] as const,
 };
 
 /** 관리 행동 브리핑. 날짜를 바꾸면 그 날짜 기준으로 다시 받는다 */
@@ -60,10 +57,7 @@ export function useToggleChecklistItem() {
  * 아직 모르는 동안 null을 돌려준다 — 빈 상태가 한 번 깜빡였다 사라지지 않게 하려는 것.
  */
 export function useHasCards(): boolean | null {
-  const { data } = useQuery({
-    queryKey: todayKeys.cardMarkers(),
-    queryFn: getCardMarkers,
-  });
+  const { data } = useQuery({ queryKey: cardKeys.list, queryFn: getCards });
   return data ? data.length > 0 : null;
 }
 
@@ -96,10 +90,7 @@ export function useMarkedDates(calendarConnected: boolean) {
     enabled: calendarConnected,
   });
 
-  const cards = useQuery({
-    queryKey: todayKeys.cardMarkers(),
-    queryFn: getCardMarkers,
-  });
+  const cards = useQuery({ queryKey: cardKeys.list, queryFn: getCards });
 
   // 매 렌더 새 Set을 만들면 이걸 받는 캘린더의 메모이제이션이 무력화된다.
   return useMemo(() => {
@@ -112,11 +103,11 @@ export function useMarkedDates(calendarConnected: boolean) {
 
     for (const card of cards.data ?? []) {
       marked.add(card.treatmentDate);
-      if (card.recoveryTotalDays != null) {
-        const treated = new Date(`${card.treatmentDate}T00:00:00`);
-        if (!Number.isNaN(treated.getTime())) {
-          marked.add(toKey(addDays(treated, card.recoveryTotalDays)));
-        }
+      // 회복 종료일. 서버가 시술일을 D+0으로 세므로(8/8 시술 → 8/16이 D+8)
+      // 종료일도 시술일 + recoveryTotalDays가 맞다.
+      const treated = new Date(`${card.treatmentDate}T00:00:00`);
+      if (!Number.isNaN(treated.getTime())) {
+        marked.add(toKey(addDays(treated, card.recoveryTotalDays)));
       }
     }
 
