@@ -19,7 +19,7 @@ function notFound(message: string) {
 
 /*
  * 401 리다이렉트를 눈으로 확인하려면 아무 핸들러나 잠깐 이걸로 바꿔본다.
- *   http.get('/api/today', () =>
+ *   http.get('/api/cards', () =>
  *     HttpResponse.json({ success: false, code: 401, errorCode: 'COMMON401', message: '만료',
  *       data: null }, { status: 401 })),
  */
@@ -40,13 +40,7 @@ export const handlers = [
   }),
 
   /* ── 오늘 ─────────────────────────────────────────────── */
-  http.get('/api/today', () => ok(db.today)),
-  http.patch('/api/today/checklist/:itemId', async ({ params, request }) => {
-    const { done } = (await request.json()) as { done: boolean };
-    const item = db.today.checklist.find((c) => c.id === params.itemId);
-    if (item) item.done = done;
-    return ok(null);
-  }),
+  // 목을 지웠다 — 브리핑·체크리스트·캘린더 일정 모두 BE에 배포돼 실 API로 나간다.
 
   /* ── 카드 ─────────────────────────────────────────────── */
   http.get('/api/cards', () => ok(db.cards)),
