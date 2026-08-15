@@ -2,11 +2,13 @@ import { useMemo, useState } from 'react';
 
 import PageHeader from '../../components/PageHeader';
 import { useToday, useToggleChecklistItem } from '../../hooks/today/useToday';
+import { useTodayGeolocation } from '../../hooks/today/useTodayGeolocation';
 import { useTodayLocation } from '../../hooks/today/useTodayLocation';
 import { startOfDay, toKey } from '../../lib/date';
 import CalendarNav from './components/CalendarNav';
 import CareBriefing from './components/CareBriefing';
 import CareEvidence from './components/CareEvidence';
+import LocationNotice from './components/LocationNotice';
 import LocationPicker from './components/LocationPicker';
 import TodayChecklist from './components/TodayChecklist';
 
@@ -23,6 +25,8 @@ export default function HomePage() {
   const [mode, setMode] = useState<'week' | 'month'>('week');
 
   const { location, selectLocation } = useTodayLocation();
+  // 좌표는 아직 조회에 쓰지 않는다(서버 수용 여부 문의 중) — 상태만 화면에 비춘다
+  const { status: geoStatus } = useTodayGeolocation();
 
   const { data, isLoading, isError } = useToday(toKey(selected), location);
   const { mutate: toggleItem } = useToggleChecklistItem(toKey(selected), location);
@@ -47,7 +51,11 @@ export default function HomePage() {
     <div className="flex flex-col gap-3.5 px-5 pt-5 pb-6">
       <PageHeader title="오늘" />
 
-      <LocationPicker location={location} onSelect={selectLocation} />
+      {/* 좁은 화면에서는 안내가 길어 줄이 넘친다 — 접히게 두고 세로 간격만 좁게 준다 */}
+      <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+        <LocationPicker location={location} onSelect={selectLocation} />
+        <LocationNotice status={geoStatus} location={location} />
+      </div>
 
       <CalendarNav
         anchor={anchor}
