@@ -45,11 +45,15 @@ export async function updateChecklistItem(
  * 연동된 구글 캘린더 일정. 캘린더에 점을 찍는 데 쓴다 —
  * 서버가 날짜별 marked를 따로 주지 않아서 프론트가 조립해야 한다.
  *
- * 조회 기간 파라미터는 계약에 없다. 전체를 받아 한 번만 캐시하고,
- * 어느 달을 보든 그 응답을 다시 쓴다 — 달을 넘길 때마다 같은 응답을 다시 받지 않으려는 것.
+ * 보이는 달 전체를 한 번에 받는다. 날짜를 옮길 때마다 다시 부르지 않으려는 것.
  */
-export async function getCalendarEvents(): Promise<CalendarEvent[]> {
-  const res = await axiosInstance.get<ApiResponse>('/api/v1/today/calendar/events');
+export async function getCalendarEvents(
+  startDate: string,
+  endDate: string,
+): Promise<CalendarEvent[]> {
+  const res = await axiosInstance.get<ApiResponse>('/api/v1/today/calendar/events', {
+    params: { startDate, endDate },
+  });
   return toCalendarEvents(getResult(res));
 }
 

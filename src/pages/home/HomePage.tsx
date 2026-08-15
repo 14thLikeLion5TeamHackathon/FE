@@ -47,8 +47,19 @@ export default function HomePage() {
   const checklist = useChecklist();
   const { mutate: toggleItem } = useToggleChecklistItem();
 
-  /** 점 찍을 날짜. 일정은 기간 파라미터가 없어 전체를 한 번만 받아 두고 재사용한다 */
-  const markedKeys = useMarkedDates(briefing.data?.calendarConnected ?? false);
+  /** 일정은 보이는 달 전체를 한 번에 받아 둔다 — 날짜를 옮길 때마다 다시 부르지 않으려고 */
+  const [monthStart, monthEnd] = useMemo(() => {
+    const days = monthMatrix(anchor)
+      .flat()
+      .filter((day): day is Date => day !== null);
+    return [toKey(days[0]), toKey(days[days.length - 1])];
+  }, [anchor]);
+
+  const markedKeys = useMarkedDates(
+    monthStart,
+    monthEnd,
+    briefing.data?.calendarConnected ?? false,
+  );
 
   /** 오늘 날짜는 한 번만 구해 공유한다 — 곳곳에서 new Date()를 부르면 서로 어긋난다 */
   const today = useMemo(() => startOfDay(new Date()), []);
