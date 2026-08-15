@@ -23,7 +23,9 @@ export const CareCard = z.object({
   recoveryTotalDays: z.number(),
   recordId: z.number().nullable().optional(),
   recordedAt: z.string().nullable().optional(),
-  photoUrl: z.string().nullable().optional(),
+  // 스웨거는 `photoUrls: string[]`다. 한 기록에 사진이 여러 장 붙는다 —
+  // 단수 `photoUrl`로 두면 실서버 응답에서 값이 통째로 사라진다.
+  photoUrls: z.array(z.string()).nullish(),
   statusDescription: z.string().nullable().optional(),
   redness: z.number().nullable().optional(),
   swelling: z.number().nullable().optional(),
@@ -70,7 +72,7 @@ export type CardDetail = z.infer<typeof CardDetail>;
 export const CareRecord = z.object({
   recordId: z.number(),
   recordedAt: z.string(),
-  photoUrl: z.string().nullable(),
+  photoUrls: z.array(z.string()).nullish(),
   statusDescription: z.string(),
   redness: z.number(),
   swelling: z.number(),

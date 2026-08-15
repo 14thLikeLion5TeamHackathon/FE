@@ -50,8 +50,8 @@ export function useCreateCard() {
   return useMutation({
     mutationFn: createCard,
     onSuccess: () => {
+      // 회복 탭은 이제 별도 엔드포인트가 아니라 카드 목록으로 조립되므로 cardKeys.all이면 충분하다
       void queryClient.invalidateQueries({ queryKey: cardKeys.all });
-      void queryClient.invalidateQueries({ queryKey: ['recovery'] });
       void queryClient.invalidateQueries({ queryKey: ['today'] });
     },
   });

@@ -97,8 +97,8 @@ export const handlers = [
     ok(params.recordId === 'warn' ? db.feedbackWarning : db.feedback),
   ),
 
-  /* ── 회복 ─────────────────────────────────────────────── */
-  http.get('/api/recovery', () => ok(db.recovery)),
+  // 회복 탭 목은 없다 — `/api/recovery`는 서버에 없는 엔드포인트였다.
+  // 회복 탭은 위의 카드 목록·카드별 기록 두 응답을 프론트에서 조립해 만든다.
 
   /* ── 일정 ─────────────────────────────────────────────── */
   http.get('/api/schedules/:scheduleId', ({ params }) => {

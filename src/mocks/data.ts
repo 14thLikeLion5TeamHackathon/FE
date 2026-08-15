@@ -13,7 +13,7 @@ export const cards = [
     status: 'IN_PROGRESS',
     recordId: null,
     recordedAt: null,
-    photoUrl: null,
+    photoUrls: [],
     statusDescription: null,
     redness: null,
     swelling: null,
@@ -30,7 +30,7 @@ export const cards = [
     status: 'IN_PROGRESS',
     recordId: null,
     recordedAt: null,
-    photoUrl: null,
+    photoUrls: [],
     statusDescription: null,
     redness: null,
     swelling: null,
@@ -47,7 +47,7 @@ export const cards = [
     status: 'DONE',
     recordId: null,
     recordedAt: null,
-    photoUrl: null,
+    photoUrls: [],
     statusDescription: null,
     redness: null,
     swelling: null,
@@ -154,7 +154,7 @@ export const records = {
     {
       recordId: 1,
       recordedAt: '2026-07-28',
-      photoUrl: null,
+      photoUrls: ['https://picsum.photos/seed/r-1/400/430'],
       statusDescription: '어제보다 부은 것 같아요',
       redness: 3,
       swelling: 2,
@@ -166,7 +166,7 @@ export const records = {
     {
       recordId: 2,
       recordedAt: '2026-08-01',
-      photoUrl: null,
+      photoUrls: ['https://picsum.photos/seed/r-2/400/430'],
       statusDescription: '붉은기가 어제보다 옅어졌어요',
       redness: 2,
       swelling: 1,
@@ -233,24 +233,6 @@ export const feedbackWarning = {
     required: true,
     message: '부기와 통증이 이틀 연속 \'심함\'이에요. 시술 기관에 문의해보시는 걸 권해드려요.',
     criteria: '강도 3이 2일 이상 지속',
-  },
-};
-
-export const recovery = {
-  inProgress: [cards[0], cards[1]],
-  done: [cards[2]],
-  curve: {
-    cardId: 1,
-    points: [
-      { recordId: 'p-1', ddayLabel: 'D+1', dateLabel: '07.26', photoUrl: null, symptoms: [{ key: 'SWELLING', intensity: 3 }, { key: 'PAIN', intensity: 2 }, { key: 'REDNESS', intensity: 3 }, { key: 'DRYNESS', intensity: 1 }] },
-      { recordId: 'p-2', ddayLabel: 'D+3', dateLabel: '07.28', photoUrl: null, symptoms: [{ key: 'SWELLING', intensity: 3 }, { key: 'PAIN', intensity: 2 }, { key: 'REDNESS', intensity: 2 }, { key: 'DRYNESS', intensity: 2 }] },
-      { recordId: 'p-3', ddayLabel: 'D+7', dateLabel: '08.01', photoUrl: null, symptoms: [{ key: 'SWELLING', intensity: 2 }, { key: 'PAIN', intensity: 1 }, { key: 'REDNESS', intensity: 2 }, { key: 'DRYNESS', intensity: 2 }] },
-      { recordId: 'p-4', ddayLabel: 'D+10', dateLabel: '08.04', photoUrl: null, symptoms: [{ key: 'SWELLING', intensity: 2 }, { key: 'PAIN', intensity: 1 }, { key: 'REDNESS', intensity: 1 }, { key: 'DRYNESS', intensity: 2 }] },
-      { recordId: 'p-5', ddayLabel: 'D+14', dateLabel: '08.08', photoUrl: null, symptoms: [{ key: 'SWELLING', intensity: 1 }, { key: 'PAIN', intensity: 1 }, { key: 'REDNESS', intensity: 1 }, { key: 'DRYNESS', intensity: 1 }] },
-      { recordId: 'p-6', ddayLabel: 'D+18', dateLabel: '08.12', photoUrl: null, symptoms: [{ key: 'SWELLING', intensity: 1 }, { key: 'PAIN', intensity: 0 }, { key: 'REDNESS', intensity: 1 }, { key: 'DRYNESS', intensity: 1 }] },
-      { recordId: 'p-7', ddayLabel: 'D+23', dateLabel: '08.17', photoUrl: null, symptoms: [{ key: 'SWELLING', intensity: 0 }, { key: 'PAIN', intensity: 0 }, { key: 'REDNESS', intensity: 0 }, { key: 'DRYNESS', intensity: 1 }] },
-    ],
-    comparedIndexes: [0, 6],
   },
 };
 
