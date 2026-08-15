@@ -1,4 +1,5 @@
 const ACCESS_TOKEN_KEY = 'accessToken';
+const REFRESH_TOKEN_KEY = 'refreshToken';
 
 /**
  * localStorage는 React 밖의 저장소라 값이 바뀌어도 리렌더가 일어나지 않는다.
@@ -42,5 +43,18 @@ export function setAccessToken(token: string) {
 
 export function clearAccessToken() {
   localStorage.removeItem(ACCESS_TOKEN_KEY);
+  localStorage.removeItem(REFRESH_TOKEN_KEY);
   emit();
+}
+
+/**
+ * 리프레시 토큰 보관. 갱신 흐름(POST /api/v1/auth/token/refresh)은 아직 붙이지 않았고,
+ * 콜백에서 함께 내려온 값을 버리지 않기 위해서만 저장한다. 구독 대상은 액세스 토큰뿐이라 emit 안 함.
+ */
+export function setRefreshToken(token: string) {
+  localStorage.setItem(REFRESH_TOKEN_KEY, token);
+}
+
+export function getRefreshToken() {
+  return localStorage.getItem(REFRESH_TOKEN_KEY);
 }

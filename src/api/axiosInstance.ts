@@ -1,7 +1,7 @@
 import axios, { type AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
 
 import { clearAccessToken, getAccessToken } from './token';
-import { ErrorCode, type ApiError, type ApiResponse } from './types';
+import { HttpStatus, type ApiError, type ApiResponse } from './types';
 import { notifyUnauthorized } from './unauthorized';
 
 const axiosInstance = axios.create({
@@ -34,9 +34,10 @@ function toApiError(error: AxiosError<ApiResponse<unknown>>): ApiError {
 
   return {
     status,
-    code: body?.code ?? (status === 0 ? 'NETWORK_ERROR' : ErrorCode.INTERNAL_SERVER_ERROR),
+    // BE가 주는 문자열 코드. 봉투가 없는 에러(게이트웨이·네트워크 실패)에서는 null이다.
+    errorCode: body?.errorCode ?? null,
     message: body?.message ?? error.message ?? '요청에 실패했습니다.',
-    result: body?.result,
+    data: body?.data,
   };
 }
 
@@ -51,8 +52,9 @@ axiosInstance.interceptors.response.use(
     const apiError = toApiError(error);
 
     // 401 — 토큰 무효. 지우고 로그인으로 돌려보낸다.
-    // status와 code 둘 다 본다: 게이트웨이가 만든 401은 code가 없고, code만 오는 경우도 있다.
-    if (apiError.status === 401 || apiError.code === ErrorCode.UNAUTHORIZED) {
+    // 판단 기준은 HTTP status 하나다. 봉투의 code는 number라 문자열 코드와 비교할 수 없고,
+    // 봉투가 아예 없는 401(게이트웨이)도 있어서 status가 유일하게 항상 존재하는 신호다.
+    if (apiError.status === HttpStatus.UNAUTHORIZED) {
       clearAccessToken();
       notifyUnauthorized();
     }

@@ -6,21 +6,27 @@
  * 카카오는 브랜드 색(#FEE500)을 그대로 쓴다 — 토큰으로 만들지 말 것.
  * 실 OAuth와 별개로, 데모용 우회 진입(import.meta.env.DEV 가드)도 함께 만든다.
  */
-import { useLocation, useNavigate } from 'react-router';
+import { useLocation, useNavigate, type Location } from 'react-router';
 
-import { useLogin } from '../../hooks/auth/useAuth';
+import { useAuth } from '../../hooks/auth/useAuth';
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { mutate: login, isPending } = useLogin();
+  const { login } = useAuth();
 
-  // 가드가 튕겨낼 때 넘겨준 원래 목적지. 직접 들어왔으면 홈.
-  const from = (location.state as { from?: { pathname: string } } | null)?.from?.pathname ?? '/';
+  // 가드가 튕겨낼 때 넘겨준 원래 목적지. location 객체를 통째로 쓴다 —
+  // pathname만 뽑으면 `/cards/3?tab=records`가 `/cards/3`으로 돌아온다.
+  const from = (location.state as { from?: Location } | null)?.from;
 
-  /** 실 OAuth 붙기 전까지 쓰는 데모용 진입. 토큰이 저장돼야 가드를 통과한다. */
+  /**
+   * 데모용 진입. 로그인 API를 부르지 않고 로컬에 가짜 토큰만 심는다.
+   * 계약에 로그인 엔드포인트가 없어서(소셜 리다이렉트 방식) 호출할 대상이 없고,
+   * VITE_API_BASE_URL이 채워지면 상대경로 MSW 목도 cross-origin이라 매칭되지 않는다.
+   */
   function skipLogin() {
-    login(undefined, { onSuccess: () => navigate(from, { replace: true }) });
+    login('dev-access-token');
+    navigate(from ?? '/', { replace: true });
   }
 
   return (
@@ -51,7 +57,6 @@ export default function LoginPage() {
         {import.meta.env.DEV && (
           <button
             onClick={skipLogin}
-            disabled={isPending}
             className="typo-caption text-text-tertiary mt-2 text-center underline"
           >
             (DEV) 로그인 건너뛰기

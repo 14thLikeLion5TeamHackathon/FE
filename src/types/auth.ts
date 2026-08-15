@@ -1,10 +1,8 @@
 import { z } from 'zod';
 
 /**
- * BE 계약이 아직 없어서 화면 개발용으로 둔 임시 스키마다.
- * 실 OAuth가 붙으면 토큰 교환 응답 형태에 맞춰 이 파일부터 고친다.
+ * 로그아웃 응답의 data. 계약상 본문이 비어 있어(`data: null`) 검증할 형태가 없지만,
+ * API 함수는 `.parse()`로 끝낸다는 규칙은 지킨다 — 무엇이 오든 결과는 null로 고정.
  */
-export const LoginResult = z.object({
-  accessToken: z.string(),
-});
-export type LoginResult = z.infer<typeof LoginResult>;
+export const LogoutResult = z.unknown().transform(() => null);
+export type LogoutResult = z.infer<typeof LogoutResult>;

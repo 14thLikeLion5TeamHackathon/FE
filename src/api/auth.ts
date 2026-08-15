@@ -1,18 +1,13 @@
-import { LoginResult } from '../types/auth';
+import { LogoutResult } from '../types/auth';
 import axiosInstance from './axiosInstance';
 import { getResult } from './helpers';
 import type { ApiResponse } from './types';
 
 /**
- * ⚠️ 경로·요청 본문 모두 BE와 합의 전이다 (#26). 지금은 MSW 목만 응답한다.
- * 실 카카오 OAuth는 BE의 리다이렉트 URI와 토큰 교환이 정해진 뒤에 붙인다.
+ * 로그인 API는 없다. 소셜 로그인은 BE 리다이렉트로 처리되고 토큰은 콜백 쿼리스트링으로 온다
+ * (docs/api-contract.md "인증 · 마이페이지 · 연동"). 콜백 처리는 pages/auth/AuthCallbackPage.tsx.
  */
-export async function postLogin(): Promise<LoginResult> {
-  const res = await axiosInstance.post<ApiResponse>('/api/auth/login');
-  return LoginResult.parse(getResult(res));
-}
-
-export async function postLogout(): Promise<null> {
-  await axiosInstance.post<ApiResponse>('/api/auth/logout');
-  return null;
+export async function postLogout(): Promise<LogoutResult> {
+  const res = await axiosInstance.post<ApiResponse>('/api/v1/mypage/auth/logout');
+  return LogoutResult.parse(getResult(res));
 }
