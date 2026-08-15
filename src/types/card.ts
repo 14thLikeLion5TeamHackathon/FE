@@ -1,54 +1,91 @@
 import { z } from 'zod';
 
-/**
- * 케어 카드 = 회복 여정. 기록은 카드 안에 산다.
- * BE 계약이 아직 없어 시안에서 역산한 임시 스키마다.
- */
+/* ── 공통 ─────────────────────────────────────────────────── */
 
 export const CardStatus = z.enum(['IN_PROGRESS', 'DONE']);
 export type CardStatus = z.infer<typeof CardStatus>;
 
-/** 목록·카드 상세 상단에 공통으로 쓰는 요약 */
+export const AiFeedback = z.object({
+  feedbackId: z.number(),
+  changeSummary: z.string(),
+  careGuidance: z.string(),
+  needsConsultation: z.boolean(),
+});
+export type AiFeedback = z.infer<typeof AiFeedback>;
+
+/* ── GET /api/v1/cards — 케어카드 목록 조회 (카드별 최근 기록 포함) ── */
+
 export const CareCard = z.object({
-  id: z.string(),
-  /** 시술명 (예: 포텐자) */
-  name: z.string(),
-  /** YYYY.MM.DD */
-  treatedAt: z.string(),
-  /** 시술일로부터 지난 일수. 화면에는 `D+7`로 표기 */
-  dday: z.number().int(),
-  /** 회복 총 기간(일). 시안 기준 29 */
-  totalDays: z.number().int(),
+  cardId: z.number(),
+  treatmentName: z.string(),
+  treatmentDate: z.string(), // "2026-08-15"
   status: CardStatus,
-  /** 오늘의 관리 — 「오늘의 관리 행동 (공통)」 산출 결과 */
-  todayCare: z.string(),
-  /** 오늘이 기록 권장일인지. 맞으면 기록 버튼을 주요 버튼으로 승격한다 */
-  recordRecommended: z.boolean(),
+  recoveryTotalDays: z.number(),
+  recordId: z.number().nullable().optional(),
+  recordedAt: z.string().nullable().optional(),
+  photoUrl: z.string().nullable().optional(),
+  statusDescription: z.string().nullable().optional(),
+  redness: z.number().nullable().optional(),
+  swelling: z.number().nullable().optional(),
+  pain: z.number().nullable().optional(),
+  dryness: z.number().nullable().optional(),
+  aiFeedback: AiFeedback.nullable().optional(),
+  dday: z.number(),
 });
 export type CareCard = z.infer<typeof CareCard>;
 
-/** 회복 가이드 한 구간 */
-export const RecoveryGuideStep = z.object({
-  /** 예: "D+1~3" */
-  range: z.string(),
-  description: z.string(),
-  /** 현재 구간이면 강조한다 */
-  current: z.boolean(),
-});
-export type RecoveryGuideStep = z.infer<typeof RecoveryGuideStep>;
+/* ── GET /api/v1/cards/{cardId} — 케어카드 상세 조회 ─────── */
 
-export const CardDetail = CareCard.extend({
-  guide: z.array(RecoveryGuideStep),
-  cautions: z.array(z.string()),
-  /** D+21~29에만 노출. 그 밖에는 null */
-  storeVisit: z
-    .object({
-      title: z.string(),
-      description: z.string(),
-    })
-    .nullable(),
+export const FeedbackQuota = z.object({
+  used: z.number(),
+  total: z.number(),
+});
+export type FeedbackQuota = z.infer<typeof FeedbackQuota>;
+
+export const VisitedStore = z.object({
+  storeId: z.number(),
+  name: z.string(),
+  address: z.string(),
+  url: z.string(),
+  latitude: z.string(),
+  longitude: z.string(),
+});
+export type VisitedStore = z.infer<typeof VisitedStore>;
+
+export const CardDetail = z.object({
+  cardId: z.number(),
+  treatmentName: z.string(),
+  treatmentDate: z.string(),
+  recoveryTotalDays: z.number(),
+  recoveryTransitionDay: z.number(),
+  todayCare: z.array(z.string()),
+  feedbackQuota: FeedbackQuota,
+  visitedStore: VisitedStore.nullable(),
+  dday: z.number(),
 });
 export type CardDetail = z.infer<typeof CardDetail>;
+
+/* ── GET /api/v1/cards/{cardId}/records — 카드별 이전 기록 ─ */
+
+export const CareRecord = z.object({
+  recordId: z.number(),
+  recordedAt: z.string(),
+  photoUrl: z.string().nullable(),
+  statusDescription: z.string(),
+  redness: z.number(),
+  swelling: z.number(),
+  pain: z.number(),
+  dryness: z.number(),
+  aiFeedback: AiFeedback.nullable(),
+  dday: z.number(),
+});
+export type CareRecord = z.infer<typeof CareRecord>;
+
+export const CardRecords = z.object({
+  cardId: z.number(),
+  careRecords: z.array(CareRecord),
+});
+export type CardRecords = z.infer<typeof CardRecords>;
 
 /* ── 카드 생성 ───────────────────────────────────────────── */
 
@@ -63,20 +100,23 @@ export const CATEGORY_LABEL: Record<TreatmentCategory, string> = {
 };
 
 export const Treatment = z.object({
-  id: z.string(),
+  treatmentId: z.number(),
   name: z.string(),
-  /** 목록에서 이름 아래 보여주는 한 줄 설명 */
   description: z.string(),
   category: TreatmentCategory,
   thumbnailUrl: z.string().nullable(),
 });
 export type Treatment = z.infer<typeof Treatment>;
 
+/** TreatmentEntry — 카드 생성 시 선택한 시술 항목 */
+export const TreatmentEntry = z.object({
+  treatmentId: z.number(),
+  customName: z.string().nullable(),
+});
+export type TreatmentEntry = z.infer<typeof TreatmentEntry>;
+
 export const CreateCardRequest = z.object({
-  treatmentIds: z.array(z.string()).min(1),
-  /** YYYY.MM.DD */
-  treatedAt: z.string(),
-  /** 시술명을 정확히 모를 때 */
-  unknownTreatment: z.boolean(),
+  treatmentDate: z.string(),
+  treatments: z.array(TreatmentEntry).min(1),
 });
 export type CreateCardRequest = z.infer<typeof CreateCardRequest>;

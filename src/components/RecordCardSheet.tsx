@@ -60,36 +60,33 @@ export default function RecordCardSheet({ open, onClose, onSelect }: RecordCardS
         {cards.length > 0 && (
           <ul className="flex flex-col gap-2.5">
             {cards.map((card: CareCard) => (
-              <li key={card.id}>
+              <li key={card.cardId}>
                 <button
                   type="button"
-                  onClick={() => onSelect(card.id)}
+                  onClick={() => onSelect(String(card.cardId))}
                   className={cn(
                     'rounded-card flex w-full items-center justify-between gap-2 px-3.5 py-3.5 text-left transition-colors',
-                    card.recordRecommended
-                      ? 'bg-primary-tint border-primary border'
-                      : 'bg-surface-raised hover:bg-surface-elevated border border-transparent',
+                    'bg-surface-raised hover:bg-surface-elevated border border-transparent',
                   )}
                 >
                   <span className="flex flex-1 flex-col gap-1 self-stretch">
                     <span className="typo-card-title text-text-primary self-stretch">
-                      {card.name}
+                      {card.treatmentName}
                     </span>
                     <span
                       className={cn(
                         'typo-caption self-stretch',
-                        card.recordRecommended ? 'text-primary' : 'text-text-tertiary',
+                        'text-text-tertiary',
                       )}
                     >
-                      시술일 {card.treatedAt}
-                      {card.recordRecommended && ' · 오늘 기록 권장'}
+                      시술일 {card.treatmentDate}
                     </span>
                   </span>
 
                   <Chip
                     className={cn(
                       'flex items-center justify-center px-[10px] py-[5px] rounded-chip typo-caption shrink-0 text-primary-on',
-                      card.recordRecommended ? 'bg-primary' : 'bg-surface-fill',
+                      'bg-surface-fill',
                     )}
                   >
                     D+{card.dday}

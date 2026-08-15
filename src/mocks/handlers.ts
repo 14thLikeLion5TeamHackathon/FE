@@ -32,12 +32,17 @@ export const handlers = [
   // 로그아웃은 BE에 배포돼 있으므로(POST /api/v1/mypage/auth/logout) 목을 두지 않는다.
 
   /* ── 마이 ─────────────────────────────────────────────── */
-  http.get('/api/users/me', () => ok(db.myProfile)),
-  http.patch('/api/users/me/notifications', async ({ request }) => {
-    const next = (await request.json()) as typeof db.myProfile.notifications;
-    db.myProfile.notifications = next;
-    return ok(next);
+  http.get('/api/v1/mypage/users/me', () => ok(db.myProfile)),
+  http.put('/api/v1/mypage/users/me', async ({ request }) => {
+    const body = (await request.json()) as { name: string; birthDate: string; gender: string };
+    db.myProfile.name = body.name;
+    db.myProfile.birthDate = body.birthDate;
+    db.myProfile.gender = body.gender;
+    return ok({ userId: db.myProfile.userId });
   }),
+  http.delete('/api/v1/mypage/users/me', () => ok({})),
+  http.post('/api/v1/mypage/auth/logout', () => ok({})),
+  http.delete('/api/v1/mypage/notification/kakao', () => ok({})),
 
   /* ── 오늘 ─────────────────────────────────────────────── */
   http.get('/api/today', () => ok(db.today)),
@@ -49,29 +54,42 @@ export const handlers = [
   }),
 
   /* ── 카드 ─────────────────────────────────────────────── */
-  http.get('/api/cards', () => ok(db.cards)),
-  http.get('/api/cards/:cardId', ({ params }) => {
-    const card = db.cards.find((c) => c.id === params.cardId);
+  http.get('/api/v1/cards', () => ok(db.cards)),
+  http.get('/api/v1/cards/:cardId', ({ params }) => {
+    const card = db.cards.find((c) => c.cardId === Number(params.cardId));
     if (!card) return notFound('없는 카드예요');
-    return ok({ ...db.cardDetail, ...card });
+    return ok(db.cardDetail);
   }),
-  http.post('/api/cards', () => ok(db.cards[0])),
+  http.post('/api/v1/create/care-cards', () => ok(db.cards[0])),
 
-  http.get('/api/treatments', ({ request }) => {
+  http.get('/api/v1/create/treatments', ({ request }) => {
     const url = new URL(request.url);
     const category = url.searchParams.get('category');
-    const q = url.searchParams.get('q');
+    const keyword = url.searchParams.get('keyword');
     let list = db.treatments;
     if (category) list = list.filter((t) => t.category === category);
-    if (q) list = list.filter((t) => t.name.includes(q));
+    if (keyword) list = list.filter((t) => t.name.includes(keyword));
     return ok(list);
   }),
 
   /* ── 기록 ─────────────────────────────────────────────── */
-  http.get('/api/cards/:cardId/records', ({ params }) =>
-    ok(db.records.filter((r) => r.cardId === params.cardId)),
+  http.get('/api/v1/cards/:cardId/records', () => ok(db.records)),
+  // 응답은 RecordDetail이라 db.records.careRecords[0](CareRecord)를 그대로 주면 안 된다 —
+  // cardId·tags가 없고 photoUrl도 null이라 .parse()가 반드시 실패한다.
+  http.post('/api/v1/now/care-cards/:cardId/records', ({ params }) =>
+    ok({
+      recordId: 99,
+      cardId: Number(params.cardId),
+      photoUrl: 'https://placehold.co/600x600/png',
+      statusDescription: '붉은기가 어제보다 옅어졌어요',
+      recordedAt: '2026-08-16',
+      tags: [
+        { tagId: 1, name: '붉어짐', intensity: 2 },
+        { tagId: 2, name: '부기', intensity: 1 },
+      ],
+      dday: 8,
+    }),
   ),
-  http.post('/api/records', () => ok({ recordId: 'rec-2' })),
 
   /* ── AI 피드백 ────────────────────────────────────────── */
   http.get('/api/records/:recordId/feedback', ({ params }) =>
