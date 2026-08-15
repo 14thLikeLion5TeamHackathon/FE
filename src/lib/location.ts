@@ -29,11 +29,18 @@ export function getStoredLocation(): TodayLocation | null {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as TodayLocation;
-    if (parsed.city && parsed.district) return parsed;
-    return null;
+    // 목록에 없는 조합은 버린다. 서버가 모르는 지역을 받으면 에러 없이 엉뚱한 기본값으로
+    // 떨어져서, 사용자는 다른 동네 날씨를 자기 동네로 알고 본다.
+    return isKnownLocation(parsed) ? parsed : null;
   } catch {
     return null;
   }
+}
+
+/** 시·구가 모두 CITIES에 있는 조합인지 */
+export function isKnownLocation(location: TodayLocation): boolean {
+  const city = findCity(location.city);
+  return Boolean(city?.districts.includes(location.district));
 }
 
 export function setStoredLocation(location: TodayLocation): void {

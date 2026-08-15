@@ -50,8 +50,12 @@ export default function CareCard({ card, onDetail, onRecord }: CareCardProps) {
         <div className="bg-border-subtle h-px w-full" aria-hidden />
 
         <div className="flex flex-col gap-1">
-          <p className="typo-label text-text-primary">오늘의 케어</p>
-          <p className="typo-body text-text-secondary">{card.statusDescription ?? '등록된 기록이 없어요'}</p>
+          {/* 목록 응답에는 오늘의 케어 안내가 없다(그건 카드 상세의 todayCare다).
+              여기 있는 건 사용자가 마지막 기록에 쓴 상태 메모라 라벨을 그에 맞춘다. */}
+          <p className="typo-label text-text-primary">최근 기록</p>
+          <p className="typo-body text-text-secondary">
+            {card.statusDescription ?? '등록된 기록이 없어요'}
+          </p>
         </div>
       </div>
 

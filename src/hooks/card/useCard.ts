@@ -5,7 +5,10 @@ import { createCard, getCardDetail, getCardRecords, getCards, getTreatments } fr
 const cardKeys = {
   all: ['card'] as const,
   list: ['card', 'list'] as const,
-  detail: (cardId: string) => ['card', 'detail', cardId] as const,
+  // 위치가 응답의 todayCare(날씨 기반)를 바꾸므로 키에 포함한다.
+  // 빠뜨리면 기준 위치를 옮겨도 이전 위치의 상세가 캐시에서 그대로 나온다.
+  detail: (cardId: string, city: string, district: string) =>
+    ['card', 'detail', cardId, city, district] as const,
   records: (cardId: string) => ['card', 'records', cardId] as const,
   treatments: (category?: string, keyword?: string) => ['card', 'treatments', category, keyword] as const,
 };
@@ -18,7 +21,7 @@ export function useCards() {
 /** GET /api/v1/cards/{cardId} — 케어카드 상세 */
 export function useCardDetail(cardId: string, params: { city: string; district: string }) {
   return useQuery({
-    queryKey: cardKeys.detail(cardId),
+    queryKey: cardKeys.detail(cardId, params.city, params.district),
     queryFn: () => getCardDetail(cardId, params),
     enabled: Boolean(cardId),
   });

@@ -1,4 +1,4 @@
-import { CreateRecordRequest, CreateRecordResponse, RecordDetail, StatusTag } from '../types/record';
+import { CreateRecordRequest, CreateRecordResponse, StatusTag } from '../types/record';
 import axiosInstance from './axiosInstance';
 import { getResult } from './helpers';
 import type { ApiResponse } from './types';
@@ -8,12 +8,6 @@ import { z } from 'zod';
 export async function getStatusTags(): Promise<StatusTag[]> {
   const res = await axiosInstance.get<ApiResponse>('/api/v1/now/status-tags');
   return z.array(StatusTag).parse(getResult(res));
-}
-
-/** 카드 상세의 회복 기록 타임라인 */
-export async function getRecords(cardId: string): Promise<RecordDetail[]> {
-  const res = await axiosInstance.get<ApiResponse>(`/api/cards/${cardId}/records`);
-  return z.array(RecordDetail).parse(getResult(res));
 }
 
 /** 현재 상태 기록 등록 (multipart/form-data) */
