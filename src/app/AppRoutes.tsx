@@ -12,7 +12,6 @@ const RecoveryPage = lazy(() => import('../pages/recovery/RecoveryPage'));
 const MyPage = lazy(() => import('../pages/my/MyPage'));
 
 const LoginPage = lazy(() => import('../pages/auth/LoginPage'));
-const AuthCallbackPage = lazy(() => import('../pages/auth/AuthCallbackPage'));
 const SignupPage = lazy(() => import('../pages/auth/SignupPage'));
 const CardCreatePage = lazy(() => import('../pages/card/CardCreatePage'));
 const CardDetailPage = lazy(() => import('../pages/card/CardDetailPage'));
@@ -31,10 +30,6 @@ export default function AppRoutes() {
       <Routes>
         {/* 진입 화면 — 탭바도 뒤로가기도 없다 */}
         <Route path="/login" element={<LoginPage />} />
-
-        {/* 소셜 로그인 콜백. 토큰을 저장하기 전이라 반드시 가드 밖이어야 한다.
-            ⚠️ 경로는 BE와 미확정 — 바뀌면 이 path와 AuthCallbackPage의 파라미터 상수만 고친다. */}
-        <Route path="/auth/callback" element={<AuthCallbackPage />} />
 
         {/* 여기부터는 토큰이 있어야 들어온다 */}
         <Route element={<RequireAuth />}>
