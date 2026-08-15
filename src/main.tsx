@@ -3,7 +3,29 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router';
 import './index.css';
+import { consumeOAuthRedirect } from './api/oauth';
 import App from './App.tsx';
+
+/**
+ * 서버 리다이렉트 로그인의 귀환 처리 — 렌더보다 **먼저** 한다.
+ *
+ * 성공 시 어느 경로로 돌려보내는지 확정되지 않아 라우트에 매달 수 없고, 홈(`/`)으로 떨어지면
+ * 라우트 가드가 렌더 중에 /login으로 튕겨내면서 토큰이 실린 쿼리스트링이 통째로 사라진다.
+ * 그래서 React가 뜨기 전에 저장을 끝낸다.
+ *
+ * 저장 뒤에는 주소창에서 토큰을 지운다 — 히스토리·공유 링크에 남으면 안 된다.
+ */
+function handleOAuthRedirect() {
+  const result = consumeOAuthRedirect();
+  if (!result) return;
+
+  // 실패는 그대로 둔다. /login?error=... 를 로그인 화면이 읽어 안내 문구를 띄운다.
+  if (result.status === 'failed') return;
+
+  window.history.replaceState(null, '', result.status === 'new-user' ? '/signup' : '/');
+}
+
+handleOAuthRedirect();
 
 const queryClient = new QueryClient({
   defaultOptions: {
