@@ -50,9 +50,12 @@ export default function HomePage() {
   /** 점 찍을 날짜. 일정은 기간 파라미터가 없어 전체를 한 번만 받아 두고 재사용한다 */
   const markedKeys = useMarkedDates(briefing.data?.calendarConnected ?? false);
 
+  /** 오늘 날짜는 한 번만 구해 공유한다 — 곳곳에서 new Date()를 부르면 서로 어긋난다 */
+  const today = useMemo(() => startOfDay(new Date()), []);
+
   /** 예보 범위 밖은 흐리게. 서버가 범위를 주지 않아 오늘부터 5일로 계산한다 */
   const { outOfForecastKeys, forecastNote } = useMemo(() => {
-    const last = forecastEnd(startOfDay(new Date()));
+    const last = forecastEnd(today);
     const keys = new Set<string>();
     for (const day of monthMatrix(anchor).flat()) {
       if (day && day > last) keys.add(toKey(day));
@@ -61,7 +64,7 @@ export default function HomePage() {
       outOfForecastKeys: keys,
       forecastNote: `예보는 ${last.getMonth() + 1}월 ${last.getDate()}일까지 제공돼요`,
     };
-  }, [anchor]);
+  }, [anchor, today]);
 
   const handleSelect = (date: Date) => {
     setSelected(date);
@@ -76,10 +79,13 @@ export default function HomePage() {
   const dateLabel = formatDayLabel(selected);
 
   /** 예보 범위 밖이면 날씨·대기질 대신 D-day 기준으로만 안내한다 */
-  const isOutOfForecast = selected > forecastEnd(startOfDay(new Date()));
+  const isOutOfForecast = selected > forecastEnd(today);
 
-  const metrics = data
-    ? [
+  // 예보 범위 밖에서는 비운다 — 브리핑이 "예보가 없어요"라고 말하는데
+  // 바로 아래에 자외선·미세먼지 값이 그대로 보이면 서로 어긋난다.
+  const metrics =
+    data && !isOutOfForecast
+      ? [
         {
           label: '자외선',
           value: data.environment.uv.level,
@@ -90,8 +96,17 @@ export default function HomePage() {
           value: data.environment.dust.level,
           level: toLevel(data.environment.dust.level),
         },
-      ]
-    : [];
+        ]
+      : [];
+
+  const evidence = (data?.cardJudgement?.reasons ?? []).map((label) => ({ label }));
+
+  const schedules = (data?.schedules ?? []).map((schedule) => ({
+    id: schedule.scheduleId,
+    title: schedule.title,
+    time: schedule.time,
+    place: schedule.location,
+  }));
 
   return (
     <div className="flex flex-col gap-3.5 px-5 pt-5 pb-6">
@@ -114,21 +129,21 @@ export default function HomePage() {
         />
       )}
 
-      {briefing.isLoading && <CareBriefingLoading dateLabel={dateLabel} />}
-
-      {briefing.isError && (
-        <CareBriefingError dateLabel={dateLabel} onRetry={() => void briefing.refetch()} />
-      )}
-
-      {isEmpty && (
+      {/* 상태 넷은 반드시 하나만 뜬다. 따로 두면 카드 조회와 브리핑이 병렬이라
+          로딩 카드와 빈 화면이 겹쳐 뜨고, 재조회가 실패하면 직전 데이터가 남아 있어
+          에러 카드와 정상 브리핑이 같이 보인다. */}
+      {isEmpty ? (
         <TodayEmptyState
-          showCalendar={!data?.calendarConnected}
+          /* 연동 여부를 아직 모르는 동안은 감춘다 — 이미 연동한 사람에게 연동하라고 하지 않으려고 */
+          showCalendar={data ? !data.calendarConnected : false}
           onConnectCalendar={() => navigate('/my')}
           onCreateCard={() => navigate('/cards/new')}
         />
-      )}
-
-      {data && !isEmpty && (
+      ) : briefing.isError && !data ? (
+        <CareBriefingError dateLabel={dateLabel} onRetry={() => void briefing.refetch()} />
+      ) : !data ? (
+        <CareBriefingLoading dateLabel={dateLabel} />
+      ) : (
         <>
           {isOutOfForecast ? (
             <CareBriefingNoForecast dateLabel={dateLabel} />
@@ -151,16 +166,10 @@ export default function HomePage() {
             />
           )}
 
-          <CareEvidence
-            metrics={metrics}
-            evidence={(data.cardJudgement?.reasons ?? []).map((label) => ({ label }))}
-            schedules={data.schedules.map((schedule) => ({
-              id: schedule.scheduleId,
-              title: schedule.title,
-              time: schedule.time,
-              place: schedule.location,
-            }))}
-          />
+          {/* 셋 다 비면 제목만 남은 빈 상자가 된다. 근거가 없으면 블록째 감춘다 */}
+          {(metrics.length > 0 || evidence.length > 0 || schedules.length > 0) && (
+            <CareEvidence metrics={metrics} evidence={evidence} schedules={schedules} />
+          )}
         </>
       )}
     </div>

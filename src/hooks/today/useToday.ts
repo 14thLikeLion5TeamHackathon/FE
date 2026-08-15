@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import {
@@ -42,7 +43,7 @@ export function useToggleChecklistItem() {
   return useMutation({
     mutationFn: ({ checklistId, completed }: { checklistId: number; completed: boolean }) =>
       updateChecklistItem(checklistId, completed),
-    /** 체크는 즉시 반응해야 하므로 서버 응답을 기다리지 않는다. */
+    /** 서버 응답이 온 뒤 목록을 다시 받는다. 낙관적 반영은 아직 없다 — 완료 수도 서버가 센다. */
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: todayKeys.checklist() });
     },
@@ -100,22 +101,25 @@ export function useMarkedDates(calendarConnected: boolean) {
     queryFn: getCardMarkers,
   });
 
-  const marked = new Set<string>();
+  // 매 렌더 새 Set을 만들면 이걸 받는 캘린더의 메모이제이션이 무력화된다.
+  return useMemo(() => {
+    const marked = new Set<string>();
 
-  for (const event of events.data ?? []) {
-    const key = eventDateKey(event);
-    if (key) marked.add(key);
-  }
+    for (const event of events.data ?? []) {
+      const key = eventDateKey(event);
+      if (key) marked.add(key);
+    }
 
-  for (const card of cards.data ?? []) {
-    marked.add(card.treatmentDate);
-    if (card.recoveryTotalDays != null) {
-      const treated = new Date(`${card.treatmentDate}T00:00:00`);
-      if (!Number.isNaN(treated.getTime())) {
-        marked.add(toKey(addDays(treated, card.recoveryTotalDays)));
+    for (const card of cards.data ?? []) {
+      marked.add(card.treatmentDate);
+      if (card.recoveryTotalDays != null) {
+        const treated = new Date(`${card.treatmentDate}T00:00:00`);
+        if (!Number.isNaN(treated.getTime())) {
+          marked.add(toKey(addDays(treated, card.recoveryTotalDays)));
+        }
       }
     }
-  }
 
-  return marked;
+    return marked;
+  }, [events.data, cards.data]);
 }

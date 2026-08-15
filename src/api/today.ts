@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 import type { TodayLocation } from '../lib/location';
 import {
   BriefingResponse,
@@ -61,11 +63,11 @@ export async function getCalendarEvents(): Promise<CalendarEvent[]> {
 export async function getCardMarkers(): Promise<TodayCardMarker[]> {
   const res = await axiosInstance.get<ApiResponse>('/api/v1/cards');
   const result = getResult(res);
-  if (!Array.isArray(result)) return [];
-  return result.flatMap((item) => {
-    const parsed = TodayCardMarker.safeParse(item);
-    return parsed.success ? [parsed.data] : [];
-  });
+
+  // 모양이 어긋나면 빈 배열이 아니라 에러로 끝낸다.
+  // 여기서 []를 돌려주면 "카드가 없다"로 읽혀 오늘 탭 전체가 빈 화면이 된다 —
+  // 카드를 가진 사용자에게 파싱 실패를 카드 분실처럼 보여주는 셈이라 에러가 낫다.
+  return z.array(TodayCardMarker).parse(result);
 }
 
 function toCalendarEvents(result: unknown): CalendarEvent[] {
