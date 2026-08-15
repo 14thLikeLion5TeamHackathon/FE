@@ -22,10 +22,10 @@ export default function HomePage() {
   const [anchor, setAnchor] = useState(selected);
   const [mode, setMode] = useState<'week' | 'month'>('week');
 
-  const { coords, regionId, label, isLocating, gpsDenied, selectRegion } = useTodayLocation();
+  const { location, selectLocation } = useTodayLocation();
 
-  const { data, isLoading, isError } = useToday(toKey(selected), coords);
-  const { mutate: toggleItem } = useToggleChecklistItem(toKey(selected), coords);
+  const { data, isLoading, isError } = useToday(toKey(selected), location);
+  const { mutate: toggleItem } = useToggleChecklistItem(toKey(selected), location);
 
   /** 마킹·예보범위는 날짜 키 조회라 Set으로 바꿔 둔다 */
   const { markedKeys, outOfForecastKeys } = useMemo(() => {
@@ -47,13 +47,7 @@ export default function HomePage() {
     <div className="flex flex-col gap-3.5 px-5 pt-5 pb-6">
       <PageHeader title="오늘" />
 
-      <LocationPicker
-        label={label}
-        regionId={regionId}
-        isLocating={isLocating}
-        gpsDenied={gpsDenied}
-        onSelect={selectRegion}
-      />
+      <LocationPicker location={location} onSelect={selectLocation} />
 
       <CalendarNav
         anchor={anchor}
@@ -67,7 +61,7 @@ export default function HomePage() {
         onModeChange={setMode}
       />
 
-      {(isLocating || isLoading) && (
+      {isLoading && (
         <div className="flex flex-col gap-3.5" aria-busy="true">
           <div className="bg-surface-raised rounded-md h-24 animate-pulse" />
           <div className="bg-surface-raised rounded-md h-40 animate-pulse" />

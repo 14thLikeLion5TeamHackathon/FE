@@ -1,80 +1,159 @@
 /**
  * 오늘 탭이 서버에 넘기는 위치.
  *
- * 서버는 좌표(위도·경도)만 받는다 — 지역을 골라도 그 지역의 대표 좌표를 보낸다.
- * 그래서 "GPS냐 직접 선택이냐"는 프론트 안에서만 구분되고, 요청 모양은 하나로 유지된다.
+ * 서버가 시·구 이름을 좌표로 바꿔서 쓰므로(`LOCATION_MAP`), 프론트는 이름만 보낸다.
+ * 서버가 아는 조합만 골라야 하기 때문에 보기도 그 표를 그대로 옮겼다 —
+ * 지금은 5개 광역시뿐이라 나머지 시·도는 아예 내놓지 않는다.
+ *
+ * 줄임 표현("서울")도 서버가 받아주지만 표준 명칭("서울특별시")을 보낸다.
+ * 별칭 처리에 기대면 서버가 그 분기를 지울 때 조용히 깨진다.
  */
 
-export type Coords = { lat: number; lng: number };
+export type TodayLocation = { city: string; district: string };
 
-export type Region = { id: string; label: string } & Coords;
+/** label은 칩에 쓰는 짧은 이름, name은 서버에 보내는 표준 명칭 */
+export type City = { id: string; label: string; name: string; districts: string[] };
 
-/** 위치를 직접 고를 때 쓰는 보기 — 17개 시·도, 좌표는 시청·도청 소재지 기준 */
-export const REGIONS: Region[] = [
-  { id: 'seoul', label: '서울', lat: 37.5665, lng: 126.978 },
-  { id: 'busan', label: '부산', lat: 35.1796, lng: 129.0756 },
-  { id: 'daegu', label: '대구', lat: 35.8714, lng: 128.6014 },
-  { id: 'incheon', label: '인천', lat: 37.4563, lng: 126.7052 },
-  { id: 'gwangju', label: '광주', lat: 35.1595, lng: 126.8526 },
-  { id: 'daejeon', label: '대전', lat: 36.3504, lng: 127.3845 },
-  { id: 'ulsan', label: '울산', lat: 35.5384, lng: 129.3114 },
-  { id: 'sejong', label: '세종', lat: 36.4801, lng: 127.289 },
-  { id: 'gyeonggi', label: '경기', lat: 37.2636, lng: 127.0286 },
-  { id: 'gangwon', label: '강원', lat: 37.8813, lng: 127.73 },
-  { id: 'chungbuk', label: '충북', lat: 36.6424, lng: 127.489 },
-  { id: 'chungnam', label: '충남', lat: 36.6588, lng: 126.6728 },
-  { id: 'jeonbuk', label: '전북', lat: 35.8242, lng: 127.148 },
-  { id: 'jeonnam', label: '전남', lat: 34.8161, lng: 126.463 },
-  { id: 'gyeongbuk', label: '경북', lat: 36.5684, lng: 128.7294 },
-  { id: 'gyeongnam', label: '경남', lat: 35.228, lng: 128.6811 },
-  { id: 'jeju', label: '제주', lat: 33.4996, lng: 126.5312 },
+export const CITIES: City[] = [
+  {
+    id: 'seoul',
+    label: '서울',
+    name: '서울특별시',
+    districts: [
+      '강남구',
+      '강동구',
+      '강북구',
+      '강서구',
+      '관악구',
+      '광진구',
+      '구로구',
+      '금천구',
+      '노원구',
+      '도봉구',
+      '동대문구',
+      '동작구',
+      '마포구',
+      '서대문구',
+      '서초구',
+      '성동구',
+      '성북구',
+      '송파구',
+      '양천구',
+      '영등포구',
+      '용산구',
+      '은평구',
+      '종로구',
+      '중구',
+      '중랑구',
+    ],
+  },
+  {
+    id: 'busan',
+    label: '부산',
+    name: '부산광역시',
+    // 서버 표에는 '진구'도 있지만 '부산진구'와 같은 좌표를 가리키는 별칭이라 하나만 내놓는다
+    districts: [
+      '강서구',
+      '금정구',
+      '기장군',
+      '남구',
+      '동구',
+      '동래구',
+      '부산진구',
+      '북구',
+      '사상구',
+      '사하구',
+      '서구',
+      '수영구',
+      '연제구',
+      '영도구',
+      '중구',
+      '해운대구',
+    ],
+  },
+  {
+    id: 'daegu',
+    label: '대구',
+    name: '대구광역시',
+    districts: [
+      '남구',
+      '달서구',
+      '달성군',
+      '동구',
+      '북구',
+      '서구',
+      '수성구',
+      '중구',
+      '군위군',
+    ],
+  },
+  {
+    id: 'incheon',
+    label: '인천',
+    name: '인천광역시',
+    districts: [
+      '강화군',
+      '계양구',
+      '남동구',
+      '동구',
+      '미추홀구',
+      '부평구',
+      '서구',
+      '연수구',
+      '옹진군',
+      '중구',
+    ],
+  },
+  {
+    id: 'gwangju',
+    label: '광주',
+    name: '광주광역시',
+    districts: ['광산구', '남구', '동구', '북구', '서구'],
+  },
 ];
 
-/** GPS를 못 쓸 때(권한 거부·미지원·타임아웃) 기준으로 삼는 지역 */
-export const FALLBACK_REGION = REGIONS[0];
+/** 아직 아무것도 고르지 않았을 때 기준으로 삼는 위치 */
+export const DEFAULT_LOCATION: TodayLocation = {
+  city: CITIES[0].name,
+  district: CITIES[0].districts[0],
+};
 
-export function findRegion(id: string | null): Region | null {
-  if (!id) return null;
-  return REGIONS.find((region) => region.id === id) ?? null;
+export function findCity(name: string): City | null {
+  return CITIES.find((city) => city.name === name) ?? null;
 }
 
-const REGION_KEY = 'todayRegionId';
-
-/** 직접 고른 지역. null이면 "현재 위치(GPS)"라는 뜻 — 첫 방문의 기본값이다. */
-export function getStoredRegionId(): string | null {
-  const stored = localStorage.getItem(REGION_KEY);
-  return findRegion(stored) ? stored : null;
+/** 서버가 아는 조합인지. 표가 바뀌어 사라진 값이 저장돼 있을 수 있다 */
+export function isKnownLocation({ city, district }: TodayLocation): boolean {
+  return findCity(city)?.districts.includes(district) ?? false;
 }
 
-export function setStoredRegionId(id: string | null) {
-  if (id === null) localStorage.removeItem(REGION_KEY);
-  else localStorage.setItem(REGION_KEY, id);
+/** "서울 강남구" — 화면에 쓰는 짧은 이름 */
+export function formatLocation({ city, district }: TodayLocation): string {
+  return `${findCity(city)?.label ?? city} ${district}`;
 }
 
-/**
- * 브라우저 GPS 좌표.
- * 권한 팝업 앞에서 사용자가 아무것도 안 누르면 콜백이 영영 안 오므로 timeout을 반드시 준다.
- */
-export function getCurrentCoords(): Promise<Coords> {
-  return new Promise((resolve, reject) => {
-    if (!navigator.geolocation) {
-      reject(new Error('geolocation unsupported'));
-      return;
+const LOCATION_KEY = 'todayLocation';
+
+export function getStoredLocation(): TodayLocation | null {
+  const raw = localStorage.getItem(LOCATION_KEY);
+  if (!raw) return null;
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (
+      typeof parsed === 'object' &&
+      parsed !== null &&
+      typeof (parsed as TodayLocation).city === 'string' &&
+      typeof (parsed as TodayLocation).district === 'string' &&
+      isKnownLocation(parsed as TodayLocation)
+    ) {
+      return parsed as TodayLocation;
     }
-    navigator.geolocation.getCurrentPosition(
-      (position) =>
-        resolve({ lat: position.coords.latitude, lng: position.coords.longitude }),
-      (error) => reject(error),
-      { timeout: 8000, maximumAge: 5 * 60 * 1000 },
-    );
-  });
+  } catch {
+    // 손상된 값은 없는 것으로 친다
+  }
+  return null;
 }
 
-/**
- * 쿼리 키에 넣을 좌표.
- * GPS는 가만히 있어도 소수점 끝자리가 흔들려서, 그대로 키에 쓰면 화면이 뜰 때마다 재요청이 된다.
- * 소수점 4자리면 약 10m — 예보 격자보다 훨씬 촘촘하다.
- */
-export function roundCoords({ lat, lng }: Coords): Coords {
-  return { lat: Number(lat.toFixed(4)), lng: Number(lng.toFixed(4)) };
+export function setStoredLocation(location: TodayLocation) {
+  localStorage.setItem(LOCATION_KEY, JSON.stringify(location));
 }
