@@ -36,6 +36,8 @@ export function useCreateRecord(cardId: string) {
     mutationFn: (body: CreateRecordRequest) => createRecord(cardId, body),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: recordKeys.byCard(cardId) });
+      void queryClient.invalidateQueries({ queryKey: ['card', 'records', cardId] });
+      void queryClient.invalidateQueries({ queryKey: ['card', 'detail', cardId] });
       void queryClient.invalidateQueries({ queryKey: ['recovery'] });
       void queryClient.invalidateQueries({ queryKey: ['today'] });
     },

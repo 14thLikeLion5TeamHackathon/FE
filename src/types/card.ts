@@ -5,8 +5,6 @@ import { z } from 'zod';
 export const CardStatus = z.enum(['IN_PROGRESS', 'DONE']);
 export type CardStatus = z.infer<typeof CardStatus>;
 
-/* ── AI 피드백 ────────────────────────────────────────────── */
-
 export const AiFeedback = z.object({
   feedbackId: z.number(),
   changeSummary: z.string(),
@@ -21,7 +19,7 @@ export const CareCard = z.object({
   cardId: z.number(),
   treatmentName: z.string(),
   treatmentDate: z.string(), // "2026-08-15"
-  status: z.string(),
+  status: CardStatus,
   recoveryTotalDays: z.number(),
   recordId: z.number().nullable().optional(),
   recordedAt: z.string().nullable().optional(),
@@ -102,7 +100,7 @@ export const CATEGORY_LABEL: Record<TreatmentCategory, string> = {
 };
 
 export const Treatment = z.object({
-  id: z.string(),
+  treatmentId: z.number(),
   name: z.string(),
   description: z.string(),
   category: TreatmentCategory,
@@ -110,9 +108,15 @@ export const Treatment = z.object({
 });
 export type Treatment = z.infer<typeof Treatment>;
 
+/** TreatmentEntry — 카드 생성 시 선택한 시술 항목 */
+export const TreatmentEntry = z.object({
+  treatmentId: z.number(),
+  customName: z.string().nullable(),
+});
+export type TreatmentEntry = z.infer<typeof TreatmentEntry>;
+
 export const CreateCardRequest = z.object({
-  treatmentIds: z.array(z.string()).min(1),
-  treatedAt: z.string(),
-  unknownTreatment: z.boolean(),
+  treatmentDate: z.string(),
+  treatments: z.array(TreatmentEntry).min(1),
 });
 export type CreateCardRequest = z.infer<typeof CreateCardRequest>;

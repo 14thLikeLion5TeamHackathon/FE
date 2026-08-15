@@ -11,6 +11,7 @@ import RecordCard from './components/RecordCard';
 import StoreGuide from './components/StoreGuide';
 
 import { useCardDetail, useCardRecords } from '../../hooks/card/useCard';
+import { getLocationParams } from '../../lib/location';
 
 /** D-Day별 RecordCTA 헬퍼 함수 (7, 14, 21, 29일에만 문구 리턴) */
 function getRecordCTASubText(dday: number): string | undefined {
@@ -33,10 +34,7 @@ export default function CardDetailPage() {
   const navigate = useNavigate();
 
   // TODO: city/district는 사용자 프로필 또는 위치 정보에서 가져오도록 연동 필요
-  const { data: cardDetail, isLoading: isCardLoading } = useCardDetail(cardId, {
-    city: '서울',
-    district: '강남구',
-  });
+  const { data: cardDetail, isLoading: isCardLoading } = useCardDetail(cardId, getLocationParams());
   const { data: cardRecords, isLoading: isRecordsLoading } = useCardRecords(cardId);
 
   // 로딩 상태 처리

@@ -25,13 +25,13 @@ export async function getCardRecords(cardId: string): Promise<CardRecords> {
   return CardRecords.parse(getResult(res));
 }
 
-/** 카드 생성 화면의 시술 목록. category·q로 좁힌다. */
-export async function getTreatments(params: { category?: string; q?: string }): Promise<Treatment[]> {
-  const res = await axiosInstance.get<ApiResponse>('/api/treatments', { params });
+/** 카드 생성 화면의 시술 목록. category·keyword로 좁힌다. */
+export async function getTreatments(params: { category?: string; keyword?: string }): Promise<Treatment[]> {
+  const res = await axiosInstance.get<ApiResponse>('/api/v1/create/treatments', { params });
   return z.array(Treatment).parse(getResult(res));
 }
 
 export async function createCard(body: CreateCardRequest): Promise<CareCard> {
-  const res = await axiosInstance.post<ApiResponse>('/api/v1/cards', body);
+  const res = await axiosInstance.post<ApiResponse>('/api/v1/create/care-cards', body);
   return CareCard.parse(getResult(res));
 }

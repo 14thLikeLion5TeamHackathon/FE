@@ -7,6 +7,7 @@ import NavHeader from '../../components/NavHeader';
 import { useCardDetail } from '../../hooks/card/useCard';
 import { useCreateRecord } from '../../hooks/record/useRecord';
 import { cn } from '../../lib/cn';
+import { getLocationParams } from '../../lib/location';
 import type { Intensity, SymptomKey } from '../../types/common';
 
 import IntensitySelectBlock from './components/IntensitySelectBlock';
@@ -45,10 +46,7 @@ export default function RecordCreatePage() {
 
   // 2. useCardDetail 훅으로 카드 정보 직접 조회
   // TODO: city/district는 사용자 프로필 또는 위치 정보에서 가져오도록 연동 필요
-  const { data: cardDetail, isLoading: isCardLoading } = useCardDetail(cardId, {
-    city: '서울',
-    district: '강남구',
-  });
+  const { data: cardDetail, isLoading: isCardLoading } = useCardDetail(cardId, getLocationParams());
   const { mutate: createRecord, isPending } = useCreateRecord(cardId);
 
   // cardId가 없으면 기록 등록 불가
@@ -95,9 +93,9 @@ export default function RecordCreatePage() {
     setSymptomLevels((prev) => ({ ...prev, [symptom]: level }));
   };
 
-  // 🎯 4. 유효성 검사: 4개 증상 정도가 모두 실제로 선택되었는지 확인 (1 이상)
+  // 🎯 4. 유효성 검사: 4개 증상 정도가 모두 실제로 선택되었는지 확인
   const isAllSymptomsRated = ALL_SYMPTOMS.every(
-    (key) => symptomLevels[key] !== undefined && symptomLevels[key] > 0
+    (key) => symptomLevels[key] !== undefined
   );
 
   const handleSubmit = () => {

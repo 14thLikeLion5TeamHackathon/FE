@@ -26,7 +26,7 @@ export type RecoveryPoint = z.infer<typeof RecoveryPoint>;
  * `points`는 기록 수만큼 늘어난다 — x축을 3점으로 고정하지 않는다.
  */
 export const RecoveryCurve = z.object({
-  cardId: z.string(),
+  cardId: z.number(),
   points: z.array(RecoveryPoint),
   /** 비교할 두 시점의 인덱스. 기본은 [처음, 마지막] */
   comparedIndexes: z.tuple([z.number().int(), z.number().int()]),
