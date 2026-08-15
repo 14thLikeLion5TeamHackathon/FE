@@ -40,7 +40,7 @@ export default function CardCreatePage() {
   const handleSubmit = () => {
     createCard(
       { treatmentIds: selectedIds, treatedAt, unknownTreatment },
-      { onSuccess: (card) => navigate(`/cards/${card.id}`) },
+      { onSuccess: (card) => navigate(`/cards/${card.cardId}`) },
     );
   };
 

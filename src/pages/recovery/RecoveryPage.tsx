@@ -30,9 +30,9 @@ export default function RecoveryPage() {
   const renderCards = (cards: CareCardData[]) =>
     cards.map((card) => (
       <CareCard
-        key={card.id}
+        key={card.cardId}
         card={card}
-        onDetail={() => navigate(`/cards/${card.id}`)}
+        onDetail={() => navigate(`/cards/${card.cardId}`)}
         onRecord={() => navigate('/records/new')}
       />
     ));

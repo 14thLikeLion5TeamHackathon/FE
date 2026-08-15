@@ -17,7 +17,7 @@ type CareCardProps = {
  */
 export default function CareCard({ card, onDetail, onRecord }: CareCardProps) {
   const done = card.status === 'DONE';
-  const progress = Math.min(100, (card.dday / card.totalDays) * 100);
+  const progress = Math.min(100, (card.dday / card.recoveryTotalDays) * 100);
 
   return (
     <article
@@ -29,8 +29,8 @@ export default function CareCard({ card, onDetail, onRecord }: CareCardProps) {
       <div className="flex flex-col gap-2.5">
         <header className="flex items-start justify-between gap-2">
           <div className="flex flex-col gap-1">
-            <h3 className="typo-card-title">{card.name}</h3>
-            <p className="typo-caption text-text-secondary">시술일 {card.treatedAt}</p>
+            <h3 className="typo-card-title">{card.treatmentName}</h3>
+            <p className="typo-caption text-text-secondary">시술일 {card.treatmentDate}</p>
           </div>
           <Chip>D+{card.dday}</Chip>
         </header>
@@ -41,9 +41,8 @@ export default function CareCard({ card, onDetail, onRecord }: CareCardProps) {
           </div>
           <div className="flex items-center justify-between">
             <span className="typo-caption text-text-secondary">회복 진행</span>
-            {/* 완료된 카드는 경과일이 총일수를 넘어 `34 / 29일`처럼 어색해진다 */}
             <span className="typo-caption text-text-secondary">
-              {done ? '완료' : `${card.dday} / ${card.totalDays}일`}
+              {done ? '완료' : `${card.dday} / ${card.recoveryTotalDays}일`}
             </span>
           </div>
         </div>
@@ -52,7 +51,7 @@ export default function CareCard({ card, onDetail, onRecord }: CareCardProps) {
 
         <div className="flex flex-col gap-1">
           <p className="typo-label text-text-primary">오늘의 케어</p>
-          <p className="typo-body text-text-secondary">{card.todayCare}</p>
+          <p className="typo-body text-text-secondary">{card.statusDescription ?? '등록된 기록이 없어요'}</p>
         </div>
       </div>
 
@@ -60,7 +59,7 @@ export default function CareCard({ card, onDetail, onRecord }: CareCardProps) {
         <Button onClick={onDetail}>카드 상세</Button>
         {!done && (
           <Button variant="secondary" onClick={onRecord}>
-            {card.recordRecommended ? `D+${card.dday} 기록하기` : '상태 기록'}
+            상태 기록
           </Button>
         )}
       </div>
