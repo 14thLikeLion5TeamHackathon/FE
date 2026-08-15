@@ -44,19 +44,23 @@ export default function RecordCreatePage() {
   const cardId = searchParams.get('cardId') ?? '';
 
   // 2. useCardDetail 훅으로 카드 정보 직접 조회
-  const { data: cardDetail, isLoading: isCardLoading } = useCardDetail(cardId);
+  // TODO: city/district는 사용자 프로필 또는 위치 정보에서 가져오도록 연동 필요
+  const { data: cardDetail, isLoading: isCardLoading } = useCardDetail(cardId, {
+    city: '서울',
+    district: '강남구',
+  });
   const { mutate: createRecord, isPending } = useCreateRecord(cardId);
 
   // cardId가 없으면 기록 등록 불가
   const hasCardId = Boolean(cardId);
 
   // 카드 상세 데이터 및 디스플레이 텍스트 바인딩
-  const targetCardId = cardDetail?.id ?? cardId;
+  const targetCardId = cardDetail?.cardId ?? cardId;
   const displayTitle = !hasCardId
     ? '카드를 선택해주세요'
-    : cardDetail?.name ?? '시술 정보 불러오는 중...';
+    : cardDetail?.treatmentName ?? '시술 정보 불러오는 중...';
   const displayDateInfo = cardDetail
-    ? `D+${cardDetail.dday} · ${cardDetail.treatedAt} 시술`
+    ? `D+${cardDetail.dday} · ${cardDetail.treatmentDate} 시술`
     : '';
 
   const dailyUsage = { maxCount: 3, todayCount: 0 };

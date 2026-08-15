@@ -10,8 +10,7 @@ import RecordCTA from './components/RecordCTA';
 import RecordCard from './components/RecordCard';
 import StoreGuide from './components/StoreGuide';
 
-import { useCardDetail } from '../../hooks/card/useCard';
-import { useRecords } from '../../hooks/record/useRecord';
+import { useCardDetail, useCardRecords } from '../../hooks/card/useCard';
 
 /** D-Day별 RecordCTA 헬퍼 함수 (7, 14, 21, 29일에만 문구 리턴) */
 function getRecordCTASubText(dday: number): string | undefined {
@@ -25,17 +24,20 @@ function getRecordCTASubText(dday: number): string | undefined {
     case 29:
       return 'D+29는 최종 경과 확인 시점이라 기록을 권해요';
     default:
-      return undefined; // 7, 14, 21, 29가 아니면 서브 텍스트 없음
+      return undefined;
   }
 }
 
 export default function CardDetailPage() {
-  const { cardId = 'card-1' } = useParams();
+  const { cardId = '1' } = useParams();
   const navigate = useNavigate();
 
-  // API 훅으로 동적 데이터 조회
-  const { data: cardDetail, isLoading: isCardLoading } = useCardDetail(cardId);
-  const { data: records = [], isLoading: isRecordsLoading } = useRecords(cardId);
+  // TODO: city/district는 사용자 프로필 또는 위치 정보에서 가져오도록 연동 필요
+  const { data: cardDetail, isLoading: isCardLoading } = useCardDetail(cardId, {
+    city: '서울',
+    district: '강남구',
+  });
+  const { data: cardRecords, isLoading: isRecordsLoading } = useCardRecords(cardId);
 
   // 로딩 상태 처리
   if (isCardLoading || isRecordsLoading) {
@@ -62,16 +64,9 @@ export default function CardDetailPage() {
     );
   }
 
-  // CardDetail 타입 기반 데이터 바인딩
-  const currentDDay = cardDetail.dday ?? 0;
-  const totalDays = cardDetail.totalDays ?? 29;
-
-  // todayCare 처리
-  const todayCareList = Array.isArray(cardDetail.todayCare)
-    ? cardDetail.todayCare
-    : cardDetail.todayCare
-      ? [cardDetail.todayCare]
-      : [];
+  const currentDDay = cardDetail.dday;
+  const totalDays = cardDetail.recoveryTotalDays;
+  const records = cardRecords?.careRecords ?? [];
 
   // 주의사항 공통 가이드
   const cautionList = [
@@ -104,27 +99,30 @@ export default function CardDetailPage() {
     },
   ];
 
-  // 재방문 유도 제휴 병원 데이터
-  const storeData = {
-    name: '엠레드 강남점',
-    distanceInfo: '1.2km · 도보 15분',
-    mapUrl: 'https://map.kakao.com/link/map/엠레드 강남점,37.498085,127.027621',
+  // 증상 값 → 한글 라벨 변환
+  const getSymptomLabels = (record: (typeof records)[number]) => {
+    const labels: string[] = [];
+    if (record.redness > 0) labels.push('붉은기');
+    if (record.swelling > 0) labels.push('부기');
+    if (record.pain > 0) labels.push('통증');
+    if (record.dryness > 0) labels.push('건조함');
+    return labels;
   };
 
   return (
     <div className="flex flex-col gap-3.5 px-5 pt-5 pb-6">
       {/* 0. 상단 네비게이션 바 */}
-      <NavHeader title={cardDetail.name} />
+      <NavHeader title={cardDetail.treatmentName} />
 
       {/* 1. 시술일 & D-day 진행바 */}
       <CareInfo
-        date={cardDetail.treatedAt}
+        date={cardDetail.treatmentDate}
         dday={currentDDay}
         totalDays={totalDays}
       />
 
       {/* 2. 오늘의 관리 */}
-      <TodayCare items={todayCareList} />
+      <TodayCare items={cardDetail.todayCare} />
 
       {/* 3. 회복 가이드 */}
       <RecoveryGuide stages={guideStages} />
@@ -136,7 +134,7 @@ export default function CardDetailPage() {
       <section className="flex flex-col gap-2.5">
         <RecordHeader count={records.length} />
 
-        {/* 🎯 중요한 날(7, 14, 21, 29일)에만 안내 subText 출력 */}
+        {/* 중요한 날(7, 14, 21, 29일)에만 안내 subText 출력 */}
         <RecordCTA
           onClick={() => navigate(`/records/new?cardId=${cardId}`)}
           subText={getRecordCTASubText(currentDDay)}
@@ -144,31 +142,27 @@ export default function CardDetailPage() {
 
         {/* 회복 기록 카드 목록 */}
         <div className="mt-1 flex flex-col gap-3">
-          {records.map((record) => {
-            const formattedTags = record.tags?.map(
-              (t) => t.name
-            ) ?? [];
-
-            return (
-              <RecordCard
-                key={record.recordId}
-                title={`${record.recordedAt} · ${cardDetail.name}`}
-                dday={`D+${record.dday}`}
-                memo={record.statusDescription}
-                tags={formattedTags}
-                aiFeedback="이전 기록과 비교 분석 중입니다."
-              />
-            );
-          })}
+          {records.map((record) => (
+            <RecordCard
+              key={record.recordId}
+              title={`${record.recordedAt} · ${cardDetail.treatmentName}`}
+              dday={`D+${record.dday}`}
+              memo={record.statusDescription}
+              tags={getSymptomLabels(record)}
+              aiFeedback={record.aiFeedback?.changeSummary ?? undefined}
+            />
+          ))}
         </div>
       </section>
 
-      {/* 🎯 6. 재방문 유도 : D-Day 조건 없이 무조건 노출 */}
-      <StoreGuide
-        name={storeData.name}
-        distanceInfo={storeData.distanceInfo}
-        mapUrl={storeData.mapUrl}
-      />
+      {/* 6. 재방문 유도 — visitedStore가 있을 때만 노출 */}
+      {cardDetail.visitedStore && (
+        <StoreGuide
+          name={cardDetail.visitedStore.name}
+          distanceInfo={cardDetail.visitedStore.address}
+          mapUrl={cardDetail.visitedStore.url}
+        />
+      )}
     </div>
   );
 }

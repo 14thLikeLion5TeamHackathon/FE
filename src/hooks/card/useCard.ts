@@ -1,22 +1,34 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { createCard, getCardDetail, getCards, getTreatments } from '../../api/card';
+import { createCard, getCardDetail, getCardRecords, getCards, getTreatments } from '../../api/card';
 
 const cardKeys = {
   all: ['card'] as const,
   list: ['card', 'list'] as const,
   detail: (cardId: string) => ['card', 'detail', cardId] as const,
+  records: (cardId: string) => ['card', 'records', cardId] as const,
   treatments: (category?: string, q?: string) => ['card', 'treatments', category, q] as const,
 };
 
+/** GET /api/v1/cards — 케어카드 목록 */
 export function useCards() {
   return useQuery({ queryKey: cardKeys.list, queryFn: getCards });
 }
 
-export function useCardDetail(cardId: string) {
+/** GET /api/v1/cards/{cardId} — 케어카드 상세 */
+export function useCardDetail(cardId: string, params: { city: string; district: string }) {
   return useQuery({
     queryKey: cardKeys.detail(cardId),
-    queryFn: () => getCardDetail(cardId),
+    queryFn: () => getCardDetail(cardId, params),
+    enabled: Boolean(cardId),
+  });
+}
+
+/** GET /api/v1/cards/{cardId}/records — 카드별 이전 기록(회복 타임라인) */
+export function useCardRecords(cardId: string) {
+  return useQuery({
+    queryKey: cardKeys.records(cardId),
+    queryFn: () => getCardRecords(cardId),
     enabled: Boolean(cardId),
   });
 }
