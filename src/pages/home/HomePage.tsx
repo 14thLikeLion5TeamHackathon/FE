@@ -47,18 +47,8 @@ export default function HomePage() {
   const checklist = useChecklist();
   const { mutate: toggleItem } = useToggleChecklistItem();
 
-  /** 점은 보이는 달 전체를 한 번에 받아 둔다 — 날짜를 옮길 때마다 다시 부르지 않으려고 */
-  const [monthStart, monthEnd] = useMemo(() => {
-    const days = monthMatrix(anchor)
-      .flat()
-      .filter((day): day is Date => day !== null);
-    return [toKey(days[0]), toKey(days[days.length - 1])];
-  }, [anchor]);
-  const markedKeys = useMarkedDates(
-    monthStart,
-    monthEnd,
-    briefing.data?.calendarConnected ?? false,
-  );
+  /** 점 찍을 날짜. 일정은 기간 파라미터가 없어 전체를 한 번만 받아 두고 재사용한다 */
+  const markedKeys = useMarkedDates(briefing.data?.calendarConnected ?? false);
 
   /** 예보 범위 밖은 흐리게. 서버가 범위를 주지 않아 오늘부터 5일로 계산한다 */
   const { outOfForecastKeys, forecastNote } = useMemo(() => {

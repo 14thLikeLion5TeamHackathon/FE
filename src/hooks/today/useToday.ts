@@ -16,7 +16,7 @@ const todayKeys = {
   briefing: (date: string, location: TodayLocation) =>
     ['today', 'briefing', date, `${location.city}_${location.district}`] as const,
   checklist: () => ['today', 'checklist'] as const,
-  events: (startDate: string, endDate: string) => ['today', 'events', startDate, endDate] as const,
+  events: () => ['today', 'events'] as const,
   cardMarkers: () => ['today', 'card-markers'] as const,
 };
 
@@ -84,10 +84,10 @@ export function forecastEnd(today: Date): Date {
  * 구글 캘린더 일정이 있는 날, 그리고 카드의 회복 분기점(시술일·회복 종료일).
  * 캘린더를 연동하지 않은 사용자에게도 점이 보이려면 카드 쪽이 필요하다.
  */
-export function useMarkedDates(startDate: string, endDate: string, calendarConnected: boolean) {
+export function useMarkedDates(calendarConnected: boolean) {
   const events = useQuery({
-    queryKey: todayKeys.events(startDate, endDate),
-    queryFn: () => getCalendarEvents(startDate, endDate),
+    queryKey: todayKeys.events(),
+    queryFn: getCalendarEvents,
     /**
      * 미연동 상태에서 부르면 서버가 500을 낸다(빈 목록이 아니라).
      * 브리핑이 알려주는 연동 여부로 막는다 — 그 전에는 카드 분기점만으로 점을 찍는다.
