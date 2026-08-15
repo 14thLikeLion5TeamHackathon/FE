@@ -9,6 +9,7 @@ import { useCreateRecord } from '../../hooks/record/useRecord';
 import { cn } from '../../lib/cn';
 import { getLocationParams } from '../../lib/location';
 import type { Intensity, SymptomKey } from '../../types/common';
+import { SYMPTOM_TAG_KEY } from '../../types/record';
 
 import IntensitySelectBlock from './components/IntensitySelectBlock';
 import PhotoUploadBlock from './components/PhotoUploadBlock';
@@ -101,16 +102,18 @@ export default function RecordCreatePage() {
   const handleSubmit = () => {
     if (!hasCardId || !targetCardId || !isAllSymptomsRated || photos.length === 0) return;
 
+    // 서버 tags는 배열이 아니라 `{ redness: 3, ... }` 형태의 강도 맵이다.
+    const tags = ALL_SYMPTOMS.reduce<Record<string, Intensity>>((acc, symptom) => {
+      const level = symptomLevels[symptom];
+      if (level !== undefined) acc[SYMPTOM_TAG_KEY[symptom]] = level;
+      return acc;
+    }, {});
+
     createRecord(
       {
-        photo: photos[0],
+        photos,
         statusDescription: memo,
-        tags: JSON.stringify(
-          ALL_SYMPTOMS.map((symptom) => ({
-            name: symptom,
-            intensity: symptomLevels[symptom],
-          }))
-        ),
+        tags: JSON.stringify(tags),
       },
       {
         onSuccess: (data) => {

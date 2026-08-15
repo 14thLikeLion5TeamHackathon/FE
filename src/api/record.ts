@@ -16,7 +16,8 @@ export async function createRecord(
   body: CreateRecordRequest,
 ): Promise<CreateRecordResponse> {
   const formData = new FormData();
-  formData.append('photo', body.photo);
+  // 서버 `photo`는 array of binary — 같은 키로 여러 번 append해야 배열로 들어간다.
+  body.photos.forEach((photo) => formData.append('photo', photo));
   formData.append('statusDescription', body.statusDescription);
   formData.append('tags', body.tags);
 

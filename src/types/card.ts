@@ -65,27 +65,9 @@ export const CardDetail = z.object({
 });
 export type CardDetail = z.infer<typeof CardDetail>;
 
-/* ── GET /api/v1/cards/{cardId}/records — 카드별 이전 기록 ─ */
-
-export const CareRecord = z.object({
-  recordId: z.number(),
-  recordedAt: z.string(),
-  photoUrl: z.string().nullable(),
-  statusDescription: z.string(),
-  redness: z.number(),
-  swelling: z.number(),
-  pain: z.number(),
-  dryness: z.number(),
-  aiFeedback: AiFeedback.nullable(),
-  dday: z.number(),
-});
-export type CareRecord = z.infer<typeof CareRecord>;
-
-export const CardRecords = z.object({
-  cardId: z.number(),
-  careRecords: z.array(CareRecord),
-});
-export type CardRecords = z.infer<typeof CardRecords>;
+/* ── GET /api/v1/cards/{cardId}/records — 카드별 이전 기록 ─
+ * 타임라인 항목은 기록 도메인이 소유한다 — 등록 응답과 형태가 달라 한 파일에서
+ * 나란히 봐야 헷갈리지 않는다. `types/record.ts`의 RecordTimeline* 참고. */
 
 /* ── 카드 생성 ───────────────────────────────────────────── */
 

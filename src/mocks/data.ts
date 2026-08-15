@@ -154,7 +154,7 @@ export const records = {
     {
       recordId: 1,
       recordedAt: '2026-07-28',
-      photoUrl: null,
+      photoUrls: [],
       statusDescription: '어제보다 부은 것 같아요',
       redness: 3,
       swelling: 2,
@@ -166,7 +166,7 @@ export const records = {
     {
       recordId: 2,
       recordedAt: '2026-08-01',
-      photoUrl: null,
+      photoUrls: ['https://placehold.co/600x600/png'],
       statusDescription: '붉은기가 어제보다 옅어졌어요',
       redness: 2,
       swelling: 1,
