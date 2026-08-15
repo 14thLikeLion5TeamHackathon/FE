@@ -2,10 +2,12 @@ import { useMemo, useState } from 'react';
 
 import PageHeader from '../../components/PageHeader';
 import { useToday, useToggleChecklistItem } from '../../hooks/today/useToday';
+import { useTodayLocation } from '../../hooks/today/useTodayLocation';
 import { startOfDay, toKey } from '../../lib/date';
 import CalendarNav from './components/CalendarNav';
 import CareBriefing from './components/CareBriefing';
 import CareEvidence from './components/CareEvidence';
+import LocationPicker from './components/LocationPicker';
 import TodayChecklist from './components/TodayChecklist';
 
 /**
@@ -20,8 +22,10 @@ export default function HomePage() {
   const [anchor, setAnchor] = useState(selected);
   const [mode, setMode] = useState<'week' | 'month'>('week');
 
-  const { data, isLoading, isError } = useToday(toKey(selected));
-  const { mutate: toggleItem } = useToggleChecklistItem(toKey(selected));
+  const { location, selectLocation } = useTodayLocation();
+
+  const { data, isLoading, isError } = useToday(toKey(selected), location);
+  const { mutate: toggleItem } = useToggleChecklistItem(toKey(selected), location);
 
   /** 마킹·예보범위는 날짜 키 조회라 Set으로 바꿔 둔다 */
   const { markedKeys, outOfForecastKeys } = useMemo(() => {
@@ -42,6 +46,8 @@ export default function HomePage() {
   return (
     <div className="flex flex-col gap-3.5 px-5 pt-5 pb-6">
       <PageHeader title="오늘" />
+
+      <LocationPicker location={location} onSelect={selectLocation} />
 
       <CalendarNav
         anchor={anchor}
