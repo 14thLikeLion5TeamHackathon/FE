@@ -1,24 +1,35 @@
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 
 // https://vite.dev/config/
-export default defineConfig({
-  plugins: [react(), tailwindcss()],
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '');
 
-  // BE가 쿠키 기반 세션(SameSite=Lax)을 쓰면 아래 프록시를 켤 것.
-  // cross-site XHR에는 Lax 쿠키가 실리지 않아서, dev에서 /api를 운영 서버로 프록시해
-  // 브라우저 관점 same-origin으로 만들어야 로컬에서 세션이 붙는다.
-  // (axios baseURL을 비워 상대경로로 두면 이 프록시를 탄다. 운영 빌드는 VITE_API_BASE_URL로 직접 호출.)
+  // dev에서 API를 프록시해 브라우저 관점 same-origin으로 만든다.
+  // BE가 우리 dev 오리진을 CORS로 허용하지 않아서(포트가 바뀌면 특히) 직접 호출은 막힌다.
   //
-  // server: {
-  //   proxy: {
-  //     '/api': {
-  //       target: 'https://api.example.com',
-  //       changeOrigin: true,
-  //       secure: true,
-  //       cookieDomainRewrite: { '*': '' }, // Set-Cookie 도메인 제거 → localhost host-only 쿠키로 저장
-  //     },
-  //   },
-  // },
+  // 켜는 법: .env에 VITE_API_PROXY_TARGET=<서버 오리진>을 넣고 VITE_API_BASE_URL은 비운다.
+  // baseURL이 비면 axios가 상대경로로 요청하고, 그 요청이 이 프록시를 탄다.
+  // 서버 주소를 여기 적지 않는 이유는 이 파일이 공개 레포에 커밋되기 때문이다.
+  const target = env.VITE_API_PROXY_TARGET;
+
+  return {
+    plugins: [react(), tailwindcss()],
+    server: target
+      ? {
+          proxy: {
+            '/api': {
+              target,
+              changeOrigin: true,
+              cookieDomainRewrite: { '*': '' },
+              // 서버의 CORS 허용 목록에 우리 dev 포트가 아직 없어서, 그대로 넘기면
+              // 403 "Invalid CORS request"가 난다. 프록시가 대신 허용된 오리진을 달아 보낸다.
+              // 브라우저 관점에선 same-origin이라 이 값이 실제로 검사되는 곳은 서버뿐이다.
+              headers: { Origin: 'http://localhost:3000' },
+            },
+          },
+        }
+      : undefined,
+  };
 });
