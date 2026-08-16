@@ -124,9 +124,15 @@ export type AiFeedbackResponse = z.infer<typeof AiFeedbackResponse>;
 /**
  * 판단 근거 칩.
  *
- * ⚠️ `checklistRate`의 단위를 확정하지 못했다 — 확인한 값이 `0.0` 하나라 비율(0~1)인지
- * 퍼센트(0~100)인지 구분이 안 된다. 1을 넘으면 이미 퍼센트로 보고, 아니면 비율로 친다.
- * 100%가 `1.0`으로 오면 "1%"로 보이는 게 이 어림짐작의 실패 모습이다.
+ * `checklistRate`는 **비율(0~1)** 이다 — 체크리스트를 1/3 체크한 상태에서 `0.17`이 왔다.
+ * 퍼센트였다면 "0.17%"라는 말이 안 되는 값이 된다.
+ *
+ * ⚠️ 다만 **분모가 오늘 체크리스트가 아니다.** 1/3이면 `0.33`이어야 하는데 `0.17`(≒1/6)이
+ * 왔다. 카드 기간에 쌓인 전체를 세는 것으로 보이지만 확인된 건 아니라, 화면에는 서버 값을
+ * 그대로 퍼센트로만 바꿔 보여준다.
+ *
+ * `photoCount`도 이 기록의 사진 수가 아니라 **누적**이다(첫 기록 4 → 두 번째 8, 각 기록은
+ * 4장씩). 기록 하나 옆에 "사진 8장"이라고 두면 오해하기 좋아서 '누적'을 붙였다.
  */
 function toEvidence(tags: AiFeedbackResponse['analysisTags']): { label: string }[] {
   if (!tags) return [];
@@ -134,10 +140,9 @@ function toEvidence(tags: AiFeedbackResponse['analysisTags']): { label: string }
   const chips: { label: string }[] = [];
   if (tags.treatmentDay) chips.push({ label: tags.treatmentDay });
   if (typeof tags.checklistRate === 'number') {
-    const percent = tags.checklistRate > 1 ? tags.checklistRate : tags.checklistRate * 100;
-    chips.push({ label: `체크리스트 ${Math.round(percent)}%` });
+    chips.push({ label: `체크리스트 ${Math.round(tags.checklistRate * 100)}%` });
   }
-  if (tags.photoCount) chips.push({ label: `사진 ${tags.photoCount}장` });
+  if (tags.photoCount) chips.push({ label: `사진 ${tags.photoCount}장 누적` });
   return chips;
 }
 
