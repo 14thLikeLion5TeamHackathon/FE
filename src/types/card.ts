@@ -1,29 +1,8 @@
 import { z } from 'zod';
 
-import { daysSince } from '../lib/date';
+import { normalizeDday } from './common';
 
 /* ── 공통 ─────────────────────────────────────────────────── */
-
-/**
- * D-day를 `dday`로 맞춘다.
- *
- * 실서버는 **`dDay`**(대문자 D)로 주고, 그마저도 `null`인 경우가 있다. 스웨거에는 `dday`로
- * 적혀 있어 문서와 실제가 어긋난다. 이름이 안 맞으면 필수 필드가 비어 `.parse()`가 통째로
- * 실패하고, 카드 목록이 영영 안 뜬다 — 회복 탭이 실제로 그렇게 죽어 있었다.
- *
- * 값이 아예 없으면 시술일로부터 계산한다. 서버 브리핑의 셈법과 같다(시술일 당일이 0).
- * 화면 여러 곳이 `dday`를 숫자로 쓰기 때문에 여기서 숫자로 확정해 내보낸다.
- */
-function normalizeDday(raw: unknown) {
-  if (typeof raw !== 'object' || raw === null) return raw;
-
-  const card = raw as Record<string, unknown>;
-  const given = card.dday ?? card.dDay;
-  if (typeof given === 'number') return { ...card, dday: given };
-
-  const computed = typeof card.treatmentDate === 'string' ? daysSince(card.treatmentDate) : null;
-  return { ...card, dday: computed ?? 0 };
-}
 
 /**
  * 카드 진행 상태.

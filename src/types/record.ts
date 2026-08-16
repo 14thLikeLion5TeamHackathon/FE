@@ -1,4 +1,4 @@
-import { Intensity, SymptomKey } from './common';
+import { Intensity, SymptomKey, normalizeDday } from './common';
 import { AiFeedback } from './card';
 import { z } from 'zod';
 
@@ -49,31 +49,46 @@ export type CreateRecordRequest = z.infer<typeof CreateRecordRequest>;
  * BE가 형태를 통일하면 그때 한 벌로 줄인다.
  * ─────────────────────────────────────────────────────── */
 
-/** 기록 등록 응답 (POST /api/v1/now/care-cards/{cardId}/records) */
-export const CreateRecordResponse = z.object({
-  recordId: z.number(),
-  cardId: z.number(),
-  photoUrls: z.array(z.string()),
-  statusDescription: z.string(),
-  recordedAt: z.string(),
-  tags: RecordTagMap,
-  dday: z.number(),
-});
+/**
+ * 기록 등록 응답 (POST /api/v1/now/care-cards/{cardId}/records)
+ *
+ * **`recordId` 말고는 전부 선택으로 둔다.** 화면이 쓰는 건 그 값 하나뿐인데(등록 직후
+ * 피드백 화면으로 이동), 나머지를 필수로 잡았다가 하나만 어긋나도 `.parse()`가 터진다.
+ * 그러면 서버에는 기록이 **저장된 채로** 화면은 안 넘어가고, 사용자는 실패한 줄 알고
+ * 다시 눌러 같은 기록을 두 번 만든다 — 실제로 그렇게 됐다(dday를 필수로 잡았는데
+ * 서버가 `dDay`로 줬다).
+ */
+export const CreateRecordResponse = z.preprocess(
+  normalizeDday,
+  z.object({
+    recordId: z.number(),
+    cardId: z.number().nullish(),
+    photoUrls: z.array(z.string()).nullish(),
+    statusDescription: z.string().nullish(),
+    recordedAt: z.string().nullish(),
+    tags: RecordTagMap.nullish(),
+    dday: z.number().nullish(),
+  }),
+);
 export type CreateRecordResponse = z.infer<typeof CreateRecordResponse>;
 
 /** 타임라인 기록 항목 (GET /api/v1/cards/{cardId}/records) */
-export const RecordTimelineItem = z.object({
-  recordId: z.number(),
-  recordedAt: z.string(),
-  photoUrls: z.array(z.string()),
-  statusDescription: z.string(),
-  redness: Intensity,
-  swelling: Intensity,
-  pain: Intensity,
-  dryness: Intensity,
-  aiFeedback: AiFeedback.nullable(),
-  dday: z.number(),
-});
+export const RecordTimelineItem = z.preprocess(
+  // 타임라인도 D-day를 `dDay`로 준다 — 카드와 같은 사정이다(types/common.ts 참고)
+  normalizeDday,
+  z.object({
+    recordId: z.number(),
+    recordedAt: z.string(),
+    photoUrls: z.array(z.string()).nullish(),
+    statusDescription: z.string().nullish(),
+    redness: Intensity,
+    swelling: Intensity,
+    pain: Intensity,
+    dryness: Intensity,
+    aiFeedback: AiFeedback.nullable(),
+    dday: z.number(),
+  }),
+);
 export type RecordTimelineItem = z.infer<typeof RecordTimelineItem>;
 
 export const RecordTimelineResponse = z.object({
