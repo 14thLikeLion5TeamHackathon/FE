@@ -22,10 +22,21 @@ function SectionHeader({ title, action }: { title: string; action?: React.ReactN
  * **카드 = 회복 여정**이라는 원칙의 화면이다.
  * 회복 곡선이 위에 오는 이유는, 기록을 받기만 하고 돌려주는 게 텍스트뿐이던 문제를
  * 이 블록이 해결하기 때문이다.
+ *
+ * 서버에 회복 탭용 엔드포인트가 없어서 카드 목록 + 카드별 기록을 `useRecovery`가 조립한다.
  */
 export default function RecoveryPage() {
   const navigate = useNavigate();
-  const { data, isLoading, isError } = useRecovery();
+  const {
+    inProgress,
+    done,
+    curve,
+    curveCardId,
+    selectCurveCard,
+    isLoading,
+    isError,
+    isCurveLoading,
+  } = useRecovery();
 
   const renderCards = (cards: CareCardData[]) =>
     cards.map((card) => (
@@ -33,7 +44,7 @@ export default function RecoveryPage() {
         key={card.cardId}
         card={card}
         onDetail={() => navigate(`/cards/${card.cardId}`)}
-        onRecord={() => navigate('/records/new')}
+        onRecord={() => navigate(`/records/new?cardId=${card.cardId}`)}
       />
     ));
 
@@ -47,7 +58,7 @@ export default function RecoveryPage() {
     );
   }
 
-  if (isError || !data) {
+  if (isError) {
     return (
       <div className="flex flex-col gap-3.5 px-5 pt-5 pb-6">
         <PageHeader title="회복" />
@@ -56,7 +67,12 @@ export default function RecoveryPage() {
     );
   }
 
-  const hasCards = data.inProgress.length + data.done.length > 0;
+  const hasCards = inProgress.length + done.length > 0;
+  // 곡선 카드 선택지는 진행 중 카드뿐이다 — 회복이 끝난 카드의 추세는 카드 상세에서 본다
+  const cardOptions = inProgress.map((card) => ({
+    cardId: card.cardId,
+    treatmentName: card.treatmentName,
+  }));
 
   return (
     <div className="flex flex-col gap-3.5 px-5 pt-5 pb-6">
@@ -78,14 +94,21 @@ export default function RecoveryPage() {
         </section>
       ) : (
         <>
-          {data.curve && (
-            <RecoveryCurve curve={data.curve} onRecord={() => navigate('/records/new')} />
+          {isCurveLoading && <div className="bg-surface-raised rounded-md h-64 animate-pulse" />}
+
+          {curve && (
+            <RecoveryCurve
+              curve={curve}
+              cardOptions={cardOptions}
+              onSelectCard={selectCurveCard}
+              onRecord={() => navigate(`/records/new?cardId=${curveCardId}`)}
+            />
           )}
 
-          {data.inProgress.length > 0 && (
+          {inProgress.length > 0 && (
             <>
               <SectionHeader
-                title={`진행 중 ${data.inProgress.length}`}
+                title={`진행 중 ${inProgress.length}`}
                 action={
                   <button
                     type="button"
@@ -96,14 +119,14 @@ export default function RecoveryPage() {
                   </button>
                 }
               />
-              {renderCards(data.inProgress)}
+              {renderCards(inProgress)}
             </>
           )}
 
-          {data.done.length > 0 && (
+          {done.length > 0 && (
             <>
-              <SectionHeader title={`완료 ${data.done.length}`} />
-              {renderCards(data.done)}
+              <SectionHeader title={`완료 ${done.length}`} />
+              {renderCards(done)}
             </>
           )}
         </>

@@ -27,7 +27,8 @@ export function useCreateRecord(cardId: string) {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['card', 'records', cardId] });
       void queryClient.invalidateQueries({ queryKey: ['card', 'detail', cardId] });
-      void queryClient.invalidateQueries({ queryKey: ['recovery'] });
+      // 카드 목록에 카드별 최근 기록이 붙어 오고, 회복 탭이 그걸로 조립된다
+      void queryClient.invalidateQueries({ queryKey: ['card', 'list'] });
       void queryClient.invalidateQueries({ queryKey: ['today'] });
     },
   });
