@@ -19,10 +19,25 @@ export const Schedule = z.object({
 });
 export type Schedule = z.infer<typeof Schedule>;
 
-export const ScheduleForm = z.object({
+/* ── 실 API 등록·수정 (POST/PUT /api/v1/today/schedules) ────────────── */
+
+export const ScheduleRequest = z.object({
   title: z.string().min(1, '제목을 입력해주세요'),
-  date: z.string().min(1, '날짜를 선택해주세요'),
-  time: z.string().nullable(),
-  place: z.string().nullable(),
+  /** YYYY-MM-DD */
+  eventDate: z.string().min(1, '날짜를 선택해주세요'),
+  /** HH:mm:ss. 종일이면 null */
+  eventTime: z.string().nullable(),
+  location: z.string().nullable(),
 });
-export type ScheduleForm = z.infer<typeof ScheduleForm>;
+export type ScheduleRequest = z.infer<typeof ScheduleRequest>;
+
+export const ScheduleResponse = z.object({
+  scheduleId: z.number(),
+  title: z.string(),
+  eventDate: z.string(),
+  eventTime: z.string().nullable(),
+  location: z.string().nullable(),
+  /** "직접 입력" vs "캘린더 연동" 등 일정 출처. 읽기전용 판단은 이번 작업 범위 밖 */
+  source: z.string(),
+});
+export type ScheduleResponse = z.infer<typeof ScheduleResponse>;

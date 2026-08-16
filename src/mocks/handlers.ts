@@ -74,7 +74,5 @@ export const handlers = [
     if (!found) return notFound('없는 일정이에요');
     return ok(found);
   }),
-  http.post('/api/schedules', () => ok(db.schedules[0])),
-  http.put('/api/schedules/:scheduleId', () => ok(db.schedules[0])),
-  http.delete('/api/schedules/:scheduleId', () => ok(null)),
+  // POST/PUT/DELETE /api/v1/today/schedules는 BE 배포 완료로 목 제거 (#42)
 ];

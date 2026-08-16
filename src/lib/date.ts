@@ -101,3 +101,29 @@ export function formatDateDisplay(date: string): string {
 
   return `${y}. ${m}. ${d} (${DOW_LABELS[parsed.getDay()]})`;
 }
+
+/* ── 일정 시간 입력용 — 자유 텍스트 → API가 요구하는 "HH:mm:ss" ────────── */
+
+/**
+ * "19:00", "오후 7:00" 같은 자유 텍스트를 "HH:mm:ss"로 최대한 정규화한다.
+ * 시간 입력이 자유 텍스트 필드라 형식을 보장할 수 없다 — 파싱에 실패하면 원본을 그대로 돌려준다.
+ * TODO: BE가 실제로 어떤 형식까지 허용하는지 확인되면 이 파서는 정리한다.
+ */
+export function toEventTime(time: string): string {
+  const trimmed = time.trim();
+
+  const plain = trimmed.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+  if (plain) {
+    const [, h, m, s] = plain;
+    return `${h.padStart(2, '0')}:${m}:${s ?? '00'}`;
+  }
+
+  const korean = trimmed.match(/^(오전|오후)\s*(\d{1,2}):(\d{2})$/);
+  if (korean) {
+    const [, period, h, m] = korean;
+    const hour = (Number(h) % 12) + (period === '오후' ? 12 : 0);
+    return `${String(hour).padStart(2, '0')}:${m}:00`;
+  }
+
+  return trimmed;
+}
