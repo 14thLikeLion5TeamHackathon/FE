@@ -1,7 +1,19 @@
-import { MyProfile, UpdateProfileRequest, UserIdResponse } from '../types/user';
+import {
+  MyProfile,
+  OnboardingResponse,
+  UpdateProfileRequest,
+  UserIdResponse,
+  type OnboardingRequest,
+} from '../types/user';
 import axiosInstance from './axiosInstance';
 import { getResult } from './helpers';
 import type { ApiResponse } from './types';
+
+/** POST /api/v1/auth/onboarding — 온보딩/회원정보등록 */
+export async function postOnboarding(body: OnboardingRequest): Promise<OnboardingResponse> {
+  const res = await axiosInstance.post<ApiResponse>('/api/v1/auth/onboarding', body);
+  return OnboardingResponse.parse(getResult(res));
+}
 
 /** GET /api/v1/mypage/users/me — 개인정보 조회 */
 export async function getMyProfile(): Promise<MyProfile> {
