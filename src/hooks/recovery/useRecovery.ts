@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 
-import type { CareCard, CareRecord } from '../../types/card';
+import type { CareCard } from '../../types/card';
+import type { RecordTimelineItem } from '../../types/record';
 import type { RecoveryCurve, RecoveryPoint } from '../../types/recovery';
 import { useCardRecords, useCards } from '../card/useCard';
 
@@ -36,7 +37,7 @@ function toDateLabel(recordedAt: string): string {
   return month && day ? `${month}.${day}` : recordedAt;
 }
 
-function toPoint(record: CareRecord): RecoveryPoint {
+function toPoint(record: RecordTimelineItem): RecoveryPoint {
   return {
     recordId: record.recordId,
     ddayLabel: `D+${record.dday}`,

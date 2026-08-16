@@ -19,7 +19,7 @@ function notFound(message: string) {
 
 /*
  * 401 리다이렉트를 눈으로 확인하려면 아무 핸들러나 잠깐 이걸로 바꿔본다.
- *   http.get('/api/today', () =>
+ *   http.get('/api/cards', () =>
  *     HttpResponse.json({ success: false, code: 401, errorCode: 'COMMON401', message: '만료',
  *       data: null }, { status: 401 })),
  */
@@ -45,13 +45,7 @@ export const handlers = [
   http.delete('/api/v1/mypage/notification/kakao', () => ok({})),
 
   /* ── 오늘 ─────────────────────────────────────────────── */
-  http.get('/api/today', () => ok(db.today)),
-  http.patch('/api/today/checklist/:itemId', async ({ params, request }) => {
-    const { done } = (await request.json()) as { done: boolean };
-    const item = db.today.checklist.find((c) => c.id === params.itemId);
-    if (item) item.done = done;
-    return ok(null);
-  }),
+  // 목을 지웠다 — 브리핑·체크리스트·캘린더 일정 모두 BE에 배포돼 실 API로 나간다.
 
   /* ── 카드 ─────────────────────────────────────────────── */
   http.get('/api/v1/cards', () => ok(db.cards)),
@@ -74,19 +68,16 @@ export const handlers = [
 
   /* ── 기록 ─────────────────────────────────────────────── */
   http.get('/api/v1/cards/:cardId/records', () => ok(db.records)),
-  // 응답은 RecordDetail이라 db.records.careRecords[0](CareRecord)를 그대로 주면 안 된다 —
-  // cardId·tags가 없고 photoUrl도 null이라 .parse()가 반드시 실패한다.
+  // 등록 응답은 타임라인 항목과 형태가 다르다 — cardId가 있고 증상은 tags 맵으로 온다.
+  // db.records.careRecords[0]을 그대로 주면 .parse()가 반드시 실패한다.
   http.post('/api/v1/now/care-cards/:cardId/records', ({ params }) =>
     ok({
       recordId: 99,
       cardId: Number(params.cardId),
-      photoUrl: 'https://placehold.co/600x600/png',
+      photoUrls: ['https://placehold.co/600x600/png', 'https://placehold.co/600x601/png'],
       statusDescription: '붉은기가 어제보다 옅어졌어요',
       recordedAt: '2026-08-16',
-      tags: [
-        { tagId: 1, name: '붉어짐', intensity: 2 },
-        { tagId: 2, name: '부기', intensity: 1 },
-      ],
+      tags: { redness: 2, swelling: 1, pain: 0, dryness: 2 },
       dday: 8,
     }),
   ),

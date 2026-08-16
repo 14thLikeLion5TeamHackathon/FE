@@ -6,12 +6,13 @@ import type { SymptomKey } from './common';
  * 서버에는 회복 탭 모양의 엔드포인트가 없다. `GET /api/v1/cards`(카드 목록 + 카드별 최근 기록)와
  * `GET /api/v1/cards/{cardId}/records`(회복 타임라인) 두 응답을 프론트에서 조립해 만든다.
  *
- * 그래서 이 파일에는 Zod 스키마가 없다 — 여기 오는 값은 이미 `types/card.ts`의 스키마가
- * `.parse()`로 검증한 뒤다. 한 번 더 감싸면 검증이 두 벌이 되고, 서버 계약이 바뀌었을 때
- * 어느 쪽을 고쳐야 하는지가 흐려진다. API 계약의 단일 소스는 계속 `types/card.ts`다.
+ * 그래서 이 파일에는 Zod 스키마가 없다 — 여기 오는 값은 이미 `types/card.ts`(카드)와
+ * `types/record.ts`(기록 타임라인)의 스키마가 `.parse()`로 검증한 뒤다. 한 번 더 감싸면
+ * 검증이 두 벌이 되고, 서버 계약이 바뀌었을 때 어느 쪽을 고쳐야 하는지가 흐려진다.
+ * API 계약의 단일 소스는 계속 그 두 파일이다.
  */
 
-/** 회복 곡선의 한 시점. `CareRecord` 하나에서 만든다. */
+/** 회복 곡선의 한 시점. `RecordTimelineItem` 하나에서 만든다. */
 export type RecoveryPoint = {
   recordId: number;
   /** "D+7" */

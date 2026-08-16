@@ -2,7 +2,18 @@ import { z } from 'zod';
 
 /* ── 공통 ─────────────────────────────────────────────────── */
 
-export const CardStatus = z.enum(['IN_PROGRESS', 'DONE']);
+/**
+ * 카드 진행 상태.
+ *
+ * 스웨거에는 그냥 `string`으로 적혀 있어 서버가 다른 값을 보낼 여지가 있다.
+ * 열거형으로 못 박아 두면 모르는 값 하나에 `.parse()`가 통째로 터지고 **카드 목록 전체가
+ * 빈 화면**이 된다 — 기록 등록 `tags`에서 실제로 겪은 사고다.
+ *
+ * 그래서 모르는 값은 `IN_PROGRESS`로 떨어뜨린다. 완료로 떨어뜨리면 사용자의 카드가
+ * 회복 탭에서 조용히 사라지는데, 그보다는 진행 중 목록에 남아 눈에 띄는 편이 낫다.
+ * 서버가 상태를 늘리면 여기 열거형에 추가하면 된다.
+ */
+export const CardStatus = z.enum(['IN_PROGRESS', 'DONE']).catch('IN_PROGRESS');
 export type CardStatus = z.infer<typeof CardStatus>;
 
 export const AiFeedback = z.object({
@@ -67,27 +78,9 @@ export const CardDetail = z.object({
 });
 export type CardDetail = z.infer<typeof CardDetail>;
 
-/* ── GET /api/v1/cards/{cardId}/records — 카드별 이전 기록 ─ */
-
-export const CareRecord = z.object({
-  recordId: z.number(),
-  recordedAt: z.string(),
-  photoUrls: z.array(z.string()).nullish(),
-  statusDescription: z.string(),
-  redness: z.number(),
-  swelling: z.number(),
-  pain: z.number(),
-  dryness: z.number(),
-  aiFeedback: AiFeedback.nullable(),
-  dday: z.number(),
-});
-export type CareRecord = z.infer<typeof CareRecord>;
-
-export const CardRecords = z.object({
-  cardId: z.number(),
-  careRecords: z.array(CareRecord),
-});
-export type CardRecords = z.infer<typeof CardRecords>;
+/* ── GET /api/v1/cards/{cardId}/records — 카드별 이전 기록 ─
+ * 타임라인 항목은 기록 도메인이 소유한다 — 등록 응답과 형태가 달라 한 파일에서
+ * 나란히 봐야 헷갈리지 않는다. `types/record.ts`의 RecordTimeline* 참고. */
 
 /* ── 카드 생성 ───────────────────────────────────────────── */
 
