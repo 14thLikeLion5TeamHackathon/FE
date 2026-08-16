@@ -68,19 +68,16 @@ export const handlers = [
 
   /* ── 기록 ─────────────────────────────────────────────── */
   http.get('/api/v1/cards/:cardId/records', () => ok(db.records)),
-  // 응답은 RecordDetail이라 db.records.careRecords[0](CareRecord)를 그대로 주면 안 된다 —
-  // cardId·tags가 없고 photoUrl도 null이라 .parse()가 반드시 실패한다.
+  // 등록 응답은 타임라인 항목과 형태가 다르다 — cardId가 있고 증상은 tags 맵으로 온다.
+  // db.records.careRecords[0]을 그대로 주면 .parse()가 반드시 실패한다.
   http.post('/api/v1/now/care-cards/:cardId/records', ({ params }) =>
     ok({
       recordId: 99,
       cardId: Number(params.cardId),
-      photoUrl: 'https://placehold.co/600x600/png',
+      photoUrls: ['https://placehold.co/600x600/png', 'https://placehold.co/600x601/png'],
       statusDescription: '붉은기가 어제보다 옅어졌어요',
       recordedAt: '2026-08-16',
-      tags: [
-        { tagId: 1, name: '붉어짐', intensity: 2 },
-        { tagId: 2, name: '부기', intensity: 1 },
-      ],
+      tags: { redness: 2, swelling: 1, pain: 0, dryness: 2 },
       dday: 8,
     }),
   ),

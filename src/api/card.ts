@@ -1,4 +1,5 @@
-import { CardDetail, CardRecords, CareCard, CreateCardRequest, Treatment } from '../types/card';
+import { CardDetail, CareCard, CreateCardRequest, Treatment } from '../types/card';
+import { RecordTimelineResponse } from '../types/record';
 import axiosInstance from './axiosInstance';
 import { getResult } from './helpers';
 import type { ApiResponse } from './types';
@@ -20,9 +21,9 @@ export async function getCardDetail(
 }
 
 /** GET /api/v1/cards/{cardId}/records — 카드별 이전 기록(회복 타임라인) 조회 */
-export async function getCardRecords(cardId: string): Promise<CardRecords> {
+export async function getCardRecords(cardId: string): Promise<RecordTimelineResponse> {
   const res = await axiosInstance.get<ApiResponse>(`/api/v1/cards/${cardId}/records`);
-  return CardRecords.parse(getResult(res));
+  return RecordTimelineResponse.parse(getResult(res));
 }
 
 /** 카드 생성 화면의 시술 목록. category·keyword로 좁힌다. */
