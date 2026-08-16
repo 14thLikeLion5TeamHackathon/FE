@@ -28,6 +28,9 @@ export default defineConfig(({ mode }) => {
               // 브라우저 관점에선 same-origin이라 이 값이 실제로 검사되는 곳은 서버뿐이다.
               headers: { Origin: 'http://localhost:3000' },
             },
+            // 업로드된 사진. 서버가 `/uploads/<uuid>.png`처럼 **상대경로**로 돌려줘서
+            // 그대로 두면 dev 서버가 받아 404가 된다. 기록 사진이 전부 깨진다.
+            '/uploads': { target, changeOrigin: true },
           },
         }
       : undefined,

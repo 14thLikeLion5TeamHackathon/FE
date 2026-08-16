@@ -33,17 +33,10 @@ export const handlers = [
    * - 오늘 탭이 `/api/v1/cards`로 가짜 카드 3개를 받아, "카드 없음" 빈 화면을 볼 수 없었다.
    * - 회복 탭과 기록 등록은 통째로 가짜라 실서버 검증이 불가능했다. */
 
-  /* ── AI 피드백 ────────────────────────────────────────── */
-  // ⚠️ 이 경로는 서버에 없다. 실제는 `/api/v1/now/records/{recordId}/feedback`이고,
-  //    FE(api/feedback.ts)가 아직 옛 경로를 부르고 있어서 이 목이 그걸 가려주는 중이다.
-  //    경로를 고칠 때 이 목도 같이 지운다.
-  http.get('/api/records/:recordId/feedback', ({ params }) =>
-    // 시안의 두 케이스를 나란히 확인하려고 recordId로 분기한다
-    ok(params.recordId === 'warn' ? db.feedbackWarning : db.feedback),
-  ),
-
   /* ── 일정 ─────────────────────────────────────────────── */
-  // ⚠️ 위와 같다. 실제는 `/api/v1/today/schedules`(POST)와 `/{scheduleId}`(PUT·DELETE)다.
+  // ⚠️ 이 경로는 서버에 없다. 실제는 `/api/v1/today/schedules`(POST)와
+  //    `/{scheduleId}`(PUT·DELETE)인데 FE가 아직 옛 경로를 부르고 있어, 이 목이 그걸
+  //    가려주는 중이다. 화면 수정과 함께 경로를 고치면 이 목도 지운다.
   http.get('/api/schedules/:scheduleId', ({ params }) => {
     const found = db.schedules.find((s) => s.id === params.scheduleId);
     if (!found) return notFound('없는 일정이에요');

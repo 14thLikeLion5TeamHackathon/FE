@@ -1,4 +1,4 @@
-import { Intensity, SymptomKey } from './common';
+import { Intensity, SymptomKey, normalizeDday } from './common';
 import { AiFeedback } from './card';
 import { z } from 'zod';
 
@@ -62,18 +62,22 @@ export const CreateRecordResponse = z.object({
 export type CreateRecordResponse = z.infer<typeof CreateRecordResponse>;
 
 /** 타임라인 기록 항목 (GET /api/v1/cards/{cardId}/records) */
-export const RecordTimelineItem = z.object({
-  recordId: z.number(),
-  recordedAt: z.string(),
-  photoUrls: z.array(z.string()),
-  statusDescription: z.string(),
-  redness: Intensity,
-  swelling: Intensity,
-  pain: Intensity,
-  dryness: Intensity,
-  aiFeedback: AiFeedback.nullable(),
-  dday: z.number(),
-});
+export const RecordTimelineItem = z.preprocess(
+  // 타임라인도 D-day를 `dDay`로 준다 — 카드와 같은 사정이다(types/common.ts 참고)
+  normalizeDday,
+  z.object({
+    recordId: z.number(),
+    recordedAt: z.string(),
+    photoUrls: z.array(z.string()).nullish(),
+    statusDescription: z.string().nullish(),
+    redness: Intensity,
+    swelling: Intensity,
+    pain: Intensity,
+    dryness: Intensity,
+    aiFeedback: AiFeedback.nullable(),
+    dday: z.number(),
+  }),
+);
 export type RecordTimelineItem = z.infer<typeof RecordTimelineItem>;
 
 export const RecordTimelineResponse = z.object({

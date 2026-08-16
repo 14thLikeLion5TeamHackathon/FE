@@ -145,8 +145,8 @@ export default function CardDetailPage() {
               key={record.recordId}
               title={`${record.recordedAt} · ${cardDetail.treatmentName}`}
               dday={`D+${record.dday}`}
-              photoUrls={record.photoUrls}
-              memo={record.statusDescription}
+              photoUrls={record.photoUrls ?? undefined}
+              memo={record.statusDescription ?? ''}
               tags={getSymptomLabels(record)}
               aiFeedback={record.aiFeedback?.changeSummary ?? undefined}
             />
