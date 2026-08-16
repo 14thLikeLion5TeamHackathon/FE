@@ -57,13 +57,16 @@ export type OAuthRedirectResult =
   | { status: 'failed' };
 
 /**
- * ⚠️ 확정 아님 — 서버가 어떤 이름으로 토큰을 주는지 몰라 후보를 넓게 받는다.
+ * 서버가 돌려주는 파라미터 이름. **실제 왕복으로 확인한 값이다.**
  *
- * `token`·`access`처럼 흔한 이름은 일부러 뺐다. 이 함수는 라우트와 무관하게 **모든 페이지 로드**에서
- * 돌기 때문에, 초대 링크나 외부 유입의 `?token=`을 액세스 토큰으로 삼켜 버린다.
+ *   http://localhost:3000/?token=<JWT>&refresh=<JWT>&isNewUser=true
+ *
+ * 한때 후보를 넓게 두고 추측했는데, 하필 `token`을 "초대 링크의 `?token=`을 삼킬 수 있다"는
+ * 이유로 빼둬서 로그인이 조용히 실패했다. 지금은 확정된 이름만 본다 —
+ * 이름이 틀리면 넓게 받는 대신 **아래 DEV 경고로 드러나게** 하는 편이 낫다.
  */
-const ACCESS_TOKEN_PARAMS = ['accessToken', 'access_token'];
-const REFRESH_TOKEN_PARAMS = ['refreshToken', 'refresh_token'];
+const ACCESS_TOKEN_PARAMS = ['token', 'accessToken', 'access_token'];
+const REFRESH_TOKEN_PARAMS = ['refresh', 'refreshToken', 'refresh_token'];
 const NEW_USER_PARAMS = ['isNewUser', 'is_new_user', 'newUser'];
 
 /** 후보 이름 중 먼저 값이 있는 것을 고른다. */
@@ -89,10 +92,33 @@ function isTrue(value: string | null) {
 }
 
 /**
+ * 아는 이름으로는 못 찾았는데 JWT처럼 생긴 값이 URL에 있으면 알린다.
+ *
+ * 이름이 바뀌면 로그인은 **아무 에러 없이** 안 되고 `/login`으로 되돌아올 뿐이라,
+ * 실제로 이걸 찾는 데 며칠이 걸렸다(서버가 `accessToken`이 아니라 `token`으로 준다).
+ * 다음에 이름이 또 바뀌면 콘솔에서 바로 보이게 한다.
+ */
+function warnIfTokenLookalikeIgnored(search: URLSearchParams, hash: URLSearchParams) {
+  if (!import.meta.env.DEV) return;
+
+  for (const params of [search, hash]) {
+    for (const [name, value] of params) {
+      if (looksLikeJwt(value)) {
+        console.warn(
+          `[oauth] JWT처럼 보이는 \`${name}\` 파라미터를 무시했습니다. ` +
+            `아는 이름은 ${ACCESS_TOKEN_PARAMS.join('/')} 뿐입니다 — api/oauth.ts에 추가하세요.`,
+        );
+        return;
+      }
+    }
+  }
+}
+
+/**
  * 로그인 후 되돌아온 것이면 토큰을 저장하고 결과를 돌려준다. 아니면 null.
  *
- * **되돌아오는 경로를 모르기 때문에** 특정 라우트에 매달지 않는다. 어디로 떨어지든 잡아낸다.
- * 토큰이 해시(`#access_token=...`)로 올 수도 있어 쿼리와 해시를 모두 본다.
+ * 서버는 루트(`/`)로 돌려보내지만 특정 라우트에 매달지 않는다 — 어디로 떨어지든 잡아낸다.
+ * 토큰이 해시(`#token=...`)로 올 수도 있어 쿼리와 해시를 모두 본다.
  */
 export function consumeOAuthRedirect(): OAuthRedirectResult | null {
   const search = new URLSearchParams(window.location.search);
@@ -104,11 +130,7 @@ export function consumeOAuthRedirect(): OAuthRedirectResult | null {
     // 실패 형태는 확인된 값이다: /login?error=oauth2_failure&message=...
     if (search.get('error') ?? hash.get('error')) return { status: 'failed' };
 
-    // 이름이 후보 목록에 없으면 조용히 지나간다. 파라미터 이름이 확정되기 전까지
-    // "왜 로그인이 안 되지"를 추적할 단서가 이것뿐이라 개발 중에만 남긴다.
-    if (import.meta.env.DEV && accessToken) {
-      console.warn('[oauth] 토큰 모양이 아닌 값을 무시했습니다. 파라미터 이름을 확인하세요.');
-    }
+    warnIfTokenLookalikeIgnored(search, hash);
     return null;
   }
 
