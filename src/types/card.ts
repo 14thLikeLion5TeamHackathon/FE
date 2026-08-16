@@ -28,18 +28,25 @@ function normalizeDday(raw: unknown) {
 /**
  * 카드 진행 상태.
  *
- * 스웨거에는 그냥 `string`으로 적혀 있어 서버가 다른 값을 보낼 여지가 있다.
- * 열거형으로 못 박아 두면 모르는 값 하나에 `.parse()`가 통째로 터지고 **카드 목록 전체가
- * 빈 화면**이 된다 — 기록 등록 `tags`에서 실제로 겪은 사고다.
+ * 서버는 소문자 `active` / `completed`를 보낸다(실응답·BE 문서로 확인). 스웨거에는 그냥
+ * `string`이라 값 목록이 없다. 화면에서는 계속 `IN_PROGRESS` / `DONE`을 쓰고, **경계에서만
+ * 바꾼다** — 서버가 이름을 또 바꿔도 고칠 곳이 이 표 하나다.
  *
- * 그래서 모르는 값은 `IN_PROGRESS`로 떨어뜨린다. 완료로 떨어뜨리면 사용자의 카드가
- * 회복 탭에서 조용히 사라지는데, 그보다는 진행 중 목록에 남아 눈에 띄는 편이 낫다.
- *
- * ⚠️ 실서버는 실제로 **`active`**를 보낸다(확인함). 지금은 폴백 덕에 진행 중으로 잡히지만,
- * **완료 상태의 값을 아직 못 봤다.** 그 값도 폴백에 걸리면 완료 카드가 진행 중으로 보인다.
- * BE에 상태 값 목록을 확인해서 여기 열거형을 실제 값으로 바꿔야 한다.
+ * 모르는 값은 `IN_PROGRESS`로 떨어뜨린다. 완료로 떨어뜨리면 사용자의 카드가 회복 탭에서
+ * 조용히 사라지는데, 그보다는 진행 중 목록에 남아 눈에 띄는 편이 낫다. 열거형으로 못 박고
+ * 폴백이 없으면 모르는 값 하나에 `.parse()`가 터져 **카드 목록 전체가 빈 화면**이 된다.
  */
-export const CardStatus = z.enum(['IN_PROGRESS', 'DONE']).catch('IN_PROGRESS');
+const SERVER_STATUS: Record<string, 'IN_PROGRESS' | 'DONE'> = {
+  active: 'IN_PROGRESS',
+  completed: 'DONE',
+};
+
+export const CardStatus = z
+  .preprocess(
+    (raw) => (typeof raw === 'string' ? (SERVER_STATUS[raw] ?? raw) : raw),
+    z.enum(['IN_PROGRESS', 'DONE']),
+  )
+  .catch('IN_PROGRESS');
 export type CardStatus = z.infer<typeof CardStatus>;
 
 export const AiFeedback = z.object({
