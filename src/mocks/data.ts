@@ -114,47 +114,13 @@ export const treatments = [
   },
 ];
 
-export const today = {
-  briefing: {
-    state: 'FULL',
-    dateLabel: '8월 3일 (월)',
-    weather: '맑음 31°',
-    message: '자외선이 높고 저녁에 술자리가 있어요. 외출 전 차단제를 덧바르고 음주량을 줄여주세요.',
-    metrics: [
-      { label: '자외선', value: '높음', level: 'HIGH' },
-      { label: '미세먼지', value: '보통', level: 'MODERATE' },
-      { label: '습도', value: '65%', level: 'MODERATE' },
-    ],
-    evidence: [{ label: 'D+7 포텐자' }, { label: '일정 2건' }],
-    schedules: [
-      { id: 's-1', title: '팀 회식', time: '오후 7:00', place: '강남역', editable: true },
-      { id: 's-2', title: '외부 미팅', time: '오후 2:00', place: null, editable: false },
-    ],
-  },
-  checklist: [
-    { id: 'c-1', label: '연고 바르기', done: true, source: '스컬트라 D+7' },
-    { id: 'c-2', label: '선크림 2중 도포', done: false, source: '스컬트라 D+7' },
-    { id: 'c-3', label: '물 2L 마시기', done: false, source: '포텐자 D+3' },
-  ],
-  // 8월 한 달치. 주의일은 일정·자외선·회복 분기점이 있는 날, 예보 범위는 8/16까지.
-  calendar: Array.from({ length: 31 }, (_, i) => {
-    const day = i + 1;
-    return {
-      date: `2026-08-${String(day).padStart(2, '0')}`,
-      marked: [2, 3, 5, 9, 12, 14].includes(day),
-      outOfForecast: day > 16,
-    };
-  }),
-  forecastNote: '예보는 8월 16일까지 제공돼요',
-};
-
 export const records = {
   cardId: 1,
   careRecords: [
     {
       recordId: 1,
       recordedAt: '2026-07-28',
-      photoUrl: null,
+      photoUrls: [],
       statusDescription: '어제보다 부은 것 같아요',
       redness: 3,
       swelling: 2,
@@ -166,7 +132,7 @@ export const records = {
     {
       recordId: 2,
       recordedAt: '2026-08-01',
-      photoUrl: null,
+      photoUrls: ['https://placehold.co/600x600/png'],
       statusDescription: '붉은기가 어제보다 옅어졌어요',
       redness: 2,
       swelling: 1,

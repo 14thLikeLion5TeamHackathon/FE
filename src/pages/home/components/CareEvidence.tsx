@@ -2,10 +2,14 @@ import { useState } from 'react';
 
 import Chip from '../../../components/Chip';
 import { cn } from '../../../lib/cn';
-import type { TodayBriefing } from '../../../types/today';
+import type { Level } from '../../../types/common';
 import EnvMetric from './EnvMetric';
 
-type CareEvidenceProps = Pick<TodayBriefing, 'metrics' | 'evidence' | 'schedules'>;
+type CareEvidenceProps = {
+  metrics: { label: string; value: string; level: Level }[];
+  evidence: { label: string }[];
+  schedules: { id: number; title: string; time: string | null; place: string | null }[];
+};
 
 /**
  * 브리핑의 근거 블록.
