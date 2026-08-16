@@ -9,6 +9,7 @@ import Field from '../../components/Field';
 import NavHeader from '../../components/NavHeader';
 import SectionHeader from '../../components/SectionHeader';
 import { useCreateCard, useTreatments } from '../../hooks/card/useCard';
+import { toDateInputValue } from '../../lib/date';
 import { CATEGORY_LABEL, TreatmentCategory } from '../../types/card';
 import CategoryChip from './components/CategoryChip';
 import TreatmentListItem from './components/TreatmentListItem';
@@ -24,23 +25,35 @@ export default function CardCreatePage() {
 
   const [category, setCategory] = useState<TreatmentCategory>(CATEGORIES[0]);
   const [query, setQuery] = useState('');
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [unknownTreatment, setUnknownTreatment] = useState(false);
+  const [customName, setCustomName] = useState('');
   const [treatedAt, setTreatedAt] = useState('');
 
   const { data: treatments, isLoading, isError } = useTreatments(category, query || undefined);
   const { mutate: createCard, isPending } = useCreateCard();
 
-  const toggleTreatment = (id: string) => {
+  const toggleTreatment = (id: number) => {
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]));
   };
 
-  const isValid = selectedIds.length > 0 && treatedAt.trim() !== '';
+  const isValid =
+    selectedIds.length > 0 &&
+    treatedAt.trim() !== '' &&
+    (!unknownTreatment || customName.trim() !== '');
 
   const handleSubmit = () => {
+    const trimmedCustomName = unknownTreatment ? customName.trim() : '';
+
     createCard(
-      { treatmentIds: selectedIds, treatedAt, unknownTreatment },
-      { onSuccess: (card) => navigate(`/cards/${card.id}`) },
+      {
+        treatmentDate: toDateInputValue(treatedAt),
+        treatments: selectedIds.map((treatmentId) => ({
+          treatmentId,
+          ...(trimmedCustomName ? { customName: trimmedCustomName } : {}),
+        })),
+      },
+      { onSuccess: (card) => navigate(`/cards/${card.cardId}`) },
     );
   };
 
@@ -100,18 +113,18 @@ export default function CardCreatePage() {
       {!isLoading && !isError && (treatments?.length ?? 0) > 0 && (
         <ul className="flex flex-col gap-2.5">
           {treatments?.map((treatment) => (
-            <li key={treatment.id}>
+            <li key={treatment.treatmentId}>
               <TreatmentListItem
                 treatment={treatment}
-                selected={selectedIds.includes(treatment.id)}
-                onToggle={() => toggleTreatment(treatment.id)}
+                selected={selectedIds.includes(treatment.treatmentId)}
+                onToggle={() => toggleTreatment(treatment.treatmentId)}
               />
             </li>
           ))}
         </ul>
       )}
 
-      <Card variant="block">
+      <Card variant="block" className="flex flex-col gap-2.5">
         <label className="flex items-center gap-2.5">
           <Checkbox
             checked={unknownTreatment}
@@ -119,6 +132,15 @@ export default function CardCreatePage() {
           />
           <span className="typo-body text-text-primary">정확한 시술명을 모르겠어요</span>
         </label>
+
+        {unknownTreatment && (
+          <Field
+            type="text"
+            placeholder="알고 있는 시술명을 적어주세요"
+            value={customName}
+            onChange={(e) => setCustomName(e.target.value)}
+          />
+        )}
       </Card>
 
       <div className="flex flex-col gap-2">

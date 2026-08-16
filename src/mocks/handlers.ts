@@ -55,17 +55,7 @@ export const handlers = [
     if (!card) return notFound('없는 카드예요');
     return ok({ ...db.cardDetail, ...card });
   }),
-  http.post('/api/cards', () => ok(db.cards[0])),
-
-  http.get('/api/treatments', ({ request }) => {
-    const url = new URL(request.url);
-    const category = url.searchParams.get('category');
-    const q = url.searchParams.get('q');
-    let list = db.treatments;
-    if (category) list = list.filter((t) => t.category === category);
-    if (q) list = list.filter((t) => t.name.includes(q));
-    return ok(list);
-  }),
+  // POST /api/v1/create/care-cards, GET /api/v1/create/treatments는 BE 배포 완료로 목 제거 (#42)
 
   /* ── 기록 ─────────────────────────────────────────────── */
   http.get('/api/cards/:cardId/records', ({ params }) =>
@@ -73,11 +63,7 @@ export const handlers = [
   ),
   http.post('/api/records', () => ok({ recordId: 'rec-2' })),
 
-  /* ── AI 피드백 ────────────────────────────────────────── */
-  http.get('/api/records/:recordId/feedback', ({ params }) =>
-    // 시안의 두 케이스를 나란히 확인하려고 recordId로 분기한다
-    ok(params.recordId === 'warn' ? db.feedbackWarning : db.feedback),
-  ),
+  // GET /api/v1/now/records/:recordId/feedback은 BE 배포 완료로 목 제거 (#42)
 
   /* ── 회복 ─────────────────────────────────────────────── */
   http.get('/api/recovery', () => ok(db.recovery)),

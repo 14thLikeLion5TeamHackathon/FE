@@ -39,6 +39,10 @@ export const MedicalAdvice = z.object({
 });
 export type MedicalAdvice = z.infer<typeof MedicalAdvice>;
 
+/**
+ * 화면(FeedbackPage)이 기대하는 뷰모델 형태.
+ * 실 API 응답(FeedbackResponse)과 필드 구조가 달라, useFeedback 훅에서 매핑해 만든다.
+ */
 export const AiFeedback = z.object({
   id: z.string(),
   cardId: z.string(),
@@ -60,3 +64,52 @@ export const AiFeedback = z.object({
   advice: MedicalAdvice,
 });
 export type AiFeedback = z.infer<typeof AiFeedback>;
+
+/* ── 실 API 응답 (GET/POST /api/v1/now/records/{recordId}/feedback) ────── */
+
+export const FeedbackSymptomComparison = z.object({
+  /** SymptomKey와 같은 값이어야 한다 (예: "SWELLING") */
+  type: z.string(),
+  name: z.string(),
+  /** Trend와 같은 값이어야 한다 (예: "DOWN") */
+  trend: z.string(),
+  previousLabel: z.string(),
+  currentLabel: z.string(),
+});
+export type FeedbackSymptomComparison = z.infer<typeof FeedbackSymptomComparison>;
+
+export const FeedbackComparison = z.object({
+  previousRecordId: z.number(),
+  previousDDay: z.number(),
+  previousPhotoUrl: z.string().nullable(),
+  currentPhotoUrl: z.string().nullable(),
+  symptoms: z.array(FeedbackSymptomComparison),
+  userComment: z.string().nullable(),
+});
+export type FeedbackComparison = z.infer<typeof FeedbackComparison>;
+
+export const FeedbackAnalysisTags = z.object({
+  treatmentDay: z.string(),
+  checklistRate: z.number(),
+  photoCount: z.number(),
+});
+export type FeedbackAnalysisTags = z.infer<typeof FeedbackAnalysisTags>;
+
+export const FeedbackResponse = z.object({
+  feedbackId: z.number(),
+  recordId: z.number(),
+  cardId: z.number(),
+  /** 카드 이름 필드가 API에 없어 화면에서는 이 값을 대신 쓴다 */
+  treatmentName: z.string(),
+  comparison: FeedbackComparison,
+  analysisSummary: z.string(),
+  analysisTags: FeedbackAnalysisTags,
+  intensityReview: z.string().nullable(),
+  todayCare: z.array(z.string()),
+  needsConsultation: z.boolean(),
+  consultationMessage: z.string().nullable(),
+  consultationCriteria: z.string().nullable(),
+  createdAt: z.string(),
+  dday: z.number(),
+});
+export type FeedbackResponse = z.infer<typeof FeedbackResponse>;

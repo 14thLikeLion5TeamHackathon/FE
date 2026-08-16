@@ -6,7 +6,8 @@ const cardKeys = {
   all: ['card'] as const,
   list: ['card', 'list'] as const,
   detail: (cardId: string) => ['card', 'detail', cardId] as const,
-  treatments: (category?: string, q?: string) => ['card', 'treatments', category, q] as const,
+  treatments: (category?: string, keyword?: string) =>
+    ['card', 'treatments', category, keyword] as const,
 };
 
 export function useCards() {
@@ -22,10 +23,10 @@ export function useCardDetail(cardId: string) {
 }
 
 /** 카드 생성 화면의 시술 목록. 카테고리 칩·검색어로 좁힌다. */
-export function useTreatments(category?: string, q?: string) {
+export function useTreatments(category?: string, keyword?: string) {
   return useQuery({
-    queryKey: cardKeys.treatments(category, q),
-    queryFn: () => getTreatments({ category, q }),
+    queryKey: cardKeys.treatments(category, keyword),
+    queryFn: () => getTreatments({ category, keyword }),
   });
 }
 

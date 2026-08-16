@@ -52,6 +52,7 @@ export type CardDetail = z.infer<typeof CardDetail>;
 
 /* ── 카드 생성 ───────────────────────────────────────────── */
 
+// TODO: 실제 category enum 값(DRUG/DEVICE 등)은 Swagger 스키마 상세로 재확인 필요.
 export const TreatmentCategory = z.enum(['DRUG', 'DEVICE', 'FNB', 'ETC']);
 export type TreatmentCategory = z.infer<typeof TreatmentCategory>;
 
@@ -63,20 +64,34 @@ export const CATEGORY_LABEL: Record<TreatmentCategory, string> = {
 };
 
 export const Treatment = z.object({
-  id: z.string(),
+  treatmentId: z.number(),
   name: z.string(),
+  category: TreatmentCategory,
   /** 목록에서 이름 아래 보여주는 한 줄 설명 */
   description: z.string(),
-  category: TreatmentCategory,
-  thumbnailUrl: z.string().nullable(),
+  storeName: z.string(),
+  storeLocation: z.string(),
 });
 export type Treatment = z.infer<typeof Treatment>;
 
+export const CreateCardTreatment = z.object({
+  treatmentId: z.number(),
+  /** 시술명을 정확히 모를 때 사용자가 직접 적은 이름 */
+  customName: z.string().optional(),
+});
+export type CreateCardTreatment = z.infer<typeof CreateCardTreatment>;
+
 export const CreateCardRequest = z.object({
-  treatmentIds: z.array(z.string()).min(1),
-  /** YYYY.MM.DD */
-  treatedAt: z.string(),
-  /** 시술명을 정확히 모를 때 */
-  unknownTreatment: z.boolean(),
+  /** YYYY-MM-DD */
+  treatmentDate: z.string(),
+  treatments: z.array(CreateCardTreatment).min(1),
 });
 export type CreateCardRequest = z.infer<typeof CreateCardRequest>;
+
+export const CreateCardResponse = z.object({
+  cardId: z.number(),
+  /** YYYY-MM-DD */
+  treatmentDate: z.string(),
+  createdAt: z.string(),
+});
+export type CreateCardResponse = z.infer<typeof CreateCardResponse>;
