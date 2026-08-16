@@ -48,7 +48,7 @@ export default function RecordCreatePage() {
   // 2. useCardDetail 훅으로 카드 정보 직접 조회
   // TODO: city/district는 사용자 프로필 또는 위치 정보에서 가져오도록 연동 필요
   const { data: cardDetail, isLoading: isCardLoading } = useCardDetail(cardId, getLocationParams());
-  const { mutate: createRecord, isPending } = useCreateRecord(cardId);
+  const { mutate: createRecord, isPending, isError } = useCreateRecord(cardId);
 
   // cardId가 없으면 기록 등록 불가
   const hasCardId = Boolean(cardId);
@@ -124,9 +124,13 @@ export default function RecordCreatePage() {
     );
   };
 
-  const subText = isLimitReached
-    ? `오늘 분석 횟수(${feedbackQuota.total}회)를 모두 사용했어요 · 직전 피드백이 재사용돼요`
-    : `하루 ${feedbackQuota.total}회까지 분석할 수 있어요 · 오늘 ${feedbackQuota.used}회 사용`;
+  // 실패했는데 아무 말이 없으면 사용자는 버튼이 안 먹은 줄 알고 다시 누른다.
+  // 등록은 서버에 이미 저장된 뒤일 수 있어서, 그 재시도가 같은 기록을 두 벌 만든다.
+  const subText = isError
+    ? '등록에 실패했어요. 이미 저장됐을 수 있으니 카드에서 확인해주세요.'
+    : isLimitReached
+      ? `오늘 분석 횟수(${feedbackQuota.total}회)를 모두 사용했어요 · 직전 피드백이 재사용돼요`
+      : `하루 ${feedbackQuota.total}회까지 분석할 수 있어요 · 오늘 ${feedbackQuota.used}회 사용`;
 
   return (
     <div className="min-h-screen bg-surface-canvas">
