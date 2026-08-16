@@ -49,6 +49,16 @@ export function setStoredLocation(location: TodayLocation): void {
 
 /* ── 시·구 데이터 (LocationPicker용) ─────────────────────── */
 
+/**
+ * 서버가 좌표로 풀 수 있는 지역만 담는다 — 서울·부산·대구·인천·광주 5개 광역시.
+ *
+ * 서버는 이 문자열을 자기 표에서 찾아 좌표로 바꾼다. **표에 없으면 에러 없이 기본 좌표로
+ * 떨어진다** — 대전과 울산을 넣어 뒀을 때 둘이 완전히 같은 값(28.24°)을 돌려줬다.
+ * 사용자는 자기 동네 날씨라고 믿고 남의 동네 값을 보게 되므로, 고를 수 없게 빼 둔다.
+ *
+ * 지역을 넓히려면 서버 표가 먼저 늘어야 한다. 여기만 늘리면 조용히 틀린 값이 된다.
+ */
+
 export type CityEntry = {
   id: string;
   name: string;
@@ -91,22 +101,10 @@ export const CITIES: CityEntry[] = [
     districts: ['남구', '달서구', '달성군', '동구', '북구', '서구', '수성구', '중구'],
   },
   {
-    id: 'daejeon',
-    name: '대전광역시',
-    label: '대전',
-    districts: ['대덕구', '동구', '서구', '유성구', '중구'],
-  },
-  {
     id: 'gwangju',
     name: '광주광역시',
     label: '광주',
     districts: ['광산구', '남구', '동구', '북구', '서구'],
-  },
-  {
-    id: 'ulsan',
-    name: '울산광역시',
-    label: '울산',
-    districts: ['남구', '동구', '북구', '울주군', '중구'],
   },
 ];
 
