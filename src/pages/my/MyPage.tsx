@@ -17,6 +17,11 @@ function Group({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
+/** 프로필이 미완성인지 판별 (핵심 필드가 null이면 미완성) */
+function isProfileIncomplete(data: { name: string | null; birthDate: string | null; gender: string | null }) {
+  return !data.name || !data.birthDate || !data.gender;
+}
+
 export default function MyPage() {
   const navigate = useNavigate();
   const { data, isLoading, isError } = useMyProfile();
@@ -33,9 +38,34 @@ export default function MyPage() {
   }
 
   if (isError || !data) {
+    if (import.meta.env.DEV) {
+      console.warn('[MyPage] 프로필 조회 실패 — isError:', isError, 'data:', data);
+    }
     return (
       <div className="px-5 pt-5">
         <p className="typo-body text-text-secondary">정보를 불러오지 못했어요.</p>
+      </div>
+    );
+  }
+
+  // 미완성 프로필이면 가입 완료로 유도
+  if (isProfileIncomplete(data)) {
+    if (import.meta.env.DEV) {
+      console.warn('[MyPage] 미완성 프로필 감지:', data);
+    }
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-5">
+        <p className="typo-card-title text-text-primary">가입을 마저 완료해주세요</p>
+        <p className="typo-body text-text-secondary text-center">
+          서비스를 이용하려면 기본 정보 입력이 필요해요.
+        </p>
+        <button
+          type="button"
+          onClick={() => navigate('/signup', { replace: true })}
+          className="bg-primary text-primary-on typo-label rounded-btn px-6 py-3"
+        >
+          정보 입력하기
+        </button>
       </div>
     );
   }
@@ -84,8 +114,8 @@ export default function MyPage() {
       {/* 개인정보 */}
       <Group label="개인정보">
         <Card variant="list">
-          <SettingRow label="이름" value={data.name} />
-          <SettingRow label="생년월일" value={data.birthDate} />
+          <SettingRow label="이름" value={data.name ?? ''} />
+          <SettingRow label="생년월일" value={data.birthDate ?? ''} />
           <SettingRow label="성별" value={genderLabel} />
         </Card>
       </Group>

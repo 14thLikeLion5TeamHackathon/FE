@@ -44,13 +44,13 @@ export type OnboardingResponse = z.infer<typeof OnboardingResponse>;
 
 export const MyProfile = z.object({
   userId: z.number(),
-  name: z.string(),
-  birthDate: z.string(), // "2026-08-15"
-  gender: z.string(),
-  hasAacOfflineExperience: z.boolean(),
-  agreePersonalInfo: z.boolean(),
-  agreeHealthData: z.boolean(),
-  agreeCalendarData: z.boolean(),
+  name: z.string().nullable(),
+  birthDate: z.string().nullable(),
+  gender: z.string().nullable(),
+  hasAacOfflineExperience: z.boolean().nullable(),
+  agreePersonalInfo: z.boolean().nullable(),
+  agreeHealthData: z.boolean().nullable(),
+  agreeCalendarData: z.boolean().nullable(),
 });
 export type MyProfile = z.infer<typeof MyProfile>;
 
