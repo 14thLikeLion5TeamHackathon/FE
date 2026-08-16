@@ -10,6 +10,7 @@ import {
   useMarkedDates,
   useToggleChecklistItem,
 } from '../../hooks/today/useToday';
+import { useTodayGeolocation } from '../../hooks/today/useTodayGeolocation';
 import { useTodayLocation } from '../../hooks/today/useTodayLocation';
 import { formatDayLabel, monthMatrix, startOfDay, toKey } from '../../lib/date';
 import { toLevel } from '../../types/today';
@@ -20,6 +21,7 @@ import CareBriefing, {
   CareBriefingNoForecast,
 } from './components/CareBriefing';
 import CareEvidence from './components/CareEvidence';
+import LocationNotice from './components/LocationNotice';
 import LocationPicker from './components/LocationPicker';
 import TodayChecklist from './components/TodayChecklist';
 import TodayEmptyState from './components/TodayEmptyState';
@@ -41,6 +43,8 @@ export default function HomePage() {
 
   const navigate = useNavigate();
   const { location, selectLocation } = useTodayLocation();
+  // 좌표는 아직 조회에 쓰지 않는다(서버 수용 여부 문의 중) — 상태만 화면에 비춘다
+  const { status: geoStatus } = useTodayGeolocation();
 
   const hasCards = useHasCards();
   const briefing = useBriefing(toKey(selected), location);
@@ -123,7 +127,11 @@ export default function HomePage() {
     <div className="flex flex-col gap-3.5 px-5 pt-5 pb-6">
       <PageHeader title="오늘" />
 
-      <LocationPicker location={location} onSelect={selectLocation} />
+      {/* 좁은 화면에서는 안내가 길어 줄이 넘친다 — 접히게 두고 세로 간격만 좁게 준다 */}
+      <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+        <LocationPicker location={location} onSelect={selectLocation} />
+        <LocationNotice status={geoStatus} location={location} />
+      </div>
 
       {/* 빈 상태에서는 캘린더를 감춘다 — 어느 날짜를 골라도 보여줄 게 없다 (시안 `카드 없음`) */}
       {!isEmpty && (
