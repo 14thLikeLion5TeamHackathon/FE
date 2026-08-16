@@ -8,7 +8,9 @@ import DateField from '../../components/DateField';
 import NavHeader from '../../components/NavHeader';
 import ProgressBar from '../../components/ProgressBar';
 import Segment from '../../components/Segment';
+import { useOnboarding } from '../../hooks/user/useUser';
 import { cn } from '../../lib/cn';
+import { toDateInputValue } from '../../lib/date';
 import { GENDER_LABEL, type Gender } from '../../types/user';
 import AgreementItem from './components/AgreementItem';
 import LabeledField from './components/LabeledField';
@@ -33,6 +35,8 @@ type Agreements = {
  */
 export default function SignupPage() {
   const navigate = useNavigate();
+
+  const { mutate: onboard, isPending, isError } = useOnboarding();
 
   const [step, setStep] = useState<1 | 2>(1);
 
@@ -63,9 +67,19 @@ export default function SignupPage() {
   };
 
   const handleSubmit = () => {
-    // TODO: hooks/user에 useSignup이 아직 없다. 생기면 여기서
-    // mutate({ name, birthDate, gender, visited, agreements }) 호출로 교체.
-    navigate('/');
+    onboard(
+      {
+        name: name.trim(),
+        // 화면 상태는 "2007.05.17", 서버는 "2007-05-17"을 받는다
+        birthDate: toDateInputValue(birthDate),
+        gender: gender ?? undefined,
+        agreePersonalInfo: agreements.personalInfo,
+        agreeHealthData: agreements.healthData,
+        agreeCalendarData: agreements.scheduleData,
+        hasAacOfflineExperience: visited === 'VISITED',
+      },
+      { onSuccess: () => navigate('/') },
+    );
   };
 
   return (
@@ -168,12 +182,19 @@ export default function SignupPage() {
             일정 동의는 선택이에요. 동의하지 않아도 가입할 수 있고, 이 경우 사전 경고와 일정 기반
             안내 없이 D-day·환경 지표만으로 안내해드려요.
           </p>
+
+          {/* 실패해도 화면이 그대로면 사용자는 버튼이 안 먹은 줄 안다 */}
+          {isError && (
+            <p className="typo-caption text-danger">
+              가입에 실패했어요. 잠시 후 다시 시도해주세요.
+            </p>
+          )}
         </div>
       )}
 
       <BottomCTA
-        label={step === 1 ? '다음' : '가입 완료하기'}
-        disabled={step === 1 ? !isStep1Valid : !isStep2Valid}
+        label={step === 1 ? '다음' : isPending ? '가입 중...' : '가입 완료하기'}
+        disabled={step === 1 ? !isStep1Valid : !isStep2Valid || isPending}
         onClick={step === 1 ? () => setStep(2) : handleSubmit}
       />
     </div>
