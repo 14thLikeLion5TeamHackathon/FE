@@ -39,6 +39,23 @@ export function isSameDay(a: Date, b: Date): boolean {
   return toKey(a) === toKey(b);
 }
 
+/**
+ * "2026-08-08"에서 오늘까지 며칠 지났는지. 시술일 당일이 0이다.
+ *
+ * 서버가 D-day를 안 줄 때 대신 계산하는 데 쓴다 — 서버의 D+8(시술일 8/8, 오늘 8/16)과
+ * 같은 셈법이다. 날짜를 못 읽으면 null이라 호출부가 판단한다.
+ */
+export function daysSince(dateKey: string): number | null {
+  const [y, m, d] = dateKey.split('-').map(Number);
+  if (!y || !m || !d) return null;
+
+  const from = startOfDay(new Date(y, m - 1, d));
+  if (Number.isNaN(from.getTime())) return null;
+
+  const MS_PER_DAY = 24 * 60 * 60 * 1000;
+  return Math.round((startOfDay(new Date()).getTime() - from.getTime()) / MS_PER_DAY);
+}
+
 /** "8월 3일 (월)" */
 export function formatDayLabel(date: Date): string {
   return `${date.getMonth() + 1}월 ${date.getDate()}일 (${DOW_LABELS[date.getDay()]})`;
