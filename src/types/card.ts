@@ -121,10 +121,10 @@ export const Treatment = z.object({
 });
 export type Treatment = z.infer<typeof Treatment>;
 
-/** TreatmentEntry — 카드 생성 시 선택한 시술 항목 */
+/** TreatmentEntry — 카드 생성 시 선택한 시술 항목. customName은 정확한 시술명을 모를 때만 쓰는 선택 필드 */
 export const TreatmentEntry = z.object({
   treatmentId: z.number(),
-  customName: z.string().nullable(),
+  customName: z.string().nullable().optional(),
 });
 export type TreatmentEntry = z.infer<typeof TreatmentEntry>;
 
