@@ -6,12 +6,14 @@ const ALL_SYMPTOMS: SymptomKey[] = ['REDNESS', 'SWELLING', 'PAIN', 'DRYNESS'];
 
 interface SymptomSelectBlockProps {
   selectedSymptoms: SymptomKey[];
-  onToggleSymptom: (symptom: SymptomKey) => void;
+  onToggleSymptom?: (symptom: SymptomKey) => void;
+  disabled?: boolean;
 }
 
 export default function SymptomSelectBlock({
   selectedSymptoms,
   onToggleSymptom,
+  disabled = false,
 }: SymptomSelectBlockProps) {
   return (
     <div className="flex w-full items-start gap-2">
@@ -21,12 +23,13 @@ export default function SymptomSelectBlock({
           <Chip
             key={key}
             className={cn(
-              'flex-1 cursor-pointer justify-center px-3 py-[6px] text-center transition-colors border',
+              'flex-1 justify-center px-3 py-[6px] text-center transition-colors border',
+              disabled ? 'cursor-default' : 'cursor-pointer',
               isSelected
                 ? 'border-primary bg-primary-tint text-primary'
                 : 'border-border-strong bg-transparent text-text-secondary'
             )}
-            onClick={() => onToggleSymptom(key)}
+            onClick={disabled ? undefined : () => onToggleSymptom?.(key)}
           >
             {SYMPTOM_LABEL[key] ?? key}
           </Chip>

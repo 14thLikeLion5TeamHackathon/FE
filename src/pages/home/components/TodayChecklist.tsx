@@ -4,7 +4,7 @@ import type { ChecklistItem } from '../../../types/today';
 
 type TodayChecklistProps = {
   items: ChecklistItem[];
-  onToggle: (itemId: string, done: boolean) => void;
+  onToggle: (checklistId: number, completed: boolean) => void;
 };
 
 /**
@@ -12,7 +12,7 @@ type TodayChecklistProps = {
  * 매일 앱을 여는 이유라서 브리핑 바로 다음, 근거보다 위에 둔다.
  */
 export default function TodayChecklist({ items, onToggle }: TodayChecklistProps) {
-  const doneCount = items.filter((item) => item.done).length;
+  const doneCount = items.filter((item) => item.completed).length;
   const ratio = items.length === 0 ? 0 : (doneCount / items.length) * 100;
 
   return (
@@ -31,21 +31,21 @@ export default function TodayChecklist({ items, onToggle }: TodayChecklistProps)
 
       <ul className="flex flex-col gap-3">
         {items.map((item) => (
-          <li key={item.id} className="flex items-center gap-3">
+          <li key={item.checklistId} className="flex items-center gap-3">
             <Checkbox
-              checked={item.done}
-              onChange={(event) => onToggle(item.id, event.target.checked)}
+              checked={item.completed}
+              onChange={(event) => onToggle(item.checklistId, event.target.checked)}
               aria-label={item.label}
             />
             <span
               className={cn(
                 'typo-body flex-1',
-                item.done ? 'text-text-tertiary' : 'text-text-primary',
+                item.completed ? 'text-text-tertiary' : 'text-text-primary',
               )}
             >
               {item.label}
             </span>
-            <span className="typo-caption text-text-tertiary">{item.source}</span>
+            <span className="typo-caption text-text-tertiary">{item.sourceLabel}</span>
           </li>
         ))}
       </ul>

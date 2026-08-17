@@ -1,17 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { createRecord, getRecords } from '../../api/record';
+import { createRecord, getStatusTags } from '../../api/record';
+import type { CreateRecordRequest } from '../../types/record';
 
 const recordKeys = {
-  byCard: (cardId: string) => ['record', 'card', cardId] as const,
+  statusTags: ['statusTags'] as const,
 };
 
-/** 카드 상세의 회복 기록 타임라인 */
-export function useRecords(cardId: string) {
+/** 상태 태그 목록 조회 */
+export function useStatusTags() {
   return useQuery({
-    queryKey: recordKeys.byCard(cardId),
-    queryFn: () => getRecords(cardId),
-    enabled: Boolean(cardId),
+    queryKey: recordKeys.statusTags,
+    queryFn: getStatusTags,
   });
 }
 
@@ -19,14 +19,16 @@ export function useRecords(cardId: string) {
  * 기록 저장. 성공하면 recordId가 오므로
  * `/records/:recordId/feedback`으로 이동하면 된다.
  */
-export function useCreateRecord() {
+export function useCreateRecord(cardId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: createRecord,
-    onSuccess: (_data, variables) => {
-      void queryClient.invalidateQueries({ queryKey: recordKeys.byCard(variables.cardId) });
-      void queryClient.invalidateQueries({ queryKey: ['recovery'] });
+    mutationFn: (body: CreateRecordRequest) => createRecord(cardId, body),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['card', 'records', cardId] });
+      void queryClient.invalidateQueries({ queryKey: ['card', 'detail', cardId] });
+      // 카드 목록에 카드별 최근 기록이 붙어 오고, 회복 탭이 그걸로 조립된다
+      void queryClient.invalidateQueries({ queryKey: ['card', 'list'] });
       void queryClient.invalidateQueries({ queryKey: ['today'] });
     },
   });

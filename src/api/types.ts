@@ -1,12 +1,17 @@
 /**
- * BE 공통 응답 봉투 (docs/api-contract.md "기본 사항").
- * 실제 응답: { success, code: number, errorCode: string|null, message, data }
+ * BE 공통 응답 봉투: { success, code: number, message, data }
+ *
+ * 세부 에러 코드의 이름이 셋으로 갈린다 — 스웨거 스키마는 `errorCode`, BE 문서 예시는 `error_code`,
+ * 실제 401 응답에는 아예 없다. 어느 쪽이 오든 읽히도록 셋 다 선택적으로 둔다.
+ * 화면 분기는 HTTP status로 하니 이 값이 비어도 동작에는 지장이 없다.
+ *
  * 단 `/api/v1/environment/weather`만 봉투 없이 본문을 그대로 준다.
  */
 export type ApiResponse<T = unknown> = {
   success: boolean;
   code: number;
-  errorCode: string | null;
+  errorCode?: string | null;
+  error_code?: string | null;
   message: string;
   data: T;
 };

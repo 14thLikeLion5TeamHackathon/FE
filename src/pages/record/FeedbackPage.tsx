@@ -61,9 +61,19 @@ export default function FeedbackPage() {
 
       <Block title="지난 기록과 비교">
         <div className="flex items-center gap-2">
+          {/* 라벨이 같을 수 있어(첫 기록이면 양쪽 다 오늘) key는 자리로 잡는다 */}
           {[data.before, data.after].map((side, index) => (
-            <figure key={side.ddayLabel} className="flex flex-1 flex-col gap-1.5">
-              <div className="bg-surface-fill border-border-subtle rounded-md aspect-square w-full border" />
+            <figure key={index === 0 ? 'before' : 'after'} className="flex flex-1 flex-col gap-1.5">
+              {side.photoUrl ? (
+                <img
+                  src={side.photoUrl}
+                  alt={`${side.ddayLabel} 기록 사진`}
+                  className="bg-surface-fill border-border-subtle aspect-square w-full rounded-md border object-cover"
+                />
+              ) : (
+                /* 첫 기록이면 비교할 이전 사진이 없다 — 빈 자리를 그대로 둔다 */
+                <div className="bg-surface-fill border-border-subtle aspect-square w-full rounded-md border" />
+              )}
               <figcaption
                 className={index === 0 ? 'typo-caption text-text-tertiary' : 'typo-caption text-text-primary'}
               >

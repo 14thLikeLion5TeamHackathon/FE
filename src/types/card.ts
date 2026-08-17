@@ -1,54 +1,104 @@
 import { z } from 'zod';
 
-/**
- * 케어 카드 = 회복 여정. 기록은 카드 안에 산다.
- * BE 계약이 아직 없어 시안에서 역산한 임시 스키마다.
- */
+import { normalizeDday } from './common';
 
-export const CardStatus = z.enum(['IN_PROGRESS', 'DONE']);
+/* ── 공통 ─────────────────────────────────────────────────── */
+
+/**
+ * 카드 진행 상태.
+ *
+ * 서버는 소문자 `active` / `completed`를 보낸다(실응답·BE 문서로 확인). 스웨거에는 그냥
+ * `string`이라 값 목록이 없다. 화면에서는 계속 `IN_PROGRESS` / `DONE`을 쓰고, **경계에서만
+ * 바꾼다** — 서버가 이름을 또 바꿔도 고칠 곳이 이 표 하나다.
+ *
+ * 모르는 값은 `IN_PROGRESS`로 떨어뜨린다. 완료로 떨어뜨리면 사용자의 카드가 회복 탭에서
+ * 조용히 사라지는데, 그보다는 진행 중 목록에 남아 눈에 띄는 편이 낫다. 열거형으로 못 박고
+ * 폴백이 없으면 모르는 값 하나에 `.parse()`가 터져 **카드 목록 전체가 빈 화면**이 된다.
+ */
+const SERVER_STATUS: Record<string, 'IN_PROGRESS' | 'DONE'> = {
+  active: 'IN_PROGRESS',
+  completed: 'DONE',
+};
+
+export const CardStatus = z
+  .preprocess(
+    (raw) => (typeof raw === 'string' ? (SERVER_STATUS[raw] ?? raw) : raw),
+    z.enum(['IN_PROGRESS', 'DONE']),
+  )
+  .catch('IN_PROGRESS');
 export type CardStatus = z.infer<typeof CardStatus>;
 
-/** 목록·카드 상세 상단에 공통으로 쓰는 요약 */
-export const CareCard = z.object({
-  id: z.string(),
-  /** 시술명 (예: 포텐자) */
-  name: z.string(),
-  /** YYYY.MM.DD */
-  treatedAt: z.string(),
-  /** 시술일로부터 지난 일수. 화면에는 `D+7`로 표기 */
-  dday: z.number().int(),
-  /** 회복 총 기간(일). 시안 기준 29 */
-  totalDays: z.number().int(),
-  status: CardStatus,
-  /** 오늘의 관리 — 「오늘의 관리 행동 (공통)」 산출 결과 */
-  todayCare: z.string(),
-  /** 오늘이 기록 권장일인지. 맞으면 기록 버튼을 주요 버튼으로 승격한다 */
-  recordRecommended: z.boolean(),
+export const AiFeedback = z.object({
+  feedbackId: z.number(),
+  changeSummary: z.string(),
+  careGuidance: z.string(),
+  needsConsultation: z.boolean(),
 });
+export type AiFeedback = z.infer<typeof AiFeedback>;
+
+/* ── GET /api/v1/cards — 케어카드 목록 조회 (카드별 최근 기록 포함) ── */
+
+export const CareCard = z.preprocess(
+  normalizeDday,
+  z.object({
+    cardId: z.number(),
+    treatmentName: z.string(),
+    treatmentDate: z.string(), // "2026-08-15"
+    status: CardStatus,
+    recoveryTotalDays: z.number(),
+    recordId: z.number().nullable().optional(),
+    recordedAt: z.string().nullable().optional(),
+    // 스웨거는 `photoUrls: string[]`다. 한 기록에 사진이 여러 장 붙는다 —
+    // 단수 `photoUrl`로 두면 실서버 응답에서 값이 통째로 사라진다.
+    photoUrls: z.array(z.string()).nullish(),
+    statusDescription: z.string().nullable().optional(),
+    redness: z.number().nullable().optional(),
+    swelling: z.number().nullable().optional(),
+    pain: z.number().nullable().optional(),
+    dryness: z.number().nullable().optional(),
+    aiFeedback: AiFeedback.nullable().optional(),
+    dday: z.number(),
+  }),
+);
 export type CareCard = z.infer<typeof CareCard>;
 
-/** 회복 가이드 한 구간 */
-export const RecoveryGuideStep = z.object({
-  /** 예: "D+1~3" */
-  range: z.string(),
-  description: z.string(),
-  /** 현재 구간이면 강조한다 */
-  current: z.boolean(),
-});
-export type RecoveryGuideStep = z.infer<typeof RecoveryGuideStep>;
+/* ── GET /api/v1/cards/{cardId} — 케어카드 상세 조회 ─────── */
 
-export const CardDetail = CareCard.extend({
-  guide: z.array(RecoveryGuideStep),
-  cautions: z.array(z.string()),
-  /** D+21~29에만 노출. 그 밖에는 null */
-  storeVisit: z
-    .object({
-      title: z.string(),
-      description: z.string(),
-    })
-    .nullable(),
+export const FeedbackQuota = z.object({
+  used: z.number(),
+  total: z.number(),
 });
+export type FeedbackQuota = z.infer<typeof FeedbackQuota>;
+
+export const VisitedStore = z.object({
+  storeId: z.number(),
+  name: z.string(),
+  address: z.string(),
+  url: z.string(),
+  latitude: z.string(),
+  longitude: z.string(),
+});
+export type VisitedStore = z.infer<typeof VisitedStore>;
+
+export const CardDetail = z.preprocess(
+  normalizeDday,
+  z.object({
+    cardId: z.number(),
+    treatmentName: z.string(),
+    treatmentDate: z.string(),
+    recoveryTotalDays: z.number(),
+    recoveryTransitionDay: z.number(),
+    todayCare: z.array(z.string()),
+    feedbackQuota: FeedbackQuota,
+    visitedStore: VisitedStore.nullable(),
+    dday: z.number(),
+  }),
+);
 export type CardDetail = z.infer<typeof CardDetail>;
+
+/* ── GET /api/v1/cards/{cardId}/records — 카드별 이전 기록 ─
+ * 타임라인 항목은 기록 도메인이 소유한다 — 등록 응답과 형태가 달라 한 파일에서
+ * 나란히 봐야 헷갈리지 않는다. `types/record.ts`의 RecordTimeline* 참고. */
 
 /* ── 카드 생성 ───────────────────────────────────────────── */
 

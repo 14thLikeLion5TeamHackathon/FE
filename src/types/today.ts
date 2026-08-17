@@ -1,81 +1,120 @@
 import { z } from 'zod';
 
-import { EvidenceChip, Level } from './common';
+import { Level } from './common';
 
 /**
- * 오늘 탭 — 캘린더 · 브리핑 · 체크리스트 · 근거.
+ * 오늘 탭 — 브리핑 · 체크리스트 · 캘린더.
  * 블록 순서는 왜 → 무엇 → 근거다.
+ *
+ * 서버는 한 응답으로 주지 않는다. 브리핑과 체크리스트가 별도 엔드포인트고,
+ * 캘린더에 찍을 점은 아예 계약에 없어서 프론트가 조립한다.
  */
 
-/** 자외선·미세먼지·습도 */
-export const EnvMetric = z.object({
-  label: z.string(),
-  /** 표시값. "높음" "65%" 처럼 단위가 섞이므로 문자열로 받는다 */
-  value: z.string(),
-  level: Level,
+/** 자외선·미세먼지. 서버가 등급을 한글 문자열로 준다 */
+export const LevelValue = z.object({
+  /** "좋음" "보통" "나쁨" — enum이 아니라 문자열이다 */
+  level: z.string(),
+  value: z.number(),
 });
-export type EnvMetric = z.infer<typeof EnvMetric>;
+export type LevelValue = z.infer<typeof LevelValue>;
 
-export const ScheduleItem = z.object({
-  id: z.string(),
+/**
+ * 서버의 한글 등급을 화면 색 단계로 옮긴다.
+ * 모르는 값이 오면 색을 세게 칠하지 않고 MODERATE로 둔다 — 등급 문자열은 계약에 고정돼 있지 않다.
+ */
+export function toLevel(korean: string): Level {
+  switch (korean) {
+    case '좋음':
+      return 'LOW';
+    case '나쁨':
+      return 'HIGH';
+    case '매우나쁨':
+    case '매우 나쁨':
+      return 'SEVERE';
+    default:
+      return 'MODERATE';
+  }
+}
+
+export const WeatherInfo = z.object({
+  temp: z.number(),
+  /** "온흐림" "맑음" */
+  condition: z.string(),
+});
+export type WeatherInfo = z.infer<typeof WeatherInfo>;
+
+export const BriefingSchedule = z.object({
+  scheduleId: z.number(),
   title: z.string(),
   /** "오후 7:00". 종일 일정이면 null */
   time: z.string().nullable(),
-  place: z.string().nullable(),
-  /** 직접 입력한 일정만 수정·삭제할 수 있다. 캘린더에서 온 건 읽기 전용 */
-  editable: z.boolean(),
+  location: z.string().nullable(),
 });
-export type ScheduleItem = z.infer<typeof ScheduleItem>;
+export type BriefingSchedule = z.infer<typeof BriefingSchedule>;
+
+/**
+ * 카드 기반 판단. **카드가 하나도 없으면 통째로 null이다.**
+ * 브리핑 문장이 여기 들어 있어서, null이면 화면에 쓸 결론이 없다.
+ */
+export const CardJudgement = z.object({
+  cardIds: z.array(z.number()),
+  /** 결론 문구. 오늘 해야 할 행동을 문장으로 */
+  actionSentence: z.string(),
+  cautionLevel: z.string(),
+  /** 그렇게 판단한 이유. 화면에 칩으로 뿌린다 */
+  reasons: z.array(z.string()),
+});
+export type CardJudgement = z.infer<typeof CardJudgement>;
+
+export const BriefingResponse = z.object({
+  /** YYYY-MM-DD */
+  date: z.string(),
+  weather: WeatherInfo.nullable(),
+  environment: z.object({ uv: LevelValue, dust: LevelValue }),
+  schedules: z.array(BriefingSchedule),
+  cardJudgement: CardJudgement.nullable(),
+  overallCautionLevel: z.string().nullable(),
+  calendarConnected: z.boolean(),
+});
+export type BriefingResponse = z.infer<typeof BriefingResponse>;
 
 export const ChecklistItem = z.object({
-  id: z.string(),
+  checklistId: z.number(),
   label: z.string(),
-  done: z.boolean(),
   /** 어느 카드에서 나온 행동인지. "스컬트라 D+7" */
-  source: z.string(),
+  sourceLabel: z.string(),
+  completed: z.boolean(),
 });
 export type ChecklistItem = z.infer<typeof ChecklistItem>;
 
-/** 브리핑이 어떤 상태로 내려오는지 */
-export const BriefingState = z.enum([
-  'FULL', // 정상
-  'NO_CALENDAR', // 캘린더 미연동 또는 일정 0건
-  'UNCLASSIFIED', // 일정 제목 분류 실패 → 시각·건수만 사용
-  'OUT_OF_RANGE', // 예보 범위 밖
-  'ERROR', // 데이터 로드 실패
-]);
-export type BriefingState = z.infer<typeof BriefingState>;
-
-export const TodayBriefing = z.object({
-  state: BriefingState,
-  /** "8월 3일 (월)" */
-  dateLabel: z.string(),
-  /** "맑음 31°". 예보 범위 밖이면 null */
-  weather: z.string().nullable(),
-  /** 결론 문구. 오늘 해야 할 행동을 문장으로 */
-  message: z.string(),
-  metrics: z.array(EnvMetric),
-  evidence: z.array(EvidenceChip),
-  schedules: z.array(ScheduleItem),
+export const TodayChecklistResponse = z.object({
+  completedCount: z.number(),
+  totalCount: z.number(),
+  items: z.array(ChecklistItem),
 });
-export type TodayBriefing = z.infer<typeof TodayBriefing>;
+export type TodayChecklistResponse = z.infer<typeof TodayChecklistResponse>;
 
-/** 캘린더 날짜 한 칸 */
-export const CalendarDay = z.object({
-  /** YYYY-MM-DD */
-  date: z.string(),
-  /** 일정·자외선·회복 분기점이 있으면 점을 찍는다 */
-  marked: z.boolean(),
-  /** 예보 범위 밖이면 흐리게 처리 */
-  outOfForecast: z.boolean(),
-});
-export type CalendarDay = z.infer<typeof CalendarDay>;
+/**
+ * 연동된 구글 캘린더 일정.
+ * 스웨거에 응답 모양이 비어 있어(`additionalProperties: object`) 실제 응답을 보고 좁혀야 한다.
+ * 그때까지는 날짜만 꺼낼 수 있으면 되므로 나머지 필드를 통과시킨다.
+ */
+export const CalendarEvent = z
+  .object({
+    /** 계약상 이름은 `eventDate`. "2026-08-15" 또는 "2026-08-15T19:00:00" */
+    eventDate: z.string().optional(),
+    // 미연동 상태라 실제 응답을 못 봤다. 계약이 어긋나도 점은 찍히게 후보를 남겨 둔다.
+    date: z.string().optional(),
+    startDate: z.string().optional(),
+    start: z.string().optional(),
+  })
+  .passthrough();
+export type CalendarEvent = z.infer<typeof CalendarEvent>;
 
-export const TodayResponse = z.object({
-  briefing: TodayBriefing,
-  checklist: z.array(ChecklistItem),
-  calendar: z.array(CalendarDay),
-  /** "예보는 8월 16일까지 제공돼요" */
-  forecastNote: z.string().nullable(),
-});
-export type TodayResponse = z.infer<typeof TodayResponse>;
+/** 위 후보 중 실제로 온 필드에서 YYYY-MM-DD만 뽑는다 */
+export function eventDateKey(event: CalendarEvent): string | null {
+  const raw = event.eventDate ?? event.date ?? event.startDate ?? event.start;
+  if (!raw) return null;
+  const match = /^\d{4}-\d{2}-\d{2}/.exec(raw);
+  return match ? match[0] : null;
+}

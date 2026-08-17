@@ -7,7 +7,9 @@ import NavHeader from '../../components/NavHeader';
 import { useCardDetail } from '../../hooks/card/useCard';
 import { useCreateRecord } from '../../hooks/record/useRecord';
 import { cn } from '../../lib/cn';
+import { getLocationParams } from '../../lib/location';
 import type { Intensity, SymptomKey } from '../../types/common';
+import { SYMPTOM_TAG_KEY } from '../../types/record';
 
 import IntensitySelectBlock from './components/IntensitySelectBlock';
 import PhotoUploadBlock from './components/PhotoUploadBlock';
@@ -44,32 +46,38 @@ export default function RecordCreatePage() {
   const cardId = searchParams.get('cardId') ?? '';
 
   // 2. useCardDetail 훅으로 카드 정보 직접 조회
-  const { data: cardDetail, isLoading: isCardLoading } = useCardDetail(cardId);
-  const { mutate: createRecord, isPending } = useCreateRecord();
+  // TODO: city/district는 사용자 프로필 또는 위치 정보에서 가져오도록 연동 필요
+  const { data: cardDetail, isLoading: isCardLoading } = useCardDetail(cardId, getLocationParams());
+  const { mutate: createRecord, isPending, isError } = useCreateRecord(cardId);
+
+  // cardId가 없으면 기록 등록 불가
+  const hasCardId = Boolean(cardId);
 
   // 카드 상세 데이터 및 디스플레이 텍스트 바인딩
-  const targetCardId = cardDetail?.id ?? cardId;
-  const displayTitle = cardDetail?.name ?? '시술 정보 불러오는 중...';
+  const targetCardId = cardDetail?.cardId ?? cardId;
+  const displayTitle = !hasCardId
+    ? '카드를 선택해주세요'
+    : cardDetail?.treatmentName ?? '시술 정보 불러오는 중...';
   const displayDateInfo = cardDetail
-    ? `D+${cardDetail.dday} · ${cardDetail.treatedAt} 시술`
+    ? `D+${cardDetail.dday} · ${cardDetail.treatmentDate} 시술`
     : '';
 
-  const dailyUsage = { maxCount: 3, todayCount: 0 };
-  const isLimitReached = dailyUsage.todayCount >= dailyUsage.maxCount;
+  const feedbackQuota = cardDetail?.feedbackQuota ?? { used: 0, total: 3 };
+  const isLimitReached = feedbackQuota.used >= feedbackQuota.total;
 
   // 입력 상태
   const [memo, setMemo] = useState('');
   const [photos, setPhotos] = useState<File[]>([]);
 
-  // 🎯 1. 증상 4개를 기본적으로 모두 선택된 상태로 설정
-  const [selectedSymptoms, setSelectedSymptoms] = useState<SymptomKey[]>(ALL_SYMPTOMS);
+  // 🎯 1. 증상 4개는 필수 고정
+  const selectedSymptoms: SymptomKey[] = ALL_SYMPTOMS;
 
-  // 🎯 2. 증상 정도 초기값 (기본 0 또는 사용자 선택 필요)
-  const [symptomLevels, setSymptomLevels] = useState<Record<SymptomKey, Intensity>>({
-    REDNESS: 0,
-    SWELLING: 0,
-    PAIN: 0,
-    DRYNESS: 0,
+  // 🎯 2. 증상 정도 — 초기값 undefined (사용자가 실제로 선택해야 유효)
+  const [symptomLevels, setSymptomLevels] = useState<Record<SymptomKey, Intensity | undefined>>({
+    REDNESS: undefined,
+    SWELLING: undefined,
+    PAIN: undefined,
+    DRYNESS: undefined,
   });
 
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -82,46 +90,47 @@ export default function RecordCreatePage() {
     setPhotos((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // 🎯 3. 증상 필수 입력을 위해 토글 클릭시 해제되지 않도록 보장 (항상 4개 유지)
-  const toggleSymptom = (symptom: SymptomKey) => {
-    if (!selectedSymptoms.includes(symptom)) {
-      setSelectedSymptoms([...selectedSymptoms, symptom]);
-    }
-  };
-
   const handleIntensityChange = (symptom: SymptomKey, level: Intensity) => {
     setSymptomLevels((prev) => ({ ...prev, [symptom]: level }));
   };
 
-  // 🎯 4. 유효성 검사: 4개 증상 정도(Intensity)가 모두 선택되었는지 확인 (0 이상 또는 1 이상 조건 필요 시 수정)
-  // 만약 정도 선택(1, 2, 3 단계 등)을 반드시 눌러야 하는 조건이라면 아래 조건 활용
-  const isAllSymptomsRated = ALL_SYMPTOMS.every((key) => symptomLevels[key] !== undefined);
+  // 🎯 4. 유효성 검사: 4개 증상 정도가 모두 실제로 선택되었는지 확인
+  const isAllSymptomsRated = ALL_SYMPTOMS.every(
+    (key) => symptomLevels[key] !== undefined
+  );
 
   const handleSubmit = () => {
-    if (!targetCardId || !isAllSymptomsRated) return;
+    if (!hasCardId || !targetCardId || !isAllSymptomsRated || photos.length === 0) return;
+
+    // 서버 tags는 배열이 아니라 `{ redness: 3, ... }` 형태의 강도 맵이다.
+    const tags = ALL_SYMPTOMS.reduce<Record<string, Intensity>>((acc, symptom) => {
+      const level = symptomLevels[symptom];
+      if (level !== undefined) acc[SYMPTOM_TAG_KEY[symptom]] = level;
+      return acc;
+    }, {});
 
     createRecord(
       {
-        cardId: targetCardId,
-        memo,
-        photoUrls: [],
-        symptoms: ALL_SYMPTOMS.map((symptom) => ({
-          key: symptom,
-          intensity: symptomLevels[symptom],
-        })),
+        photos,
+        statusDescription: memo,
+        tags: JSON.stringify(tags),
       },
       {
-        onSuccess: (data: { recordId: string }) => {
-          const recordId = data?.recordId ?? 'temp-record-id';
+        onSuccess: (data) => {
+          const recordId = data?.recordId ?? 0;
           navigate(`/records/${recordId}/feedback`);
         },
       }
     );
   };
 
-  const subText = isLimitReached
-    ? `오늘 분석 횟수(${dailyUsage.maxCount}회)를 모두 사용했어요 · 직전 피드백이 재사용돼요`
-    : `하루 ${dailyUsage.maxCount}회까지 분석할 수 있어요 · 오늘 ${dailyUsage.todayCount}회 사용`;
+  // 실패했는데 아무 말이 없으면 사용자는 버튼이 안 먹은 줄 알고 다시 누른다.
+  // 등록은 서버에 이미 저장된 뒤일 수 있어서, 그 재시도가 같은 기록을 두 벌 만든다.
+  const subText = isError
+    ? '등록에 실패했어요. 이미 저장됐을 수 있으니 카드에서 확인해주세요.'
+    : isLimitReached
+      ? `오늘 분석 횟수(${feedbackQuota.total}회)를 모두 사용했어요 · 직전 피드백이 재사용돼요`
+      : `하루 ${feedbackQuota.total}회까지 분석할 수 있어요 · 오늘 ${feedbackQuota.used}회 사용`;
 
   return (
     <div className="min-h-screen bg-surface-canvas">
@@ -162,7 +171,7 @@ export default function RecordCreatePage() {
         <Section label="증상 (필수 4종)" labelColor="text-text-primary">
           <SymptomSelectBlock
             selectedSymptoms={selectedSymptoms}
-            onToggleSymptom={toggleSymptom}
+            disabled
           />
         </Section>
 
@@ -178,7 +187,7 @@ export default function RecordCreatePage() {
 
       <BottomCTA
         label={isPending ? '등록 중...' : '기록 등록하기'}
-        disabled={isPending || isCardLoading || !isAllSymptomsRated}
+        disabled={isPending || isCardLoading || !hasCardId || !isAllSymptomsRated || photos.length === 0}
         onClick={handleSubmit}
         subText={subText}
       />
