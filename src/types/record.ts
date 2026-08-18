@@ -2,10 +2,16 @@ import { Intensity, SymptomKey, normalizeDday } from './common';
 import { AiFeedback } from './card';
 import { z } from 'zod';
 
-/** 상태 태그 (목록 조회용) */
+/**
+ * 상태 태그 (목록 조회용).
+ *
+ * 실서버는 증상 4종을 준다 — `{tagId: 1, name: "붉은기", code: "redness"}`.
+ * `code`가 기록 등록이 보내는 강도 맵의 키와 같은 값이라, 이걸로 화면 목록을 만든다.
+ */
 export const StatusTag = z.object({
   tagId: z.number(),
   name: z.string(),
+  code: z.string().nullish(),
 });
 export type StatusTag = z.infer<typeof StatusTag>;
 
@@ -19,6 +25,19 @@ export const SYMPTOM_TAG_KEY: Record<SymptomKey, string> = {
   PAIN: 'pain',
   DRYNESS: 'dryness',
 };
+
+/**
+ * 서버 `code` → 화면 상수. 모르는 코드는 null이라 호출부가 걸러낸다.
+ *
+ * 화면이 아는 증상만 받는다 — 서버가 새 태그를 추가해도 강도 UI(0~3)와 라벨이 없어서
+ * 그냥 그리면 빈 칸이 뜬다. 목록에서 빠지는 편이 낫고, 그때 이 표에 한 줄을 더한다.
+ */
+export function toSymptomKey(code: string | null | undefined): SymptomKey | null {
+  const entry = (Object.keys(SYMPTOM_TAG_KEY) as SymptomKey[]).find(
+    (key) => SYMPTOM_TAG_KEY[key] === code,
+  );
+  return entry ?? null;
+}
 
 /**
  * 등록 응답의 tags. 스웨거가 `additionalProperties: integer`라 키를 4종으로 못 박지 않는다.

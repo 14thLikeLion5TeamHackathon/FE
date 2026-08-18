@@ -1,21 +1,21 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 
 import BottomCTA from '../../components/BottomCTA';
 import NavHeader from '../../components/NavHeader';
 
 import { useCardDetail } from '../../hooks/card/useCard';
-import { useCreateRecord } from '../../hooks/record/useRecord';
+import { useCreateRecord, useStatusTags } from '../../hooks/record/useRecord';
 import { cn } from '../../lib/cn';
 import { getLocationParams } from '../../lib/location';
 import type { Intensity, SymptomKey } from '../../types/common';
-import { SYMPTOM_TAG_KEY } from '../../types/record';
+import { SYMPTOM_TAG_KEY, toSymptomKey } from '../../types/record';
 
 import IntensitySelectBlock from './components/IntensitySelectBlock';
 import PhotoUploadBlock from './components/PhotoUploadBlock';
 import SymptomSelectBlock from './components/SymptomSelectBlock';
 
-// 필수 증상 4가지 정의
+/** 서버 태그를 아직 못 받았을 때 물러날 목록. 이 화면이 서면 시연 경로가 막힌다 */
 const ALL_SYMPTOMS: SymptomKey[] = ['REDNESS', 'SWELLING', 'PAIN', 'DRYNESS'];
 
 /** 공용 블록 Wrapper */
@@ -69,8 +69,21 @@ export default function RecordCreatePage() {
   const [memo, setMemo] = useState('');
   const [photos, setPhotos] = useState<File[]>([]);
 
-  // 🎯 1. 증상 4개는 필수 고정
-  const selectedSymptoms: SymptomKey[] = ALL_SYMPTOMS;
+  /**
+   * 화면에 띄울 증상 목록.
+   *
+   * 서버(`GET /api/v1/now/status-tags`)가 목록의 주인이다 — 상수로 박아두면 서버가
+   * 증상을 하나 늘려도 화면에 안 나오고 기록에도 안 담긴다.
+   * 아직 못 받았거나 아는 코드가 하나도 없으면 상수로 물러난다.
+   * 태그 조회 실패가 기록 등록을 막으면 안 된다 — 여기가 서면 시연 경로가 통째로 막힌다.
+   */
+  const { data: statusTags } = useStatusTags();
+  const selectedSymptoms: SymptomKey[] = useMemo(() => {
+    const fromServer = (statusTags ?? [])
+      .map((tag) => toSymptomKey(tag.code))
+      .filter((key): key is SymptomKey => key !== null);
+    return fromServer.length > 0 ? fromServer : ALL_SYMPTOMS;
+  }, [statusTags]);
 
   // 🎯 2. 증상 정도 — 초기값 undefined (사용자가 실제로 선택해야 유효)
   const [symptomLevels, setSymptomLevels] = useState<Record<SymptomKey, Intensity | undefined>>({
@@ -95,15 +108,13 @@ export default function RecordCreatePage() {
   };
 
   // 🎯 4. 유효성 검사: 4개 증상 정도가 모두 실제로 선택되었는지 확인
-  const isAllSymptomsRated = ALL_SYMPTOMS.every(
-    (key) => symptomLevels[key] !== undefined
-  );
+  const isAllSymptomsRated = selectedSymptoms.every((key) => symptomLevels[key] !== undefined);
 
   const handleSubmit = () => {
     if (!hasCardId || !targetCardId || !isAllSymptomsRated || photos.length === 0) return;
 
     // 서버 tags는 배열이 아니라 `{ redness: 3, ... }` 형태의 강도 맵이다.
-    const tags = ALL_SYMPTOMS.reduce<Record<string, Intensity>>((acc, symptom) => {
+    const tags = selectedSymptoms.reduce<Record<string, Intensity>>((acc, symptom) => {
       const level = symptomLevels[symptom];
       if (level !== undefined) acc[SYMPTOM_TAG_KEY[symptom]] = level;
       return acc;

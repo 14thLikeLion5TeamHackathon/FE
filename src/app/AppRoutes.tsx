@@ -10,6 +10,7 @@ import TabLayout from './layouts/TabLayout';
 const HomePage = lazy(() => import('../pages/home/HomePage'));
 const RecoveryPage = lazy(() => import('../pages/recovery/RecoveryPage'));
 const MyPage = lazy(() => import('../pages/my/MyPage'));
+const ProfileEditPage = lazy(() => import('../pages/my/ProfileEditPage'));
 
 const LoginPage = lazy(() => import('../pages/auth/LoginPage'));
 const SignupPage = lazy(() => import('../pages/auth/SignupPage'));
@@ -48,6 +49,7 @@ export default function AppRoutes() {
 
           {/* 서브페이지 — 뒤로가기 헤더 */}
           <Route element={<SubLayout />}>
+            <Route path="/my/edit" element={<ProfileEditPage />} />
             <Route path="/cards/new" element={<CardCreatePage />} />
             <Route path="/cards/:cardId" element={<CardDetailPage />} />
             <Route path="/records/new" element={<RecordCreatePage />} />

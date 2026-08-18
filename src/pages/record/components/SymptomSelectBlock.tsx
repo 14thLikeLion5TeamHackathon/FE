@@ -2,8 +2,6 @@ import Chip from '../../../components/Chip';
 import { cn } from '../../../lib/cn';
 import { SYMPTOM_LABEL, type SymptomKey } from '../../../types/common';
 
-const ALL_SYMPTOMS: SymptomKey[] = ['REDNESS', 'SWELLING', 'PAIN', 'DRYNESS'];
-
 interface SymptomSelectBlockProps {
   selectedSymptoms: SymptomKey[];
   onToggleSymptom?: (symptom: SymptomKey) => void;
@@ -17,7 +15,7 @@ export default function SymptomSelectBlock({
 }: SymptomSelectBlockProps) {
   return (
     <div className="flex w-full items-start gap-2">
-      {ALL_SYMPTOMS.map((key) => {
+      {selectedSymptoms.map((key) => {
         const isSelected = selectedSymptoms.includes(key);
         return (
           <Chip
