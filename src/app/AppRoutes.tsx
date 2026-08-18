@@ -11,6 +11,7 @@ const HomePage = lazy(() => import('../pages/home/HomePage'));
 const RecoveryPage = lazy(() => import('../pages/recovery/RecoveryPage'));
 const MyPage = lazy(() => import('../pages/my/MyPage'));
 const ProfileEditPage = lazy(() => import('../pages/my/ProfileEditPage'));
+const ConnectCallbackPage = lazy(() => import('../pages/oauth/ConnectCallbackPage'));
 
 const LoginPage = lazy(() => import('../pages/auth/LoginPage'));
 const SignupPage = lazy(() => import('../pages/auth/SignupPage'));
@@ -50,6 +51,14 @@ export default function AppRoutes() {
           {/* 서브페이지 — 뒤로가기 헤더 */}
           <Route element={<SubLayout />}>
             <Route path="/my/edit" element={<ProfileEditPage />} />
+            {/* 구글·카카오 동의 화면에서 돌아오는 자리.
+                경로가 다른 건 제공자 콘솔에 이미 등록된 값에 맞춘 것이다 —
+                바꾸려면 콘솔 등록도 같이 고쳐야 한다(lib/connect.ts의 CONNECT_PATH). */}
+            <Route path="/oauth/google" element={<ConnectCallbackPage provider="google" />} />
+            <Route
+              path="/oauth/kakao/notification/callback"
+              element={<ConnectCallbackPage provider="kakao" />}
+            />
             <Route path="/cards/new" element={<CardCreatePage />} />
             <Route path="/cards/:cardId" element={<CardDetailPage />} />
             <Route path="/records/new" element={<RecordCreatePage />} />

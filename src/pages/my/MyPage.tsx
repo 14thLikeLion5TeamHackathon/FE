@@ -3,6 +3,11 @@ import { useNavigate } from 'react-router';
 import Card from '../../components/Card';
 import PageHeader from '../../components/PageHeader';
 import { useCalendarStatus, useDisconnectCalendar } from '../../hooks/calendar/useCalendar';
+import {
+  isConnectConfigured,
+  startGoogleCalendarConnect,
+  startKakaoNotificationConnect,
+} from '../../lib/connect';
 import { useDeleteAccount, useDisconnectKakao, useLogout, useMyProfile } from '../../hooks/user/useUser';
 import { clearAccessToken } from '../../api/token';
 import { GENDER_LABEL, type Gender } from '../../types/user';
@@ -133,14 +138,23 @@ export default function MyPage() {
       <Group label="연동">
         <Card variant="list">
           {/*
-            연동 시작은 아직 없다 — 구글 인가 코드가 필요한데 FE용 client_id가 아직 없다.
-            그래서 미연동일 때는 해제 줄 대신 상태만 보여준다. 눌러도 아무 일 없는 줄을
-            띄워두면 사용자는 고장으로 읽는다.
+            키가 없으면 연결 줄을 감추고 상태만 보여준다 — 눌러도 동의 화면 대신
+            제공자의 에러 페이지로 가기 때문이다. 소셜 로그인 버튼과 같은 판단이다.
           */}
           {calendarConnected ? (
             <SettingRow label="구글 캘린더 연동 해제" onClick={handleDisconnectCalendar} chevron />
+          ) : isConnectConfigured('google') ? (
+            <SettingRow label="구글 캘린더 연동하기" onClick={startGoogleCalendarConnect} chevron />
           ) : (
             <SettingRow label="구글 캘린더" value="연동 안 됨" />
+          )}
+
+          {isConnectConfigured('kakao') && (
+            <SettingRow
+              label="카카오톡 알림 연동하기"
+              onClick={startKakaoNotificationConnect}
+              chevron
+            />
           )}
           <SettingRow label="카카오톡 알림 연동 해제" onClick={handleDisconnectKakao} chevron />
         </Card>
