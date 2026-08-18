@@ -194,3 +194,29 @@ export function toAiFeedback(raw: AiFeedbackResponse): AiFeedback {
     advice: {
       required: raw.needsConsultation ?? false,
       message: raw.consultationMessage ?? '',
+      criteria: raw.consultationCriteria ?? null,
+    },
+  };
+}
+
+export const AiFeedback = z.object({
+  id: z.string(),
+  cardId: z.string(),
+  cardName: z.string(),
+  /** "D+7 · 오늘 기록" */
+  contextLabel: z.string(),
+  before: ComparisonSide,
+  after: ComparisonSide,
+  deltas: z.array(SymptomDelta),
+  /** 사용자가 적은 메모를 인용 */
+  quotedMemo: z.string().nullable(),
+  /** 분석 문구 */
+  analysis: z.string(),
+  evidence: z.array(EvidenceChip),
+  /** 기록 강도 검토 — 사용자 입력을 사진과 대조한 코멘트. 점수를 덮어쓰지는 않는다 */
+  intensityReview: z.string().nullable(),
+  /** 「오늘의 관리 행동 (공통)」 산출 결과 */
+  todayCare: z.array(z.string()),
+  advice: MedicalAdvice,
+});
+export type AiFeedback = z.infer<typeof AiFeedback>;

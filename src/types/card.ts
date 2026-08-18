@@ -126,8 +126,8 @@ export type Treatment = z.infer<typeof Treatment>;
 
 export const CreateCardTreatment = z.object({
   treatmentId: z.number(),
-  /** 시술명을 정확히 모를 때 사용자가 직접 적은 이름 */
-  customName: z.string().optional(),
+  /** 시술명을 정확히 모를 때 직접 적는 이름. 지금 화면에서는 보내지 않는다(이슈 #68) */
+  customName: z.string().nullable().optional(),
 });
 export type CreateCardTreatment = z.infer<typeof CreateCardTreatment>;
 

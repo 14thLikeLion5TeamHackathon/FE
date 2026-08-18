@@ -1,3 +1,29 @@
+import { http, HttpResponse } from 'msw';
+
+import * as db from './data';
+
+// BE 미배포 엔드포인트만 여기에 추가한다. 배포되면 해당 핸들러를 지워 실 API로 넘긴다.
+// 목에 없는 요청은 main.tsx의 onUnhandledRequest: 'bypass'로 그대로 통과.
+
+/** 공통 응답 봉투로 감싸는 헬퍼. 모든 목이 이 형태를 지켜야 실 API와 같아진다. */
+function ok<T>(data: T) {
+  return HttpResponse.json({ success: true, code: 200, errorCode: null, message: 'ok', data });
+}
+
+function notFound(message: string) {
+  return HttpResponse.json(
+    { success: false, code: 404, errorCode: 'COMMON404', message, data: null },
+    { status: 404 },
+  );
+}
+
+/*
+ * 401 리다이렉트를 눈으로 확인하려면 아무 핸들러나 잠깐 이걸로 바꿔본다.
+ *   http.get('/api/schedules/:scheduleId', () =>
+ *     HttpResponse.json({ success: false, code: 401, errorCode: 'COMMON401', message: '만료',
+ *       data: null }, { status: 401 })),
+ */
+
 export const handlers = [
   /* ── 인증 · 마이 · 오늘 · 카드 · 기록 ─────────────────────
    *
@@ -16,5 +42,7 @@ export const handlers = [
     if (!found) return notFound('없는 일정이에요');
     return ok(found);
   }),
-  // POST/PUT/DELETE /api/v1/today/schedules는 BE 배포 완료로 목 제거 (#42)
+  http.post('/api/schedules', () => ok(db.schedules[0])),
+  http.put('/api/schedules/:scheduleId', () => ok(db.schedules[0])),
+  http.delete('/api/schedules/:scheduleId', () => ok(null)),
 ];

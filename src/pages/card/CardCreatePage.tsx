@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router';
 
 import BottomCTA from '../../components/BottomCTA';
 import Card from '../../components/Card';
-import Checkbox from '../../components/Checkbox';
 import DateField from '../../components/DateField';
 import Field from '../../components/Field';
 import NavHeader from '../../components/NavHeader';
@@ -26,8 +25,6 @@ export default function CardCreatePage() {
   const [category, setCategory] = useState<TreatmentCategory>(CATEGORIES[0]);
   const [query, setQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
-  const [unknownTreatment, setUnknownTreatment] = useState(false);
-  const [customName, setCustomName] = useState('');
   const [treatedAt, setTreatedAt] = useState('');
 
   const { data: treatments, isLoading, isError } = useTreatments(category, query || undefined);
@@ -37,21 +34,13 @@ export default function CardCreatePage() {
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]));
   };
 
-  const isValid =
-    selectedIds.length > 0 &&
-    treatedAt.trim() !== '' &&
-    (!unknownTreatment || customName.trim() !== '');
+  const isValid = selectedIds.length > 0 && treatedAt.trim() !== '';
 
   const handleSubmit = () => {
-    const trimmedCustomName = unknownTreatment ? customName.trim() : '';
-
     createCard(
       {
         treatmentDate: toDateInputValue(treatedAt),
-        treatments: selectedIds.map((treatmentId) => ({
-          treatmentId,
-          ...(trimmedCustomName ? { customName: trimmedCustomName } : {}),
-        })),
+        treatments: selectedIds.map((treatmentId) => ({ treatmentId })),
       },
       { onSuccess: (card) => navigate(`/cards/${card.cardId}`) },
     );
@@ -123,25 +112,6 @@ export default function CardCreatePage() {
           ))}
         </ul>
       )}
-
-      <Card variant="block" className="flex flex-col gap-2.5">
-        <label className="flex items-center gap-2.5">
-          <Checkbox
-            checked={unknownTreatment}
-            onChange={() => setUnknownTreatment((prev) => !prev)}
-          />
-          <span className="typo-body text-text-primary">정확한 시술명을 모르겠어요</span>
-        </label>
-
-        {unknownTreatment && (
-          <Field
-            type="text"
-            placeholder="알고 있는 시술명을 적어주세요"
-            value={customName}
-            onChange={(e) => setCustomName(e.target.value)}
-          />
-        )}
-      </Card>
 
       <div className="flex flex-col gap-2">
         <p className="typo-label text-text-primary">시술 날짜</p>
