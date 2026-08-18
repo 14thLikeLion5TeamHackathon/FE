@@ -20,6 +20,7 @@ export async function getFeedback(recordId: string): Promise<AiFeedback> {
     return toAiFeedback(AiFeedbackResponse.parse(getResult(res)));
   } catch (error) {
     if ((error as ApiError)?.status !== HttpStatus.NOT_FOUND) throw error;
+
     const created = await axiosInstance.post<ApiResponse>(path(recordId));
     return toAiFeedback(AiFeedbackResponse.parse(getResult(created)));
   }
