@@ -30,6 +30,7 @@ export type ApiError = {
 
 // erasableSyntaxOnly 때문에 enum 대신 const 객체를 쓴다.
 export const HttpStatus = {
+  BAD_REQUEST: 400,
   UNAUTHORIZED: 401,
   FORBIDDEN: 403,
   NOT_FOUND: 404,

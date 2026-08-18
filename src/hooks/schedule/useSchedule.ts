@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { createSchedule, deleteSchedule, getSchedule, updateSchedule } from '../../api/schedule';
-import type { ScheduleForm } from '../../types/schedule';
+import type { ScheduleRequest } from '../../types/schedule';
 
 const scheduleKeys = {
   detail: (scheduleId: string) => ['schedule', scheduleId] as const,
@@ -30,7 +30,7 @@ export function useCreateSchedule() {
 export function useUpdateSchedule(scheduleId: string) {
   const invalidateToday = useInvalidateToday();
   return useMutation({
-    mutationFn: (body: ScheduleForm) => updateSchedule(scheduleId, body),
+    mutationFn: (body: ScheduleRequest) => updateSchedule(scheduleId, body),
     onSuccess: invalidateToday,
   });
 }

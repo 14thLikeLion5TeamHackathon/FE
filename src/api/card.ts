@@ -2,6 +2,7 @@ import {
   CardDetail,
   CareCard,
   CreateCardRequest,
+  CreateCardResponse,
   Treatment,
   type TreatmentCategory,
   toServerCategory,
@@ -52,7 +53,7 @@ export async function getTreatments(params: {
   return z.array(Treatment).parse(getResult(res));
 }
 
-export async function createCard(body: CreateCardRequest): Promise<CareCard> {
+export async function createCard(body: CreateCardRequest): Promise<CreateCardResponse> {
   const res = await axiosInstance.post<ApiResponse>('/api/v1/create/care-cards', body);
-  return CareCard.parse(getResult(res));
+  return CreateCardResponse.parse(getResult(res));
 }

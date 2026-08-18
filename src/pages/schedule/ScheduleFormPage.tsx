@@ -14,6 +14,7 @@ import {
   useSchedule,
   useUpdateSchedule,
 } from '../../hooks/schedule/useSchedule';
+import { toDateInputValue, toEventTime } from '../../lib/date';
 import type { Schedule } from '../../types/schedule';
 
 type ScheduleFormFieldsProps = {
@@ -43,11 +44,13 @@ function ScheduleFormFields({ scheduleId, isEdit, initialSchedule }: ScheduleFor
   const isValid = title.trim() !== '' && date.trim() !== '';
 
   const handleSubmit = () => {
+    const trimmedTime = time.trim();
+
     const payload = {
       title,
-      date,
-      time: allDay ? null : time.trim() || null,
-      place: place.trim() || null,
+      eventDate: toDateInputValue(date),
+      eventTime: allDay || !trimmedTime ? null : toEventTime(trimmedTime),
+      location: place.trim() || null,
     };
 
     if (isEdit) {

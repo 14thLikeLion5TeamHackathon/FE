@@ -140,10 +140,9 @@ export function toServerCategory(category: TreatmentCategory): string {
 export const Treatment = z.object({
   treatmentId: z.number(),
   name: z.string(),
-  description: z.string(),
   /**
-   * 모르는 값은 `ETC`로 떨어뜨린다. 열거형으로 못 박으면 값 하나에 `.parse()`가 터져
-   * **시술 목록 전체가 빈 화면**이 된다 — 실제로 그렇게 죽어 있었다.
+   * 서버는 코드가 아니라 한글 라벨을 준다. 모르는 값은 `ETC`로 떨어뜨린다 —
+   * 열거형으로 못 박으면 값 하나에 `.parse()`가 터져 **시술 목록 전체가 빈 화면**이 된다.
    */
   category: z
     .preprocess(
@@ -151,20 +150,31 @@ export const Treatment = z.object({
       TreatmentCategory,
     )
     .catch('ETC'),
-  /** 스웨거의 TreatmentResponse에 없다. 서버가 실제로도 안 보낸다 */
-  thumbnailUrl: z.string().nullish(),
+  /** 목록에서 이름 아래 보여주는 한 줄 설명 */
+  description: z.string(),
+  storeName: z.string(),
+  storeLocation: z.string(),
 });
 export type Treatment = z.infer<typeof Treatment>;
 
-/** TreatmentEntry — 카드 생성 시 선택한 시술 항목. customName은 정확한 시술명을 모를 때만 쓰는 선택 필드 */
-export const TreatmentEntry = z.object({
+export const CreateCardTreatment = z.object({
   treatmentId: z.number(),
+  /** 시술명을 정확히 모를 때 직접 적는 이름. 지금 화면에서는 보내지 않는다(이슈 #68) */
   customName: z.string().nullable().optional(),
 });
-export type TreatmentEntry = z.infer<typeof TreatmentEntry>;
+export type CreateCardTreatment = z.infer<typeof CreateCardTreatment>;
 
 export const CreateCardRequest = z.object({
+  /** YYYY-MM-DD */
   treatmentDate: z.string(),
-  treatments: z.array(TreatmentEntry).min(1),
+  treatments: z.array(CreateCardTreatment).min(1),
 });
 export type CreateCardRequest = z.infer<typeof CreateCardRequest>;
+
+export const CreateCardResponse = z.object({
+  cardId: z.number(),
+  /** YYYY-MM-DD */
+  treatmentDate: z.string(),
+  createdAt: z.string(),
+});
+export type CreateCardResponse = z.infer<typeof CreateCardResponse>;
