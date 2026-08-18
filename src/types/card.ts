@@ -57,7 +57,13 @@ export const CareCard = z.preprocess(
     pain: z.number().nullable().optional(),
     dryness: z.number().nullable().optional(),
     aiFeedback: AiFeedback.nullable().optional(),
-    dday: z.number(),
+    /**
+     * 목록에 딸려오는 **최근 기록**의 경과일이다 — 카드의 현재 경과일이 아니다.
+     * 위의 recordId·recordedAt·photoUrls와 한 덩어리라, 기록이 하나도 없는 카드에서는
+     * 함께 비어 올 수 있다. 필수로 두면 그런 카드 하나에 회복 탭 전체가 빈 화면이 된다.
+     * 화면에 쓸 경과일은 treatmentDate로 계산한다(recovery/components/CareCard.tsx 참고).
+     */
+    dday: z.number().nullable().optional(),
   }),
 );
 export type CareCard = z.infer<typeof CareCard>;
@@ -102,7 +108,6 @@ export type CardDetail = z.infer<typeof CardDetail>;
 
 /* ── 카드 생성 ───────────────────────────────────────────── */
 
-// TODO: 실제 category enum 값(DRUG/DEVICE 등)은 Swagger 스키마 상세로 재확인 필요.
 export const TreatmentCategory = z.enum(['DRUG', 'DEVICE', 'FNB', 'ETC']);
 export type TreatmentCategory = z.infer<typeof TreatmentCategory>;
 
@@ -113,10 +118,38 @@ export const CATEGORY_LABEL: Record<TreatmentCategory, string> = {
   ETC: '기타 관리',
 };
 
+/**
+ * 서버가 쓰는 카테고리 표기 → 화면이 쓰는 코드.
+ *
+ * 서버는 `category`를 **한글 라벨**로 준다("약물·주사"). 코드(`DRUG`)로 주지 않는다 —
+ * 실서버 386건을 전부 확인했다. 조회 파라미터도 마찬가지라 `category=DRUG`로 물으면 0건,
+ * `category=약물·주사`로 물어야 265건이 온다.
+ *
+ * `CardStatus`와 같은 방식으로 **경계에서만 바꾼다.** 화면은 계속 코드를 쓰고,
+ * 서버 표기가 또 바뀌어도 고칠 곳은 이 표 하나다.
+ */
+const CATEGORY_FROM_SERVER: Record<string, TreatmentCategory> = Object.fromEntries(
+  (Object.keys(CATEGORY_LABEL) as TreatmentCategory[]).map((code) => [CATEGORY_LABEL[code], code]),
+);
+
+/** 화면 코드 → 서버 표기. 목록을 좁힐 때 이 값으로 물어야 한다 */
+export function toServerCategory(category: TreatmentCategory): string {
+  return CATEGORY_LABEL[category];
+}
+
 export const Treatment = z.object({
   treatmentId: z.number(),
   name: z.string(),
-  category: TreatmentCategory,
+  /**
+   * 서버는 코드가 아니라 한글 라벨을 준다. 모르는 값은 `ETC`로 떨어뜨린다 —
+   * 열거형으로 못 박으면 값 하나에 `.parse()`가 터져 **시술 목록 전체가 빈 화면**이 된다.
+   */
+  category: z
+    .preprocess(
+      (raw) => (typeof raw === 'string' ? (CATEGORY_FROM_SERVER[raw] ?? raw) : raw),
+      TreatmentCategory,
+    )
+    .catch('ETC'),
   /** 목록에서 이름 아래 보여주는 한 줄 설명 */
   description: z.string(),
   storeName: z.string(),

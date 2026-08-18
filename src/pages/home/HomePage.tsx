@@ -33,8 +33,8 @@ import TodayEmptyState from './components/TodayEmptyState';
  * 캘린더로 날짜를 고르면 브리핑이 그 날짜 기준으로 갱신되고,
  * 매일 여는 이유인 체크리스트가 근거보다 위에 온다.
  *
- * 서버는 이 화면을 한 응답으로 주지 않는다 — 브리핑과 체크리스트가 별도 엔드포인트고,
- * 체크리스트는 날짜를 받지 않아 항상 오늘 것이다.
+ * 서버는 이 화면을 한 응답으로 주지 않는다 — 브리핑과 체크리스트가 별도 엔드포인트라
+ * 고른 날짜를 양쪽에 각각 실어 보낸다.
  */
 export default function HomePage() {
   const [selected, setSelected] = useState(() => startOfDay(new Date()));
@@ -47,8 +47,9 @@ export default function HomePage() {
   const { status: geoStatus } = useTodayGeolocation();
 
   const hasCards = useHasCards();
-  const briefing = useBriefing(toKey(selected), location);
-  const checklist = useChecklist();
+  const selectedKey = toKey(selected);
+  const briefing = useBriefing(selectedKey, location);
+  const checklist = useChecklist(selectedKey);
   const { mutate: toggleItem } = useToggleChecklistItem();
 
   /** 일정은 보이는 달 전체를 한 번에 받아 둔다 — 날짜를 옮길 때마다 다시 부르지 않으려고 */

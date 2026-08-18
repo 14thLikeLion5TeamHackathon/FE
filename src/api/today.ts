@@ -24,9 +24,14 @@ export async function getBriefing(
   return BriefingResponse.parse(getResult(res));
 }
 
-/** 오늘의 체크리스트. 날짜를 받지 않는다 — 항상 오늘 것이다 */
-export async function getChecklist(): Promise<TodayChecklistResponse> {
-  const res = await axiosInstance.get<ApiResponse>('/api/v1/today/checklist');
+/**
+ * 체크리스트. `date`는 선택값이고, 안 보내면 서버가 오늘 기준으로 준다.
+ * 캘린더에서 다른 날을 고르면 그 날짜 것이 와야 하므로 항상 실어 보낸다.
+ */
+export async function getChecklist(date?: string): Promise<TodayChecklistResponse> {
+  const res = await axiosInstance.get<ApiResponse>('/api/v1/today/checklist', {
+    params: date ? { date } : undefined,
+  });
   return TodayChecklistResponse.parse(getResult(res));
 }
 

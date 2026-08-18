@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { createCard, getCardDetail, getCardRecords, getCards, getTreatments } from '../../api/card';
+import type { TreatmentCategory } from '../../types/card';
 
 const cardKeys = {
   all: ['card'] as const,
@@ -10,8 +11,7 @@ const cardKeys = {
   detail: (cardId: string, city: string, district: string) =>
     ['card', 'detail', cardId, city, district] as const,
   records: (cardId: string) => ['card', 'records', cardId] as const,
-  treatments: (category?: string, keyword?: string) =>
-    ['card', 'treatments', category, keyword] as const,
+  treatments: (category?: TreatmentCategory, keyword?: string) => ['card', 'treatments', category, keyword] as const,
 };
 
 /** GET /api/v1/cards — 케어카드 목록 */
@@ -38,7 +38,7 @@ export function useCardRecords(cardId: string) {
 }
 
 /** 카드 생성 화면의 시술 목록. 카테고리 칩·검색어로 좁힌다. */
-export function useTreatments(category?: string, keyword?: string) {
+export function useTreatments(category?: TreatmentCategory, keyword?: string) {
   return useQuery({
     queryKey: cardKeys.treatments(category, keyword),
     queryFn: () => getTreatments({ category, keyword }),
