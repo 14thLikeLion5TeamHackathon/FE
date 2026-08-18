@@ -14,7 +14,9 @@ const todayKeys = {
   all: ['today'] as const,
   briefing: (date: string, location: TodayLocation) =>
     ['today', 'briefing', date, `${location.city}_${location.district}`] as const,
-  checklist: () => ['today', 'checklist'] as const,
+  checklist: (date: string) => ['today', 'checklist', date] as const,
+  /** 날짜별 체크리스트 전부. 토글 후 무효화에 쓴다 */
+  checklistAll: () => ['today', 'checklist'] as const,
   events: (startDate: string, endDate: string) => ['today', 'events', startDate, endDate] as const,
 };
 
@@ -26,11 +28,11 @@ export function useBriefing(date: string, location: TodayLocation) {
   });
 }
 
-/** 오늘의 체크리스트. 서버가 날짜를 받지 않으므로 날짜와 무관하게 하나다 */
-export function useChecklist() {
+/** 체크리스트. 날짜를 바꾸면 그 날짜 기준으로 다시 받는다 */
+export function useChecklist(date: string) {
   return useQuery({
-    queryKey: todayKeys.checklist(),
-    queryFn: getChecklist,
+    queryKey: todayKeys.checklist(date),
+    queryFn: () => getChecklist(date),
   });
 }
 
@@ -42,7 +44,7 @@ export function useToggleChecklistItem() {
       updateChecklistItem(checklistId, completed),
     /** 서버 응답이 온 뒤 목록을 다시 받는다. 낙관적 반영은 아직 없다 — 완료 수도 서버가 센다. */
     onSettled: () => {
-      void queryClient.invalidateQueries({ queryKey: todayKeys.checklist() });
+      void queryClient.invalidateQueries({ queryKey: todayKeys.checklistAll() });
     },
   });
 }
