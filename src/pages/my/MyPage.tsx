@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router';
 
 import Card from '../../components/Card';
 import PageHeader from '../../components/PageHeader';
+import { useCalendarStatus, useDisconnectCalendar } from '../../hooks/calendar/useCalendar';
 import { useDeleteAccount, useDisconnectKakao, useLogout, useMyProfile } from '../../hooks/user/useUser';
 import { clearAccessToken } from '../../api/token';
 import { GENDER_LABEL, type Gender } from '../../types/user';
@@ -28,6 +29,8 @@ export default function MyPage() {
   const { mutate: doLogout } = useLogout();
   const { mutate: doDeleteAccount } = useDeleteAccount();
   const { mutate: doDisconnectKakao } = useDisconnectKakao();
+  const { data: calendarConnected } = useCalendarStatus();
+  const { mutate: doDisconnectCalendar } = useDisconnectCalendar();
 
   if (isLoading) {
     return (
@@ -96,6 +99,11 @@ export default function MyPage() {
     doDisconnectKakao();
   };
 
+  const handleDisconnectCalendar = () => {
+    if (!window.confirm('구글 캘린더 연동을 해제하시겠어요?')) return;
+    doDisconnectCalendar();
+  };
+
   return (
     <div className="flex flex-col gap-3.5 px-5 pt-5 pb-6">
       <PageHeader title="마이" />
@@ -120,14 +128,20 @@ export default function MyPage() {
         </Card>
       </Group>
 
-      {/* 카카오 알림 */}
-      <Group label="알림">
+      {/* 외부 연동 */}
+      <Group label="연동">
         <Card variant="list">
-          <SettingRow
-            label="카카오톡 알림 연동 해제"
-            onClick={handleDisconnectKakao}
-            chevron
-          />
+          {/*
+            연동 시작은 아직 없다 — 구글 인가 코드가 필요한데 FE용 client_id가 아직 없다.
+            그래서 미연동일 때는 해제 줄 대신 상태만 보여준다. 눌러도 아무 일 없는 줄을
+            띄워두면 사용자는 고장으로 읽는다.
+          */}
+          {calendarConnected ? (
+            <SettingRow label="구글 캘린더 연동 해제" onClick={handleDisconnectCalendar} chevron />
+          ) : (
+            <SettingRow label="구글 캘린더" value="연동 안 됨" />
+          )}
+          <SettingRow label="카카오톡 알림 연동 해제" onClick={handleDisconnectKakao} chevron />
         </Card>
       </Group>
 
