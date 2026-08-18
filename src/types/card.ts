@@ -112,12 +112,41 @@ export const CATEGORY_LABEL: Record<TreatmentCategory, string> = {
   ETC: '기타 관리',
 };
 
+/**
+ * 서버가 쓰는 카테고리 표기 → 화면이 쓰는 코드.
+ *
+ * 서버는 `category`를 **한글 라벨**로 준다("약물·주사"). 코드(`DRUG`)로 주지 않는다 —
+ * 실서버 386건을 전부 확인했다. 조회 파라미터도 마찬가지라 `category=DRUG`로 물으면 0건,
+ * `category=약물·주사`로 물어야 265건이 온다.
+ *
+ * `CardStatus`와 같은 방식으로 **경계에서만 바꾼다.** 화면은 계속 코드를 쓰고,
+ * 서버 표기가 또 바뀌어도 고칠 곳은 이 표 하나다.
+ */
+const CATEGORY_FROM_SERVER: Record<string, TreatmentCategory> = Object.fromEntries(
+  (Object.keys(CATEGORY_LABEL) as TreatmentCategory[]).map((code) => [CATEGORY_LABEL[code], code]),
+);
+
+/** 화면 코드 → 서버 표기. 목록을 좁힐 때 이 값으로 물어야 한다 */
+export function toServerCategory(category: TreatmentCategory): string {
+  return CATEGORY_LABEL[category];
+}
+
 export const Treatment = z.object({
   treatmentId: z.number(),
   name: z.string(),
   description: z.string(),
-  category: TreatmentCategory,
-  thumbnailUrl: z.string().nullable(),
+  /**
+   * 모르는 값은 `ETC`로 떨어뜨린다. 열거형으로 못 박으면 값 하나에 `.parse()`가 터져
+   * **시술 목록 전체가 빈 화면**이 된다 — 실제로 그렇게 죽어 있었다.
+   */
+  category: z
+    .preprocess(
+      (raw) => (typeof raw === 'string' ? (CATEGORY_FROM_SERVER[raw] ?? raw) : raw),
+      TreatmentCategory,
+    )
+    .catch('ETC'),
+  /** 스웨거의 TreatmentResponse에 없다. 서버가 실제로도 안 보낸다 */
+  thumbnailUrl: z.string().nullish(),
 });
 export type Treatment = z.infer<typeof Treatment>;
 
