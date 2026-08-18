@@ -3,12 +3,12 @@ import { useNavigate } from 'react-router';
 
 import BottomCTA from '../../components/BottomCTA';
 import Card from '../../components/Card';
-import Checkbox from '../../components/Checkbox';
 import DateField from '../../components/DateField';
 import Field from '../../components/Field';
 import NavHeader from '../../components/NavHeader';
 import SectionHeader from '../../components/SectionHeader';
 import { useCreateCard, useTreatments } from '../../hooks/card/useCard';
+import { toDateInputValue } from '../../lib/date';
 import { CATEGORY_LABEL, TreatmentCategory } from '../../types/card';
 import CategoryChip from './components/CategoryChip';
 import TreatmentListItem from './components/TreatmentListItem';
@@ -25,7 +25,6 @@ export default function CardCreatePage() {
   const [category, setCategory] = useState<TreatmentCategory>(CATEGORIES[0]);
   const [query, setQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
-  const [unknownTreatment, setUnknownTreatment] = useState(false);
   const [treatedAt, setTreatedAt] = useState('');
 
   const { data: treatments, isLoading, isError } = useTreatments(category, query || undefined);
@@ -40,11 +39,8 @@ export default function CardCreatePage() {
   const handleSubmit = () => {
     createCard(
       {
-        treatmentDate: treatedAt,
-        treatments: selectedIds.map((id) => ({
-          treatmentId: id,
-          customName: unknownTreatment ? '정확한 시술명 모름' : null,
-        })),
+        treatmentDate: toDateInputValue(treatedAt),
+        treatments: selectedIds.map((treatmentId) => ({ treatmentId })),
       },
       { onSuccess: (card) => navigate(`/cards/${card.cardId}`) },
     );
@@ -116,16 +112,6 @@ export default function CardCreatePage() {
           ))}
         </ul>
       )}
-
-      <Card variant="block">
-        <label className="flex items-center gap-2.5">
-          <Checkbox
-            checked={unknownTreatment}
-            onChange={() => setUnknownTreatment((prev) => !prev)}
-          />
-          <span className="typo-body text-text-primary">정확한 시술명을 모르겠어요</span>
-        </label>
-      </Card>
 
       <div className="flex flex-col gap-2">
         <p className="typo-label text-text-primary">시술 날짜</p>
