@@ -2,6 +2,7 @@ import BottomSheet from './BottomSheet';
 import Chip from './Chip';
 import { cn } from '../lib/cn';
 import { useCards } from '../hooks/card/useCard';
+import { daysSince } from '../lib/date';
 import type { CareCard } from '../types/card';
 
 type RecordCardSheetProps = {
@@ -59,41 +60,46 @@ export default function RecordCardSheet({ open, onClose, onSelect }: RecordCardS
 
         {cards.length > 0 && (
           <ul className="flex flex-col gap-2.5">
-            {cards.map((card: CareCard) => (
-              <li key={card.cardId}>
-                <button
-                  type="button"
-                  onClick={() => onSelect(String(card.cardId))}
-                  className={cn(
-                    'rounded-card flex w-full items-center justify-between gap-2 px-3.5 py-3.5 text-left transition-colors',
-                    'bg-surface-raised hover:bg-surface-elevated border border-transparent',
-                  )}
-                >
-                  <span className="flex flex-1 flex-col gap-1 self-stretch">
-                    <span className="typo-card-title text-text-primary self-stretch">
-                      {card.treatmentName}
-                    </span>
-                    <span
-                      className={cn(
-                        'typo-caption self-stretch',
-                        'text-text-tertiary',
-                      )}
-                    >
-                      시술일 {card.treatmentDate}
-                    </span>
-                  </span>
-
-                  <Chip
+            {cards.map((card: CareCard) => {
+              // CareCard.tsx와 같은 이유: 목록의 dday는 카드가 아니라 딸려오는 최근 기록의
+              // 경과일이다. 여기서도 그대로 쓰면 같은 카드가 회복 탭과 다른 D+N을 보인다.
+              const dday = daysSince(card.treatmentDate) ?? card.dday ?? 0;
+              return (
+                <li key={card.cardId}>
+                  <button
+                    type="button"
+                    onClick={() => onSelect(String(card.cardId))}
                     className={cn(
-                      'flex items-center justify-center px-[10px] py-[5px] rounded-chip typo-caption shrink-0 text-primary-on',
-                      'bg-surface-fill',
+                      'rounded-card flex w-full items-center justify-between gap-2 px-3.5 py-3.5 text-left transition-colors',
+                      'bg-surface-raised hover:bg-surface-elevated border border-transparent',
                     )}
                   >
-                    D+{card.dday}
-                  </Chip>
-                </button>
-              </li>
-            ))}
+                    <span className="flex flex-1 flex-col gap-1 self-stretch">
+                      <span className="typo-card-title text-text-primary self-stretch">
+                        {card.treatmentName}
+                      </span>
+                      <span
+                        className={cn(
+                          'typo-caption self-stretch',
+                          'text-text-tertiary',
+                        )}
+                      >
+                        시술일 {card.treatmentDate}
+                      </span>
+                    </span>
+
+                    <Chip
+                      className={cn(
+                        'flex items-center justify-center px-[10px] py-[5px] rounded-chip typo-caption shrink-0 text-primary-on',
+                        'bg-surface-fill',
+                      )}
+                    >
+                      D+{dday}
+                    </Chip>
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         )}
 
