@@ -57,7 +57,13 @@ export const CareCard = z.preprocess(
     pain: z.number().nullable().optional(),
     dryness: z.number().nullable().optional(),
     aiFeedback: AiFeedback.nullable().optional(),
-    dday: z.number(),
+    /**
+     * 목록에 딸려오는 **최근 기록**의 경과일이다 — 카드의 현재 경과일이 아니다.
+     * 위의 recordId·recordedAt·photoUrls와 한 덩어리라, 기록이 하나도 없는 카드에서는
+     * 함께 비어 올 수 있다. 필수로 두면 그런 카드 하나에 회복 탭 전체가 빈 화면이 된다.
+     * 화면에 쓸 경과일은 treatmentDate로 계산한다(recovery/components/CareCard.tsx 참고).
+     */
+    dday: z.number().nullable().optional(),
   }),
 );
 export type CareCard = z.infer<typeof CareCard>;

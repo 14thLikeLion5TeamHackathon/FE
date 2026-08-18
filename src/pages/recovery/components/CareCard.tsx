@@ -1,6 +1,7 @@
 import Button from '../../../components/Button';
 import Chip from '../../../components/Chip';
 import { cn } from '../../../lib/cn';
+import { daysSince } from '../../../lib/date';
 import type { CareCard as CareCardData } from '../../../types/card';
 
 type CareCardProps = {
@@ -17,7 +18,22 @@ type CareCardProps = {
  */
 export default function CareCard({ card, onDetail, onRecord }: CareCardProps) {
   const done = card.status === 'DONE';
-  const progress = Math.min(100, (card.dday / card.recoveryTotalDays) * 100);
+
+  /**
+   * 카드의 현재 경과일.
+   *
+   * 목록 응답의 `dday`를 쓰면 안 된다 — 그건 같이 딸려오는 **최근 기록**의 경과일이라
+   * (`recordId`·`recordedAt`·`photoUrls`와 한 덩어리다) 기록을 며칠 쉬면 그만큼 뒤처진다.
+   * 실제로 8/8 시술 카드가 목록에서는 D+8(마지막 기록 8/16), 상세에서는 D+10(오늘 8/18)로
+   * 갈렸다. 같은 카드가 화면마다 다른 숫자를 보이면 사용자는 어느 쪽을 믿어야 할지 모른다.
+   *
+   * 시술일이 D+0이라 시술일부터 센 날수가 곧 경과일이다(서버 확인).
+   * 날짜를 못 읽으면 서버 값으로 물러난다 — 숫자가 사라지는 것보다는 낫다.
+   */
+  const dday = daysSince(card.treatmentDate) ?? card.dday ?? 0;
+  const progress = card.recoveryTotalDays
+    ? Math.min(100, (dday / card.recoveryTotalDays) * 100)
+    : 0;
 
   return (
     <article
@@ -32,7 +48,7 @@ export default function CareCard({ card, onDetail, onRecord }: CareCardProps) {
             <h3 className="typo-card-title">{card.treatmentName}</h3>
             <p className="typo-caption text-text-secondary">시술일 {card.treatmentDate}</p>
           </div>
-          <Chip>D+{card.dday}</Chip>
+          <Chip>D+{dday}</Chip>
         </header>
 
         <div className="flex flex-col gap-1">
@@ -42,7 +58,7 @@ export default function CareCard({ card, onDetail, onRecord }: CareCardProps) {
           <div className="flex items-center justify-between">
             <span className="typo-caption text-text-secondary">회복 진행</span>
             <span className="typo-caption text-text-secondary">
-              {done ? '완료' : `${card.dday} / ${card.recoveryTotalDays}일`}
+              {done ? '완료' : `${dday} / ${card.recoveryTotalDays}일`}
             </span>
           </div>
         </div>

@@ -31,9 +31,15 @@ export const OnboardingRequest = z.object({
 });
 export type OnboardingRequest = z.infer<typeof OnboardingRequest>;
 
+/**
+ * 스웨거에 required가 하나도 없다 — 어느 필드든 빠지거나 null로 올 수 있다는 뜻이다.
+ * 여기서 파싱이 터지면 **서버에는 저장이 됐는데** 화면은 "가입에 실패했어요"를 띄우고,
+ * 사용자는 마이 탭에서 다시 가입하라는 안내를 만나 빠져나갈 길이 없어진다.
+ * 실제로 쓰는 값도 없으므로(성공 여부만 본다) 전부 느슨하게 받는다.
+ */
 export const OnboardingResponse = z.object({
-  userId: z.number(),
-  name: z.string(),
+  userId: z.number().nullish(),
+  name: z.string().nullish(),
   /** 이번 요청으로 계정이 새로 만들어졌는지. 로그인 리다이렉트의 같은 이름 파라미터와 짝이다 */
   isNewUser: z.boolean().nullish(),
   createdAt: z.string().nullish(),
