@@ -12,6 +12,7 @@ import {
 } from '../../hooks/today/useToday';
 import { useTodayGeolocation } from '../../hooks/today/useTodayGeolocation';
 import { useTodayLocation } from '../../hooks/today/useTodayLocation';
+import { useWeather } from '../../hooks/weather/useWeather';
 import { formatDayLabel, monthMatrix, startOfDay, toKey } from '../../lib/date';
 import { toLevel } from '../../types/today';
 import CalendarNav from './components/CalendarNav';
@@ -97,22 +98,29 @@ export default function HomePage() {
   /** 예보 범위 밖이면 날씨·대기질 대신 D-day 기준으로만 안내한다 */
   const isOutOfForecast = selected > forecastEnd(today);
 
+  /**
+   * 날씨·환경 지표. 브리핑과 나눠 받는다 — 한쪽이 실패해도 다른 쪽은 보인다.
+   * 예보 범위 밖은 부르지 않는다. 서버가 400을 내는데 그건 오류가 아니라
+   * "아직 예보가 없다"는 정상 상태라, 요청 자체를 안 하는 편이 맞다.
+   */
+  const weather = useWeather(selectedKey, location, !isOutOfForecast);
+
   // 예보 범위 밖에서는 비운다 — 브리핑이 "예보가 없어요"라고 말하는데
   // 바로 아래에 자외선·미세먼지 값이 그대로 보이면 서로 어긋난다.
   const metrics =
-    data && !isOutOfForecast
+    weather.data && !isOutOfForecast
       ? [
-        {
+        weather.data.uvLevel && {
           label: '자외선',
-          value: data.environment.uv.level,
-          level: toLevel(data.environment.uv.level),
+          value: weather.data.uvLevel,
+          level: toLevel(weather.data.uvLevel),
         },
-        {
+        weather.data.dustLevel && {
           label: '미세먼지',
-          value: data.environment.dust.level,
-          level: toLevel(data.environment.dust.level),
+          value: weather.data.dustLevel,
+          level: toLevel(weather.data.dustLevel),
         },
-        ]
+        ].filter((metric) => metric !== null && metric !== '')
       : [];
 
   const evidence = (data?.cardJudgement?.reasons ?? []).map((label) => ({ label }));
@@ -170,7 +178,12 @@ export default function HomePage() {
           ) : (
             <CareBriefing
               dateLabel={dateLabel}
-              weather={data.weather && `${data.weather.condition} ${Math.round(data.weather.temp)}°`}
+              /* 날씨는 브리핑이 아니라 전용 API에서 받는다 — 한쪽이 실패해도 다른 쪽은 보인다 */
+              weather={
+                weather.data?.temp !== null && weather.data?.temp !== undefined
+                  ? `${weather.data.condition ?? ''} ${Math.round(weather.data.temp)}°`.trim()
+                  : null
+              }
               /* 회복 기간이 끝난 날짜는 판단이 비어 온다. 시안에 없는 문구라 확인 필요 */
               message={
                 data.cardJudgement?.actionSentence ??

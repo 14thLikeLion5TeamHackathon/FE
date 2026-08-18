@@ -125,6 +125,7 @@ export default function MyPage() {
           <SettingRow label="이름" value={data.name ?? ''} />
           <SettingRow label="생년월일" value={data.birthDate ?? ''} />
           <SettingRow label="성별" value={genderLabel} />
+          <SettingRow label="개인정보 수정" onClick={() => navigate('/my/edit')} chevron />
         </Card>
       </Group>
 
