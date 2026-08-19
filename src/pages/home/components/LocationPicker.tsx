@@ -7,21 +7,33 @@ import { CITIES, findCity, formatLocation, type TodayLocation } from '../../../l
 type LocationPickerProps = {
   location: TodayLocation;
   onSelect: (location: TodayLocation) => void;
+  /**
+   * 지금 기준이 GPS 좌표인지.
+   *
+   * 이때 `location`은 아직 아무것도 고르지 않은 기본값이라 기준이 아니다.
+   * 그대로 내보이면 칩은 "서울 강남구", 바로 옆 안내는 "현재 위치 기준"이라 서로 어긋난다.
+   */
+  usingGps?: boolean;
 };
 
 /**
  * 오늘 안내의 기준 위치를 바꾸는 진입점.
  * 평소엔 읽기만 하는 한 줄이고, 눌렀을 때만 시트를 펼친다.
  *
- * 시트는 시 → 구 2단이다. 서버가 아는 조합이 시·구 쌍이라 둘 다 받아야 하는데,
- * 60여 개를 한 번에 늘어놓으면 고를 수가 없다.
+ * 시트는 시 → 구 2단이다. 17개 시도의 시군구를 한 번에 늘어놓으면 250개가 넘어 고를 수가 없다.
+ * 좌표는 시도 단위(시청·도청)라 구 선택이 조회 결과를 바꾸지는 않는다 — 표시용이다.
  */
-export default function LocationPicker({ location, onSelect }: LocationPickerProps) {
+export default function LocationPicker({
+  location,
+  onSelect,
+  usingGps = false,
+}: LocationPickerProps) {
   const [open, setOpen] = useState(false);
   /** null이면 1차(시) 화면 */
   const [cityId, setCityId] = useState<string | null>(null);
 
   const city = CITIES.find((item) => item.id === cityId) ?? null;
+  const label = usingGps ? '현재 위치' : formatLocation(location);
 
   const openSheet = () => {
     // 열 때마다 지금 기준 위치의 시부터 보여준다 — 대개 같은 시 안에서 구만 바꾼다
@@ -41,7 +53,7 @@ export default function LocationPicker({ location, onSelect }: LocationPickerPro
         type="button"
         onClick={openSheet}
         className="text-text-secondary flex items-center gap-1"
-        aria-label={`기준 위치 ${formatLocation(location)}. 눌러서 변경`}
+        aria-label={`기준 위치 ${label}. 눌러서 변경`}
       >
         {/* 핀 */}
         <svg viewBox="0 0 12 14" className="h-3.5 w-3 shrink-0" fill="none" aria-hidden>
@@ -53,7 +65,7 @@ export default function LocationPicker({ location, onSelect }: LocationPickerPro
           />
           <circle cx="6" cy="5" r="1.4" fill="currentColor" />
         </svg>
-        <span className="typo-caption">{formatLocation(location)}</span>
+        <span className="typo-caption">{label}</span>
         <span className="typo-caption text-text-tertiary" aria-hidden>
           ⌄
         </span>
@@ -74,7 +86,7 @@ export default function LocationPicker({ location, onSelect }: LocationPickerPro
           <h2 className="typo-section">{city ? city.label : '기준 위치'}</h2>
         </div>
 
-        {/* 구는 서울만 25개라 시트가 넘친다. 높이를 묶고 목록만 스크롤시킨다 */}
+        {/* 경기도만 31개고 시 목록도 17개다. 높이를 묶고 목록만 스크롤시킨다 */}
         <ul className="grid max-h-[55vh] grid-cols-3 gap-2 overflow-y-auto">
           {city
             ? city.districts.map((district) => (

@@ -10,7 +10,6 @@ import {
   useMarkedDates,
   useToggleChecklistItem,
 } from '../../hooks/today/useToday';
-import { useTodayGeolocation } from '../../hooks/today/useTodayGeolocation';
 import { useTodayLocation } from '../../hooks/today/useTodayLocation';
 import { useWeather } from '../../hooks/weather/useWeather';
 import { formatDayLabel, monthMatrix, startOfDay, toKey } from '../../lib/date';
@@ -43,9 +42,8 @@ export default function HomePage() {
   const [mode, setMode] = useState<'week' | 'month'>('week');
 
   const navigate = useNavigate();
-  const { location, selectLocation } = useTodayLocation();
-  // 좌표는 아직 조회에 쓰지 않는다(서버 수용 여부 문의 중) — 상태만 화면에 비춘다
-  const { status: geoStatus } = useTodayGeolocation();
+  // 기준 좌표는 GPS와 직접 선택 중 하나로 정해진다 — 규칙은 useTodayLocation 주석 참고
+  const { location, selectLocation, coords, usingGps, geoStatus } = useTodayLocation();
 
   const hasCards = useHasCards();
   const selectedKey = toKey(selected);
@@ -103,7 +101,7 @@ export default function HomePage() {
    * 예보 범위 밖은 부르지 않는다. 서버가 400을 내는데 그건 오류가 아니라
    * "아직 예보가 없다"는 정상 상태라, 요청 자체를 안 하는 편이 맞다.
    */
-  const weather = useWeather(selectedKey, location, !isOutOfForecast);
+  const weather = useWeather(selectedKey, coords, !isOutOfForecast);
 
   // 예보 범위 밖에서는 비운다 — 브리핑이 "예보가 없어요"라고 말하는데
   // 바로 아래에 자외선·미세먼지 값이 그대로 보이면 서로 어긋난다.
@@ -146,8 +144,12 @@ export default function HomePage() {
       {/* 좁은 화면에서는 안내가 길어 줄이 넘친다 — 접히게 두고 세로 간격만 좁게 준다 */}
       <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
         {/* selectLocation은 서버 저장을 기다리는 비동기다 — 시트는 즉시 닫히고, 결과는 브리핑 재조회로 드러난다 */}
-        <LocationPicker location={location} onSelect={(next) => void selectLocation(next)} />
-        <LocationNotice status={geoStatus} location={location} />
+        <LocationPicker
+          location={location}
+          onSelect={(next) => void selectLocation(next)}
+          usingGps={usingGps}
+        />
+        <LocationNotice status={geoStatus} location={location} usingGps={usingGps} />
       </div>
 
       {/* 빈 상태에서는 캘린더를 감춘다 — 어느 날짜를 골라도 보여줄 게 없다 (시안 `카드 없음`) */}
