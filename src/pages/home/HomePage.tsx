@@ -62,17 +62,17 @@ export default function HomePage() {
    * 날씨·대기질을 붙일 수 없는 날짜면 D-day 기준으로만 안내한다.
    * 조회를 막는 조건이라 쿼리보다 위에 있어야 한다.
    *
-   * **지난 날짜도 여기 들어간다.** 예보 API는 오늘부터 5일만 주므로 어제도 범위 밖이고,
-   * 브리핑이 안에서 날씨를 부르기 때문에 그대로 두면 어제를 고를 때마다
-   * "불러오지 못했어요"가 뜬다. 미래만 막고 있어서 실제로 그랬다.
+   * **막는 건 앞날뿐이다.** 예보는 오늘부터 5일이라 그 뒤는 서버에 아직 값이 없다.
+   * 지난 날짜는 다르다 — 그날의 날씨가 DB에 남아 있어서 물어보면 답이 온다.
+   * 한때 지난 날짜도 여기 묶어 요청 자체를 막았는데, 그러면 서버가 줄 수 있는 브리핑을
+   * 우리가 안 받아놓고 "예보가 없어요"라고 말하게 된다.
    */
   const isPast = selected < today;
   const isOutOfForecast = selected > forecastEnd(today);
-  const hasNoForecast = isPast || isOutOfForecast;
 
   const hasCards = useHasCards();
   const selectedKey = toKey(selected);
-  const briefing = useBriefing(selectedKey, location, !hasNoForecast);
+  const briefing = useBriefing(selectedKey, location, !isOutOfForecast);
   const checklist = useChecklist(selectedKey);
   const { mutate: toggleItem } = useToggleChecklistItem();
 
@@ -123,12 +123,12 @@ export default function HomePage() {
    * 예보 범위 밖은 부르지 않는다. 서버가 400을 내는데 그건 오류가 아니라
    * "아직 예보가 없다"는 정상 상태라, 요청 자체를 안 하는 편이 맞다.
    */
-  const weather = useWeather(selectedKey, coords, !hasNoForecast);
+  const weather = useWeather(selectedKey, coords, !isOutOfForecast);
 
   // 예보 범위 밖에서는 비운다 — 브리핑이 "예보가 없어요"라고 말하는데
   // 바로 아래에 자외선·미세먼지 값이 그대로 보이면 서로 어긋난다.
   const metrics =
-    weather.data && !hasNoForecast
+    weather.data && !isOutOfForecast
       ? [
           weather.data.uvLevel && {
             label: '자외선',
@@ -150,6 +150,12 @@ export default function HomePage() {
       : null;
 
   const evidence = (data?.cardJudgement?.reasons ?? []).map((label) => ({ label }));
+
+  /**
+   * 일정 목록을 모르는 상태인지. 일정은 브리핑에 실려 오므로 브리핑이 없으면 알 수 없다.
+   * 빈 배열로 넘기면 "등록한 일정이 없어요"라고 단정하게 된다 — 모르는 건 모른다고 말한다.
+   */
+  const briefingUnavailable = isOutOfForecast || !data;
 
   /**
    * 제목 없는 일정은 버린다 — 시간만 있는 빈 줄은 목록에서 아무 뜻이 없다.
@@ -216,10 +222,18 @@ export default function HomePage() {
       {/* 브리핑 카드는 상태 넷 중 하나만 뜬다. 따로 두면 카드 조회와 브리핑이 병렬이라
           로딩 카드와 빈 화면이 겹쳐 뜨고, 재조회가 실패하면 직전 데이터가 남아 있어
           에러 카드와 정상 브리핑이 같이 보인다. */}
-      {hasNoForecast ? (
+      {isOutOfForecast ? (
         /* 예보 범위 밖은 오류가 아니라 정상 상태다 — 로딩·에러보다 먼저 잡아야
            서버가 내는 400이 "불러오지 못했어요"로 새어 나가지 않는다 */
-        <CareBriefingNoForecast dateLabel={dateLabel} past={isPast} />
+        <CareBriefingNoForecast dateLabel={dateLabel} past={false} />
+      ) : isPast && briefing.isError && !data ? (
+        /*
+          지난 날짜는 물어보되, 실패하면 오류라고 말하지 않는다.
+          그날 날씨가 DB에 없는 날도 있어서 400이 올 수 있는데, 사용자에게는 앱이 고장난
+          것과 구분되지 않는다 — 이미 지나간 날이라 다시 시도해도 달라질 게 없으므로
+          "그날은 안내가 없어요"로 받는다. 오늘·앞날은 그대로 오류 카드를 띄운다.
+        */
+        <CareBriefingNoForecast dateLabel={dateLabel} past />
       ) : isEmpty ? (
         <>
           {/*
@@ -302,8 +316,8 @@ export default function HomePage() {
             앞날 일정을 넣는 건 가장 흔한 쓰임이라 추가 버튼은 그대로 살려 둔다.
           */}
           <TodaySchedules
-            schedules={hasNoForecast ? [] : schedules}
-            unavailable={hasNoForecast}
+            schedules={briefingUnavailable ? [] : schedules}
+            unavailable={briefingUnavailable}
             onAdd={handleAddSchedule}
             onEdit={handleEditSchedule}
           />
