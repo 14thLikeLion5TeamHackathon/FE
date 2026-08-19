@@ -6,9 +6,12 @@ export type StoreGuideProps = {
   name: string;
   /** 거리/시간 정보 (예: "1.2km · 도보 15분") */
   distanceInfo?: string;
-  /** 백엔드에서 전달받은 지도/길찾기 상세 URL */
+  /**
+   * 백엔드가 준 매장 홈페이지 URL(`visitedStore.url`).
+   * 이름은 mapUrl이지만 지도 링크가 아니다 — 호출부가 넣는 값이 홈페이지 주소다.
+   */
   mapUrl?: string;
-  /** 길찾기 버튼 직접 처리용 핸들러 (선택 사항) */
+  /** 홈페이지 버튼 직접 처리용 핸들러 (선택 사항) */
   onNavigate?: () => void;
   className?: string;
 };
@@ -24,7 +27,7 @@ export type StoreGuideProps = {
  *     ├── Info
  *     │   ├── Name ("엠레드 강남점")
  *     │   └── Dist ("1.2km · 도보 15분")
- *     └── Go ("길찾기")
+ *     └── Go ("홈페이지")
  */
 export default function StoreGuide({
   name,
@@ -40,16 +43,16 @@ export default function StoreGuide({
       return;
     }
 
-    // 2. 백엔드가 준 mapUrl이 있다면 해당 지도로 새 창 열기
-    if (mapUrl) {
-      window.open(mapUrl, '_blank', 'noopener,noreferrer');
-      return;
-    }
-
-    // 3. Fallback: URL이 없을 경우 카카오맵 검색 페이지 연결
-    const fallbackUrl = `https://map.kakao.com/link/search/${encodeURIComponent(name)}`;
-    window.open(fallbackUrl, '_blank', 'noopener,noreferrer');
+    // 2. 백엔드가 준 홈페이지 주소로 새 창 열기
+    if (mapUrl) window.open(mapUrl, '_blank', 'noopener,noreferrer');
   };
+
+  /*
+    열 곳이 없으면 버튼을 감춘다.
+    예전에는 URL이 없을 때 카카오맵 검색으로 물러났는데, 그건 문구가 "길찾기"일 때 성립하던
+    폴백이다. "홈페이지"라고 써 붙인 채 지도 검색을 열면 누른 것과 다른 곳으로 데려가게 된다.
+  */
+  const canOpen = Boolean(onNavigate ?? mapUrl);
 
   return (
     <Card
@@ -74,14 +77,16 @@ export default function StoreGuide({
           {distanceInfo && <span className="typo-label text-text-primary">{distanceInfo}</span>}
         </div>
 
-        {/* Go (길찾기 버튼) */}
-        <button
-          type="button"
-          onClick={handleNavigate}
-          className="typo-caption text-right text-accent transition-opacity hover:opacity-80 active:opacity-60"
-        >
-          길찾기
-        </button>
+        {/* Go (홈페이지 버튼) */}
+        {canOpen && (
+          <button
+            type="button"
+            onClick={handleNavigate}
+            className="typo-caption text-right text-accent transition-opacity hover:opacity-80 active:opacity-60"
+          >
+            홈페이지
+          </button>
+        )}
       </div>
     </Card>
   );
