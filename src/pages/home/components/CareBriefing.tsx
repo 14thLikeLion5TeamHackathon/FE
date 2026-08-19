@@ -76,7 +76,8 @@ export function CareBriefingLoading({ dateLabel }: Props) {
 export function CareBriefingError({ dateLabel, onRetry }: Props & { onRetry: () => void }) {
   return (
     <Shell dateLabel={dateLabel} right={<span className="typo-label text-text-secondary">—</span>}>
-      <p className="typo-body text-text-primary">오늘 정보를 불러오지 못했어요</p>
+      {/* 어느 날짜인지는 카드 헤더가 이미 말한다 — 여기서 "오늘"이라고 쓰면 어제를 볼 때 틀린다 */}
+      <p className="typo-body text-text-primary">정보를 불러오지 못했어요</p>
       <p className="typo-body text-text-secondary">
         네트워크 상태를 확인한 뒤 다시 시도해주세요. 시술 D-day 안내는 아래 케어 카드에서 계속 볼 수
         있어요.

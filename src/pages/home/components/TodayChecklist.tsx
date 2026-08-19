@@ -5,13 +5,19 @@ import type { ChecklistItem } from '../../../types/today';
 type TodayChecklistProps = {
   items: ChecklistItem[];
   onToggle: (checklistId: number, completed: boolean) => void;
+  /**
+   * 오늘이 아닌 날짜를 보고 있을 때의 날짜("8월 19일"). 오늘이면 넘기지 않는다.
+   * 어제를 보면서 "오늘의 케어"를 읽으면 어느 날 얘기인지 알 수 없다.
+   */
+  dateLabel?: string;
 };
 
 /**
  * 오늘의 케어.
  * 매일 앱을 여는 이유라서 브리핑 바로 다음, 근거보다 위에 둔다.
  */
-export default function TodayChecklist({ items, onToggle }: TodayChecklistProps) {
+export default function TodayChecklist({ items, onToggle, dateLabel }: TodayChecklistProps) {
+  const title = dateLabel ? `${dateLabel} 케어` : '오늘의 케어';
   /*
     항목이 없는 건 오류가 아니다. 회복 기간이 끝났거나(D+11인데 회복 10일) 아직 시술 전이면
     서버가 빈 배열을 준다. 그때 진행바와 "0/0"을 그대로 그리면 제목만 남은 빈 상자가 되어
@@ -20,9 +26,10 @@ export default function TodayChecklist({ items, onToggle }: TodayChecklistProps)
   if (items.length === 0) {
     return (
       <section className="bg-surface-raised rounded-md flex flex-col gap-1.5 p-4">
-        <h2 className="typo-section">오늘의 케어</h2>
+        <h2 className="typo-section">{title}</h2>
         <p className="typo-body text-text-secondary">
-          오늘 할 케어가 없어요. 회복 기간이 끝났거나 아직 시작 전이에요.
+          {dateLabel ? '이 날짜에' : '오늘'} 할 케어가 없어요. 회복 기간이 끝났거나 아직 시작
+          전이에요.
         </p>
       </section>
     );
@@ -36,7 +43,7 @@ export default function TodayChecklist({ items, onToggle }: TodayChecklistProps)
   return (
     <section className="bg-surface-raised rounded-md flex flex-col gap-3 p-4">
       <header className="flex items-center justify-between">
-        <h2 className="typo-section">오늘의 케어</h2>
+        <h2 className="typo-section">{title}</h2>
         <span className="typo-caption text-text-secondary">
           {doneCount}/{items.length}
         </span>
