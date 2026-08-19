@@ -12,7 +12,13 @@ import {
 } from '../../hooks/today/useToday';
 import { useTodayLocation } from '../../hooks/today/useTodayLocation';
 import { useWeather } from '../../hooks/weather/useWeather';
-import { formatDayLabel, monthMatrix, startOfDay, toKey } from '../../lib/date';
+import {
+  formatDayLabel,
+  fromDateInputValue,
+  monthMatrix,
+  startOfDay,
+  toKey,
+} from '../../lib/date';
 import { toLevel } from '../../types/today';
 import CalendarNav from './components/CalendarNav';
 import CareBriefing, {
@@ -26,6 +32,8 @@ import LocationPicker from './components/LocationPicker';
 import TodayChecklist from './components/TodayChecklist';
 import TodayEmptyState from './components/TodayEmptyState';
 import TodayEnvironment from './components/TodayEnvironment';
+import TodaySchedules from './components/TodaySchedules';
+import type { Schedule } from '../../types/schedule';
 
 /**
  * 오늘 탭.
@@ -133,19 +141,37 @@ export default function HomePage() {
 
   const evidence = (data?.cardJudgement?.reasons ?? []).map((label) => ({ label }));
 
-  // 제목 없는 일정은 버린다 — 시간만 있는 빈 줄은 근거가 되지 않는다
-  const schedules = (data?.schedules ?? []).flatMap((schedule) =>
+  /**
+   * 제목 없는 일정은 버린다 — 시간만 있는 빈 줄은 목록에서 아무 뜻이 없다.
+   *
+   * 수정 화면이 그대로 쓸 수 있게 `Schedule` 모양으로 맞춘다. 단건 조회 API가 서버에 없어서
+   * 이 값을 라우터 state로 넘겨야 수정 화면이 열린다(api/schedule.ts 주석 참고).
+   *
+   * `editable`은 **모르는 채로 true를 준다.** 브리핑 응답에 출처 필드가 없어 캘린더에서
+   * 가져온 일정과 직접 입력한 일정을 구분할 방법이 없다. 전부 열어두고, 서버가 거절하면
+   * 그때 안내한다 — 직접 입력한 일정까지 막아버리는 쪽이 손해가 크다고 봤다.
+   */
+  const schedules: Schedule[] = (data?.schedules ?? []).flatMap((schedule) =>
     schedule.title
       ? [
           {
-            id: schedule.scheduleId,
+            id: String(schedule.scheduleId),
             title: schedule.title,
+            date: fromDateInputValue(selectedKey),
             time: schedule.time ?? null,
             place: schedule.location ?? null,
+            editable: true,
           },
         ]
       : [],
   );
+
+  /** 고른 날짜를 넘겨 추가 화면의 날짜칸을 채운다 — 안 넘기면 매번 다시 고르게 된다 */
+  const handleAddSchedule = () =>
+    navigate('/schedules/new', { state: { date: fromDateInputValue(selectedKey) } });
+
+  const handleEditSchedule = (schedule: Schedule) =>
+    navigate(`/schedules/${schedule.id}/edit`, { state: { schedule } });
 
   return (
     <div className="flex flex-col gap-3.5 px-5 pt-5 pb-6">
@@ -193,8 +219,14 @@ export default function HomePage() {
           */}
           <TodayEnvironment dateLabel={dateLabel} weather={weatherText} />
           {metrics.length > 0 && (
-            <CareEvidence title="오늘의 환경" metrics={metrics} evidence={[]} schedules={[]} />
+            <CareEvidence title="오늘의 환경" metrics={metrics} evidence={[]} />
           )}
+          {/* 일정은 케어 카드와 무관하다 — 카드가 없어도 넣고 볼 수 있어야 한다 */}
+          <TodaySchedules
+            schedules={schedules}
+            onAdd={handleAddSchedule}
+            onEdit={handleEditSchedule}
+          />
           <TodayEmptyState
             /* 브리핑이 오기 전에는 연동 여부를 모른다 — null로 넘겨 감춘다 */
             calendarConnected={data ? (data.calendarConnected ?? null) : null}
@@ -226,9 +258,15 @@ export default function HomePage() {
             />
           )}
 
-          {/* 셋 다 비면 제목만 남은 빈 상자가 된다. 근거가 없으면 블록째 감춘다 */}
-          {(metrics.length > 0 || evidence.length > 0 || schedules.length > 0) && (
-            <CareEvidence metrics={metrics} evidence={evidence} schedules={schedules} />
+          <TodaySchedules
+            schedules={schedules}
+            onAdd={handleAddSchedule}
+            onEdit={handleEditSchedule}
+          />
+
+          {/* 둘 다 비면 제목만 남은 빈 상자가 된다. 근거가 없으면 블록째 감춘다 */}
+          {(metrics.length > 0 || evidence.length > 0) && (
+            <CareEvidence metrics={metrics} evidence={evidence} />
           )}
         </>
       )}
