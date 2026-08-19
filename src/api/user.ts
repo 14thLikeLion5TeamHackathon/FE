@@ -46,3 +46,8 @@ export async function logout(): Promise<void> {
 export async function disconnectKakaoNotification(): Promise<void> {
   await axiosInstance.delete<ApiResponse>('/api/v1/mypage/notification/kakao');
 }
+
+/** PATCH /api/v1/mypage/location — 위치 정보 저장 (GPS 좌표 전송) */
+export async function patchLocation(latitude: number, longitude: number): Promise<void> {
+  await axiosInstance.patch<ApiResponse>('/api/v1/mypage/location', { latitude, longitude });
+}

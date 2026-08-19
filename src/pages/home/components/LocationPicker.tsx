@@ -3,6 +3,7 @@ import { useState } from 'react';
 import BottomSheet from '../../../components/BottomSheet';
 import { cn } from '../../../lib/cn';
 import { CITIES, findCity, formatLocation, type TodayLocation } from '../../../lib/location';
+import { useUpdateLocation } from '../../../hooks/user/useUser';
 
 type LocationPickerProps = {
   location: TodayLocation;
@@ -86,6 +87,9 @@ export default function LocationPicker({
           <h2 className="typo-section">{city ? city.label : '기준 위치'}</h2>
         </div>
 
+        {/* 현재 위치 사용 버튼 — 시 선택 화면에서만 노출 */}
+        {!city && <CurrentLocationButton />}
+
         {/* 경기도만 31개고 시 목록도 17개다. 높이를 묶고 목록만 스크롤시킨다 */}
         <ul className="grid max-h-[55vh] grid-cols-3 gap-2 overflow-y-auto">
           {city
@@ -110,6 +114,59 @@ export default function LocationPicker({
         </ul>
       </BottomSheet>
     </>
+  );
+}
+
+/** 현재 위치(GPS) 사용 버튼 */
+function CurrentLocationButton() {
+  const { mutate: updateLocation, isPending } = useUpdateLocation();
+  const [error, setError] = useState<string | null>(null);
+
+  const handleClick = () => {
+    setError(null);
+
+    if (!navigator.geolocation) {
+      setError('이 브라우저는 위치 기능을 지원하지 않아요.');
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        updateLocation(
+          { latitude: position.coords.latitude, longitude: position.coords.longitude },
+          {
+            onError: () => setError('위치 저장에 실패했어요. 다시 시도해주세요.'),
+          },
+        );
+      },
+      (err) => {
+        if (err.code === err.PERMISSION_DENIED) {
+          setError('위치 권한이 필요해요. 브라우저 설정에서 허용해주세요.');
+        } else {
+          setError('위치를 가져올 수 없어요. 다시 시도해주세요.');
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  };
+
+  return (
+    <div className="mb-3 flex flex-col gap-1">
+      <button
+        type="button"
+        onClick={handleClick}
+        disabled={isPending}
+        className={cn(
+          'typo-label rounded-btn w-full border border-dashed py-2.5 transition-colors',
+          isPending
+            ? 'border-border-subtle text-text-disabled cursor-not-allowed'
+            : 'border-primary text-primary',
+        )}
+      >
+        {isPending ? '위치 확인 중...' : '현재 위치로 설정'}
+      </button>
+      {error && <p className="typo-caption text-danger">{error}</p>}
+    </div>
   );
 }
 
