@@ -16,6 +16,7 @@ import { useKakaoStatus, useUpdateKakaoConsent } from '../../hooks/notification/
 import { clearAccessToken } from '../../api/token';
 import { GENDER_LABEL, type Gender } from '../../types/user';
 import SettingRow from './components/SettingRow';
+import Skeleton from '../../components/Skeleton';
 
 /** 섹션 제목 + 카드 한 덩어리 */
 function Group({ label, children }: { label: string; children: React.ReactNode }) {
@@ -55,8 +56,11 @@ export default function MyPage() {
 
   if (isLoading) {
     return (
-      <div className="px-5 pt-5" aria-busy="true">
-        <div className="bg-surface-raised rounded-card h-20 animate-pulse" />
+      <div className="flex flex-col gap-3.5 px-5 pt-5" aria-busy="true">
+        <Skeleton className="h-7 w-24" />
+        <Skeleton className="h-20" />
+        <Skeleton className="h-48" />
+        <Skeleton className="h-32" />
       </div>
     );
   }
@@ -223,7 +227,9 @@ export default function MyPage() {
               <Switch
                 label="구글 캘린더 연동"
                 checked={isCalendarConnected}
-                disabled={disconnectCalendar.isPending || (!isCalendarConnected && !googleConfigured)}
+                disabled={
+                  disconnectCalendar.isPending || (!isCalendarConnected && !googleConfigured)
+                }
                 onChange={handleCalendarToggle}
               />
             }

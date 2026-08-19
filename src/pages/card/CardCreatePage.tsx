@@ -12,6 +12,7 @@ import { toDateInputValue } from '../../lib/date';
 import { CATEGORY_LABEL, TreatmentCategory } from '../../types/card';
 import CategoryChip from './components/CategoryChip';
 import TreatmentListItem from './components/TreatmentListItem';
+import Skeleton from '../../components/Skeleton';
 
 const CATEGORIES = TreatmentCategory.options;
 
@@ -72,7 +73,12 @@ export default function CardCreatePage() {
           aria-hidden
         >
           <circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.5" />
-          <path d="M11 11L14.5 14.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          <path
+            d="M11 11L14.5 14.5"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+          />
         </svg>
         <Field
           type="text"
@@ -85,7 +91,11 @@ export default function CardCreatePage() {
 
       <div className="no-scrollbar flex gap-2 overflow-x-auto">
         {CATEGORIES.map((value) => (
-          <CategoryChip key={value} selected={category === value} onClick={() => setCategory(value)}>
+          <CategoryChip
+            key={value}
+            selected={category === value}
+            onClick={() => setCategory(value)}
+          >
             {CATEGORY_LABEL[value]}
           </CategoryChip>
         ))}
@@ -100,14 +110,12 @@ export default function CardCreatePage() {
 
       {isLoading && (
         <div className="flex flex-col gap-2.5" aria-busy="true">
-          <div className="bg-surface-raised rounded-card h-20 animate-pulse" />
-          <div className="bg-surface-raised rounded-card h-20 animate-pulse" />
+          <Skeleton className="h-20" />
+          <Skeleton className="h-20" />
         </div>
       )}
 
-      {isError && (
-        <p className="typo-body text-text-secondary">시술 목록을 불러오지 못했어요.</p>
-      )}
+      {isError && <p className="typo-body text-text-secondary">시술 목록을 불러오지 못했어요.</p>}
 
       {!isLoading && !isError && (treatments?.length ?? 0) === 0 && (
         <p className="typo-body text-text-secondary">해당 카테고리에 시술이 없어요.</p>
@@ -163,11 +171,7 @@ export default function CardCreatePage() {
         </div>
       </Card>
 
-      <BottomCTA
-        label="케어 카드 만들기"
-        disabled={!isValid || isPending}
-        onClick={handleSubmit}
-      />
+      <BottomCTA label="케어 카드 만들기" disabled={!isValid || isPending} onClick={handleSubmit} />
     </div>
   );
 }

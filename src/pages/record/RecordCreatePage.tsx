@@ -161,7 +161,7 @@ export default function RecordCreatePage() {
           const recordId = data?.recordId ?? 0;
           navigate(`/records/${recordId}/feedback`, { replace: true });
         },
-      }
+      },
     );
   };
 
@@ -183,9 +183,7 @@ export default function RecordCreatePage() {
           <span className="typo-label text-text-primary">
             {isCardLoading ? '불러오는 중...' : displayTitle}
           </span>
-          <span className="typo-caption text-right text-text-tertiary">
-            {displayDateInfo}
-          </span>
+          <span className="typo-caption text-right text-text-tertiary">{displayDateInfo}</span>
         </div>
 
         {/* 1. 사진 블록 */}
@@ -215,10 +213,7 @@ export default function RecordCreatePage() {
 
         {/* 3. 증상 선택 블록 (4개 필수 고정) */}
         <Section label="증상 (필수 4종)" labelColor="text-text-primary">
-          <SymptomSelectBlock
-            selectedSymptoms={selectedSymptoms}
-            disabled
-          />
+          <SymptomSelectBlock selectedSymptoms={selectedSymptoms} disabled />
         </Section>
 
         {/* 4. 증상 강도 선택 블록 */}
@@ -233,7 +228,9 @@ export default function RecordCreatePage() {
 
       <BottomCTA
         label={isPending ? '등록 중...' : '기록 등록하기'}
-        disabled={isPending || isCardLoading || !hasCardId || !isAllSymptomsRated || photos.length === 0}
+        disabled={
+          isPending || isCardLoading || !hasCardId || !isAllSymptomsRated || photos.length === 0
+        }
         onClick={handleSubmit}
         subText={subText}
       />

@@ -30,9 +30,7 @@ export default function TodayCare({ items, subText, className }: TodayCareProps)
         ))}
       </div>
 
-      {subText && (
-        <p className="mt-1 w-full typo-caption text-text-tertiary">{subText}</p>
-      )}
+      {subText && <p className="mt-1 w-full typo-caption text-text-tertiary">{subText}</p>}
     </Card>
   );
 }

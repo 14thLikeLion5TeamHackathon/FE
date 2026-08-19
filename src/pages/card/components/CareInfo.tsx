@@ -8,12 +8,7 @@ export type CareInfoProps = {
   className?: string;
 };
 
-export default function CareInfo({
-  date,
-  dday,
-  totalDays = 29,
-  className,
-}: CareInfoProps) {
+export default function CareInfo({ date, dday, totalDays = 29, className }: CareInfoProps) {
   const progressPercent = Math.min(Math.round((dday / totalDays) * 100), 100);
 
   return (
@@ -26,9 +21,7 @@ export default function CareInfo({
       <div className="flex items-center justify-between">
         <div className="flex flex-col">
           <span className="typo-caption text-text-tertiary">시술일 {date}</span>
-          <span className="mt-0.5 typo-card-title text-text-primary font-bold">
-            회복 진행
-          </span>
+          <span className="mt-0.5 typo-card-title text-text-primary font-bold">회복 진행</span>
         </div>
         <div className="flex items-baseline gap-1">
           {/* 🎯 text-primary 적용 */}

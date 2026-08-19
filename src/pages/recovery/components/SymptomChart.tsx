@@ -36,7 +36,9 @@ export default function SymptomChart({ points }: SymptomChartProps) {
           const values = points.map(
             (point) => point.symptoms.find((s) => s.key === key)?.intensity ?? 0,
           );
-          const path = values.map((v, i) => `${i ? 'L' : 'M'} ${x(i).toFixed(1)} ${toY(v)}`).join(' ');
+          const path = values
+            .map((v, i) => `${i ? 'L' : 'M'} ${x(i).toFixed(1)} ${toY(v)}`)
+            .join(' ');
           const lastIndex = values.length - 1;
 
           return (

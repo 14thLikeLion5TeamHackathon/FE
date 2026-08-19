@@ -4,6 +4,7 @@ import { cn } from '../lib/cn';
 import { useCards } from '../hooks/card/useCard';
 import { daysSince } from '../lib/date';
 import { NO_TREATMENT_NAME, type CareCard } from '../types/card';
+import Skeleton from './Skeleton';
 
 type RecordCardSheetProps = {
   open: boolean;
@@ -43,14 +44,12 @@ export default function RecordCardSheet({ open, onClose, onSelect }: RecordCardS
 
         {isLoading && (
           <div className="flex flex-col gap-2.5" aria-busy="true">
-            <div className="bg-surface-raised rounded-card h-[68px] animate-pulse" />
-            <div className="bg-surface-raised rounded-card h-[68px] animate-pulse" />
+            <Skeleton className="h-[68px]" />
+            <Skeleton className="h-[68px]" />
           </div>
         )}
 
-        {isError && (
-          <p className="typo-body text-text-secondary">케어 카드를 불러오지 못했어요.</p>
-        )}
+        {isError && <p className="typo-body text-text-secondary">케어 카드를 불러오지 못했어요.</p>}
 
         {!isLoading && !isError && cards.length === 0 && (
           <p className="typo-body text-text-secondary">
@@ -80,12 +79,7 @@ export default function RecordCardSheet({ open, onClose, onSelect }: RecordCardS
                       <span className="typo-card-title text-text-primary self-stretch">
                         {card.treatmentName ?? NO_TREATMENT_NAME}
                       </span>
-                      <span
-                        className={cn(
-                          'typo-caption self-stretch',
-                          'text-text-tertiary',
-                        )}
-                      >
+                      <span className={cn('typo-caption self-stretch', 'text-text-tertiary')}>
                         시술일 {card.treatmentDate ?? '정보 없음'}
                       </span>
                     </span>

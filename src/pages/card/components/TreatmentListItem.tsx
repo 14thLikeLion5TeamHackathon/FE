@@ -9,9 +9,18 @@ type TreatmentListItemProps = {
 };
 
 /** 시술 목록 한 줄 — 이름/설명 + 우측 선택 토글(체크·플러스). 복수 선택 가능. */
-export default function TreatmentListItem({ treatment, selected, onToggle }: TreatmentListItemProps) {
+export default function TreatmentListItem({
+  treatment,
+  selected,
+  onToggle,
+}: TreatmentListItemProps) {
   return (
-    <button type="button" onClick={onToggle} aria-pressed={selected} className="block w-full text-left">
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-pressed={selected}
+      className="block w-full text-left"
+    >
       <Card
         variant="block"
         className={cn(

@@ -15,6 +15,7 @@ import { useCardDetail, useCardRecords } from '../../hooks/card/useCard';
 import { NO_TREATMENT_NAME } from '../../types/card';
 import { getLocationParams } from '../../lib/location';
 import type { GuideStage } from './components/RecoveryGuide';
+import Skeleton from '../../components/Skeleton';
 
 /** D-Day별 RecordCTA 헬퍼 함수 (7, 14, 21, 29일에만 문구 리턴) */
 function getRecordCTASubText(dday: number): string | undefined {
@@ -96,10 +97,7 @@ function buildGuideStages(
  * 주의사항 문구에 박히는 "D+N"도 recoveryTransitionDay·recoveryTotalDays로 계산해서
  * 카드의 실제 회복 기간을 절대 넘지 않게 만든다.
  */
-function buildCautionList(
-  recoveryTransitionDay: number,
-  recoveryTotalDays: number,
-): string[] {
+function buildCautionList(recoveryTransitionDay: number, recoveryTotalDays: number): string[] {
   if (recoveryTotalDays <= 0) return [];
 
   const early = clampDay(recoveryTransitionDay, recoveryTotalDays);
@@ -132,11 +130,15 @@ export default function CardDetailPage() {
   const { data: cardDetail, isLoading: isCardLoading } = useCardDetail(cardId, getLocationParams());
   const { data: cardRecords, isLoading: isRecordsLoading } = useCardRecords(cardId);
 
-  // 로딩 상태 처리
+  // 로딩 상태 처리 — 실제 화면 순서(진행바 · 오늘의 관리 · 가이드 · 기록)를 그대로 흉내낸다
   if (isCardLoading || isRecordsLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center typo-body text-text-tertiary">
-        카드 정보를 불러오는 중...
+      <div className="flex flex-col gap-3.5 px-5 pt-5 pb-6" aria-busy="true">
+        <Skeleton className="h-7 w-40" />
+        <Skeleton className="h-24" />
+        <Skeleton className="h-32" />
+        <Skeleton className="h-40" />
+        <Skeleton className="h-28" />
       </div>
     );
   }
@@ -146,11 +148,7 @@ export default function CardDetailPage() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-2 typo-body text-text-tertiary">
         <p>존재하지 않거나 삭제된 카드입니다.</p>
-        <button
-          type="button"
-          onClick={() => navigate(-1)}
-          className="text-accent underline"
-        >
+        <button type="button" onClick={() => navigate(-1)} className="text-accent underline">
           이전으로 돌아가기
         </button>
       </div>
@@ -231,9 +229,7 @@ export default function CardDetailPage() {
           {visibleRecords.map((record) => (
             <RecordCard
               key={record.recordId}
-              title={[record.recordedAt, cardDetail.treatmentName]
-                .filter(Boolean)
-                .join(' · ')}
+              title={[record.recordedAt, cardDetail.treatmentName].filter(Boolean).join(' · ')}
               dday={`D+${record.dday}`}
               photoUrls={record.photoUrls ?? undefined}
               memo={record.statusDescription ?? ''}

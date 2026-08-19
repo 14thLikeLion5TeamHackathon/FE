@@ -126,11 +126,7 @@ export default function SignupPage() {
           <div className="flex flex-col gap-2">
             <SegmentGroup label="AAC 오프라인 매장 방문 경험">
               {(Object.keys(VISITED_LABEL) as Visited[]).map((value) => (
-                <Segment
-                  key={value}
-                  selected={visited === value}
-                  onClick={() => setVisited(value)}
-                >
+                <Segment key={value} selected={visited === value} onClick={() => setVisited(value)}>
                   {VISITED_LABEL[value]}
                 </Segment>
               ))}
@@ -179,8 +175,8 @@ export default function SignupPage() {
 
           <p className="typo-caption text-text-tertiary">
             선택 항목은 동의하지 않아도 가입할 수 있어요. 일정 동의가 없으면 사전 경고 없이
-            D-day·환경 지표만으로 안내하고, 카카오 알림 동의가 없으면 앱 내 푸시로 보내드려요.
-            둘 다 마이페이지에서 언제든 바꿀 수 있어요.
+            D-day·환경 지표만으로 안내하고, 카카오 알림 동의가 없으면 앱 내 푸시로 보내드려요. 둘 다
+            마이페이지에서 언제든 바꿀 수 있어요.
           </p>
 
           {/* 실패해도 화면이 그대로면 사용자는 버튼이 안 먹은 줄 안다 */}

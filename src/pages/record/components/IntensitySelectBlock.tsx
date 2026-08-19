@@ -39,7 +39,7 @@ export default function IntensitySelectBlock({
                     'typo-body border-none rounded-[6px] py-[6px] px-0',
                     isSelected
                       ? 'bg-primary text-primary-on'
-                      : 'bg-transparent text-text-secondary'
+                      : 'bg-transparent text-text-secondary',
                   )}
                   onClick={() => onChangeIntensity(symptomKey, option.value)}
                 >

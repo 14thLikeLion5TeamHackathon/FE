@@ -91,11 +91,7 @@ export default function RecordCard({
           <div className="flex w-full items-center justify-between">
             <span className="typo-caption text-text-tertiary">AI 피드백</span>
             {onViewFeedback && (
-              <button
-                type="button"
-                onClick={onViewFeedback}
-                className="typo-caption text-primary"
-              >
+              <button type="button" onClick={onViewFeedback} className="typo-caption text-primary">
                 자세히 보기
               </button>
             )}

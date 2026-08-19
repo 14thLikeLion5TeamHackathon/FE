@@ -16,6 +16,7 @@ import {
 } from '../../hooks/schedule/useSchedule';
 import { toDateInputValue, toEventTime } from '../../lib/date';
 import type { Schedule } from '../../types/schedule';
+import Skeleton from '../../components/Skeleton';
 
 type ScheduleFormFieldsProps = {
   scheduleId?: string;
@@ -166,9 +167,9 @@ export default function ScheduleFormPage() {
       <div className="flex flex-col gap-3.5 px-5 pt-5 pb-6">
         <NavHeader title="일정 수정" />
         <div className="flex flex-col gap-2.5" aria-busy="true">
-          <div className="bg-surface-raised rounded-card h-14 animate-pulse" />
-          <div className="bg-surface-raised rounded-card h-14 animate-pulse" />
-          <div className="bg-surface-raised rounded-card h-14 animate-pulse" />
+          <Skeleton className="h-14" />
+          <Skeleton className="h-14" />
+          <Skeleton className="h-14" />
         </div>
       </div>
     );

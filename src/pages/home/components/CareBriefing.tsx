@@ -14,7 +14,11 @@ type Props = {
   dateLabel: string;
 };
 
-function Shell({ dateLabel, right, children }: Props & { right: React.ReactNode; children: React.ReactNode }) {
+function Shell({
+  dateLabel,
+  right,
+  children,
+}: Props & { right: React.ReactNode; children: React.ReactNode }) {
   return (
     <section className="bg-surface-raised border-border-subtle rounded-md flex flex-col items-start gap-2.5 border p-4">
       <header className="flex w-full items-center justify-between overflow-clip whitespace-nowrap">

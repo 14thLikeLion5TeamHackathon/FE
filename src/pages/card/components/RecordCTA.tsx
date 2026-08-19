@@ -24,11 +24,7 @@ export default function RecordCTA({
         <span className="text-center typo-label text-primary-on">{label}</span>
       </button>
 
-      {subText && (
-        <p className="text-center typo-caption text-text-tertiary">
-          {subText}
-        </p>
-      )}
+      {subText && <p className="text-center typo-caption text-text-tertiary">{subText}</p>}
     </div>
   );
 }

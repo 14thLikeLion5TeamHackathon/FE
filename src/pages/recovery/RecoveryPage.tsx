@@ -5,6 +5,7 @@ import { useRecovery } from '../../hooks/recovery/useRecovery';
 import { NO_TREATMENT_NAME, type CareCard as CareCardData } from '../../types/card';
 import CareCard from './components/CareCard';
 import RecoveryCurve from './components/RecoveryCurve';
+import Skeleton from '../../components/Skeleton';
 
 /** 섹션 제목. 이 화면에서만 쓰여서 여기 둔다. */
 function SectionHeader({ title }: { title: string }) {
@@ -26,6 +27,7 @@ export default function RecoveryPage() {
     inProgress,
     done,
     curve,
+    curveCards,
     curveCardId,
     selectCurveCard,
     isLoading,
@@ -47,8 +49,8 @@ export default function RecoveryPage() {
     return (
       <div className="flex flex-col gap-3.5 px-5 pt-5 pb-6" aria-busy="true">
         <PageHeader title="회복" />
-        <div className="bg-surface-raised rounded-md h-64 animate-pulse" />
-        <div className="bg-surface-raised rounded-md h-48 animate-pulse" />
+        <Skeleton className="h-64" />
+        <Skeleton className="h-48" />
       </div>
     );
   }
@@ -63,8 +65,8 @@ export default function RecoveryPage() {
   }
 
   const hasCards = inProgress.length + done.length > 0;
-  // 곡선 카드 선택지는 진행 중 카드뿐이다 — 회복이 끝난 카드의 추세는 카드 상세에서 본다
-  const cardOptions = inProgress.map((card) => ({
+  // 완료된 카드도 고를 수 있다 — 끝난 회복의 추세야말로 다시 꺼내 보고 싶은 것이다
+  const cardOptions = curveCards.map((card) => ({
     cardId: card.cardId,
     treatmentName: card.treatmentName ?? NO_TREATMENT_NAME,
   }));
@@ -89,7 +91,7 @@ export default function RecoveryPage() {
         </section>
       ) : (
         <>
-          {isCurveLoading && <div className="bg-surface-raised rounded-md h-64 animate-pulse" />}
+          {isCurveLoading && <Skeleton className="h-64" />}
 
           {curve && (
             <RecoveryCurve

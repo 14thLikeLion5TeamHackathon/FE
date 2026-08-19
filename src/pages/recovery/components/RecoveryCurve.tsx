@@ -65,7 +65,7 @@ function PhotoFrame({
   );
 }
 
-/** 카드 선택 줄 — 진행 중 카드가 여럿일 때 곡선의 기본 선택(가장 최근 시술)을 사용자가 덮는다. */
+/** 카드 선택 줄 — 카드가 여럿일 때 곡선의 기본 선택(가장 최근 진행 중 시술)을 사용자가 덮는다. */
 function CardPicker({
   options,
   selectedId,

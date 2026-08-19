@@ -71,9 +71,7 @@ export default function StoreGuide({
         {/* Info (Name + Dist) */}
         <div className="flex flex-col items-start gap-[2px]">
           <span className="typo-label text-text-primary">{name}</span>
-          {distanceInfo && (
-            <span className="typo-label text-text-primary">{distanceInfo}</span>
-          )}
+          {distanceInfo && <span className="typo-label text-text-primary">{distanceInfo}</span>}
         </div>
 
         {/* Go (길찾기 버튼) */}
