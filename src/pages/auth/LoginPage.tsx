@@ -79,12 +79,6 @@ export default function LoginPage() {
             Google로 계속하기
           </button>
         )}
-        <p className="typo-caption text-text-tertiary text-center">
-          {googleAvailable
-            ? '카카오는 알림 발송, 구글은 캘린더 연동에 함께 쓰여요'
-            : '카카오는 알림 발송에 함께 쓰여요'}
-        </p>
-
         {import.meta.env.DEV && (
           <button
             onClick={skipLogin}

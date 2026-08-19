@@ -54,15 +54,15 @@ function ScheduleFormFields({ scheduleId, isEdit, initialSchedule }: ScheduleFor
     };
 
     if (isEdit) {
-      updateSchedule(payload, { onSuccess: () => navigate('/') });
+      updateSchedule(payload, { onSuccess: () => navigate('/', { replace: true }) });
     } else {
-      createSchedule(payload, { onSuccess: () => navigate('/') });
+      createSchedule(payload, { onSuccess: () => navigate('/', { replace: true }) });
     }
   };
 
   const handleDelete = () => {
     if (!scheduleId) return;
-    deleteSchedule(scheduleId, { onSuccess: () => navigate('/') });
+    deleteSchedule(scheduleId, { onSuccess: () => navigate('/', { replace: true }) });
   };
 
   return (

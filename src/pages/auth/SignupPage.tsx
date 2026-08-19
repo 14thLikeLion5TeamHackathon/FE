@@ -8,7 +8,6 @@ import DateField from '../../components/DateField';
 import NavHeader from '../../components/NavHeader';
 import ProgressBar from '../../components/ProgressBar';
 import Segment from '../../components/Segment';
-import { useUpdateKakaoConsent } from '../../hooks/notification/useNotification';
 import { useOnboarding } from '../../hooks/user/useUser';
 import { cn } from '../../lib/cn';
 import { toDateInputValue } from '../../lib/date';
@@ -41,7 +40,6 @@ export default function SignupPage() {
   const navigate = useNavigate();
 
   const { mutate: onboard, isPending, isError } = useOnboarding();
-  const { mutate: setKakaoConsent } = useUpdateKakaoConsent();
 
   const [step, setStep] = useState<1 | 2>(1);
 
@@ -84,15 +82,8 @@ export default function SignupPage() {
         hasAacOfflineExperience: visited === 'VISITED',
       },
       {
-        onSuccess: () => {
-          // 카카오 알림 동의는 온보딩 요청에 담을 자리가 없다(스펙에 필드가 없음) —
-          // 가입이 끝난 뒤 따로 보낸다. **실패해도 가입을 막지 않는다.** 선택 약관이고,
-          // 이 시점엔 카카오 연동 자체가 없어 서버가 거절할 수 있다(BE 확인 중).
-          // 실패하면 알림만 안 올 뿐이고, 마이페이지 토글로 언제든 다시 켤 수 있다.
-          // TODO(#85): 온보딩이 agreeKakaoNotification을 받아주면 이 호출을 지운다.
-          if (agreements.kakaoNotification) setKakaoConsent(true);
-          navigate('/');
-        },
+        // 히스토리에 가입 화면을 남기지 않는다 — 뒤로 가면 이미 끝난 절차를 다시 만난다
+        onSuccess: () => navigate('/', { replace: true }),
       },
     );
   };

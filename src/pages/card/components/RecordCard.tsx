@@ -1,6 +1,7 @@
 import Card from '../../../components/Card';
 import Chip from '../../../components/Chip';
 import { cn } from '../../../lib/cn';
+import { mediaUrl } from '../../../lib/mediaUrl';
 
 export type RecordCardProps = {
   /** 날짜 및 케어명 (예: "08.01 · 포텐자") */
@@ -55,8 +56,8 @@ export default function RecordCard({
           {photoUrls.map((url, index) => (
             <img
               key={`${url}-${index}`}
-              src={url}
-              alt={` ${index + 1}`}
+              src={mediaUrl(url)}
+              alt={`기록 사진 ${index + 1}`}
               className="bg-surface-elevated size-[72px] shrink-0 rounded-btn object-cover"
             />
           ))}

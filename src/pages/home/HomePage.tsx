@@ -25,6 +25,7 @@ import LocationNotice from './components/LocationNotice';
 import LocationPicker from './components/LocationPicker';
 import TodayChecklist from './components/TodayChecklist';
 import TodayEmptyState from './components/TodayEmptyState';
+import TodayEnvironment from './components/TodayEnvironment';
 
 /**
  * 오늘 탭.
@@ -45,9 +46,18 @@ export default function HomePage() {
   // 기준 좌표는 GPS와 직접 선택 중 하나로 정해진다 — 규칙은 useTodayLocation 주석 참고
   const { location, selectLocation, coords, usingGps, geoStatus } = useTodayLocation();
 
+  /** 오늘 날짜는 한 번만 구해 공유한다 — 곳곳에서 new Date()를 부르면 서로 어긋난다 */
+  const today = useMemo(() => startOfDay(new Date()), []);
+
+  /**
+   * 예보 범위 밖이면 날씨·대기질 대신 D-day 기준으로만 안내한다.
+   * 조회를 막는 조건이라 쿼리보다 위에 있어야 한다.
+   */
+  const isOutOfForecast = selected > forecastEnd(today);
+
   const hasCards = useHasCards();
   const selectedKey = toKey(selected);
-  const briefing = useBriefing(selectedKey, location);
+  const briefing = useBriefing(selectedKey, location, !isOutOfForecast);
   const checklist = useChecklist(selectedKey);
   const { mutate: toggleItem } = useToggleChecklistItem();
 
@@ -64,9 +74,6 @@ export default function HomePage() {
     monthEnd,
     briefing.data?.calendarConnected ?? false,
   );
-
-  /** 오늘 날짜는 한 번만 구해 공유한다 — 곳곳에서 new Date()를 부르면 서로 어긋난다 */
-  const today = useMemo(() => startOfDay(new Date()), []);
 
   /** 예보 범위 밖은 흐리게. 서버가 범위를 주지 않아 오늘부터 5일로 계산한다 */
   const { outOfForecastKeys, forecastNote } = useMemo(() => {
@@ -93,9 +100,6 @@ export default function HomePage() {
 
   const dateLabel = formatDayLabel(selected);
 
-  /** 예보 범위 밖이면 날씨·대기질 대신 D-day 기준으로만 안내한다 */
-  const isOutOfForecast = selected > forecastEnd(today);
-
   /**
    * 날씨·환경 지표. 브리핑과 나눠 받는다 — 한쪽이 실패해도 다른 쪽은 보인다.
    * 예보 범위 밖은 부르지 않는다. 서버가 400을 내는데 그건 오류가 아니라
@@ -108,18 +112,24 @@ export default function HomePage() {
   const metrics =
     weather.data && !isOutOfForecast
       ? [
-        weather.data.uvLevel && {
-          label: '자외선',
-          value: weather.data.uvLevel,
-          level: toLevel(weather.data.uvLevel),
-        },
-        weather.data.dustLevel && {
-          label: '미세먼지',
-          value: weather.data.dustLevel,
-          level: toLevel(weather.data.dustLevel),
-        },
+          weather.data.uvLevel && {
+            label: '자외선',
+            value: weather.data.uvLevel,
+            level: toLevel(weather.data.uvLevel),
+          },
+          weather.data.dustLevel && {
+            label: '미세먼지',
+            value: weather.data.dustLevel,
+            level: toLevel(weather.data.dustLevel),
+          },
         ].filter((metric) => metric !== null && metric !== '')
       : [];
+
+  /** "온흐림 28°" — 기온이 없으면 문구를 만들지 않는다 */
+  const weatherText =
+    weather.data?.temp !== null && weather.data?.temp !== undefined
+      ? `${weather.data.condition ?? ''} ${Math.round(weather.data.temp)}°`.trim()
+      : null;
 
   const evidence = (data?.cardJudgement?.reasons ?? []).map((label) => ({ label }));
 
@@ -170,37 +180,44 @@ export default function HomePage() {
       {/* 상태 넷은 반드시 하나만 뜬다. 따로 두면 카드 조회와 브리핑이 병렬이라
           로딩 카드와 빈 화면이 겹쳐 뜨고, 재조회가 실패하면 직전 데이터가 남아 있어
           에러 카드와 정상 브리핑이 같이 보인다. */}
-      {isEmpty ? (
-        <TodayEmptyState
-          /* 연동 여부를 아직 모르는 동안은 감춘다 — 이미 연동한 사람에게 연동하라고 하지 않으려고 */
-          showCalendar={data ? !data.calendarConnected : false}
-          onConnectCalendar={() => navigate('/my')}
-          onCreateCard={() => navigate('/cards/new')}
-        />
+      {isOutOfForecast ? (
+        /* 예보 범위 밖은 오류가 아니라 정상 상태다 — 로딩·에러보다 먼저 잡아야
+           서버가 내는 400이 "불러오지 못했어요"로 새어 나가지 않는다 */
+        <CareBriefingNoForecast dateLabel={dateLabel} />
+      ) : isEmpty ? (
+        <>
+          {/*
+            카드가 없어도 날씨·자외선·미세먼지는 그대로 유효하다. 이걸 감추면 화면에
+            안내 상자 두 개만 남아 앱이 아무것도 안 하는 것처럼 보인다 —
+            오늘을 알려주는 화면은 그대로 두고, 그 아래에 카드를 만들라고 권한다.
+          */}
+          <TodayEnvironment dateLabel={dateLabel} weather={weatherText} />
+          {metrics.length > 0 && (
+            <CareEvidence title="오늘의 환경" metrics={metrics} evidence={[]} schedules={[]} />
+          )}
+          <TodayEmptyState
+            /* 브리핑이 오기 전에는 연동 여부를 모른다 — null로 넘겨 감춘다 */
+            calendarConnected={data ? (data.calendarConnected ?? null) : null}
+            onConnectCalendar={() => navigate('/my')}
+            onCreateCard={() => navigate('/cards/new')}
+          />
+        </>
       ) : briefing.isError && !data ? (
         <CareBriefingError dateLabel={dateLabel} onRetry={() => void briefing.refetch()} />
       ) : !data ? (
         <CareBriefingLoading dateLabel={dateLabel} />
       ) : (
         <>
-          {isOutOfForecast ? (
-            <CareBriefingNoForecast dateLabel={dateLabel} />
-          ) : (
-            <CareBriefing
-              dateLabel={dateLabel}
-              /* 날씨는 브리핑이 아니라 전용 API에서 받는다 — 한쪽이 실패해도 다른 쪽은 보인다 */
-              weather={
-                weather.data?.temp !== null && weather.data?.temp !== undefined
-                  ? `${weather.data.condition ?? ''} ${Math.round(weather.data.temp)}°`.trim()
-                  : null
-              }
-              /* 회복 기간이 끝난 날짜는 판단이 비어 온다. 시안에 없는 문구라 확인 필요 */
-              message={
-                data.cardJudgement?.actionSentence ??
-                '이 날짜에 예정된 회복 관리는 없어요. 평소 루틴을 유지하시면 돼요.'
-              }
-            />
-          )}
+          <CareBriefing
+            dateLabel={dateLabel}
+            /* 날씨는 브리핑이 아니라 전용 API에서 받는다 — 한쪽이 실패해도 다른 쪽은 보인다 */
+            weather={weatherText}
+            /* 회복 기간이 끝난 날짜는 판단이 비어 온다. 시안에 없는 문구라 확인 필요 */
+            message={
+              data.cardJudgement?.actionSentence ??
+              '이 날짜에 예정된 회복 관리는 없어요. 평소 루틴을 유지하시면 돼요.'
+            }
+          />
 
           {checklist.data && (
             <TodayChecklist

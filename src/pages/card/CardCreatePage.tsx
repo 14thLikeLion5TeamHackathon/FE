@@ -43,9 +43,19 @@ export default function CardCreatePage() {
         treatments: selectedIds.map((treatmentId) => ({ treatmentId })),
       },
       {
-        // cardId가 비어 오면 상세로 못 간다. 그렇다고 실패로 보이면 사용자가 같은 카드를
-        // 또 만드니, 새 카드가 목록에 보이는 회복 탭으로 보낸다.
-        onSuccess: (card) => navigate(card.cardId ? `/cards/${card.cardId}` : '/recovery'),
+        /*
+          등록 화면을 히스토리에서 걷어내고 그 자리에 회복 탭을 깐 뒤 상세로 간다.
+          그냥 push하면 상세에서 뒤로 갔을 때 방금 제출한 등록 폼이 다시 나온다.
+          회복 탭을 고른 건 새로 만든 카드가 거기 목록에 보이기 때문이다 —
+          어디서 들어왔든(오늘 빈 상태·회복·탭바 +) 돌아갈 자리가 같아진다.
+
+          cardId가 비어 오면 상세로 못 간다. 그렇다고 실패로 보이면 사용자가 같은 카드를
+          또 만드니, 회복 탭에서 멈춘다.
+        */
+        onSuccess: (card) => {
+          navigate('/recovery', { replace: true });
+          if (card.cardId) navigate(`/cards/${card.cardId}`);
+        },
       },
     );
   };
@@ -121,15 +131,6 @@ export default function CardCreatePage() {
         <p className="typo-label text-text-primary">시술 날짜</p>
         <DateField value={treatedAt} onChange={setTreatedAt} />
       </div>
-
-      {/* 여러 시술을 한 번에 등록하는 흐름은 아직 정해지지 않아 disabled 처리 */}
-      <button
-        type="button"
-        disabled
-        className="typo-body border-primary text-primary rounded-btn cursor-not-allowed border border-dashed py-3.5"
-      >
-        + 시술 추가
-      </button>
 
       <Card variant="block" className="flex items-start gap-2.5">
         {/* 인증 배지 — 원이 아니라 꽃잎 8장을 두른 톱니 모양 실루엣 */}

@@ -4,6 +4,7 @@ import { HttpStatus, type ApiError } from '../../api/types';
 import Chip from '../../components/Chip';
 import NavHeader from '../../components/NavHeader';
 import { useFeedback } from '../../hooks/feedback/useFeedback';
+import { mediaUrl } from '../../lib/mediaUrl';
 import SymptomDeltaList from './components/SymptomDeltaList';
 
 /** 제목 + 본문을 감싸는 카드. 이 화면이 블록을 여러 개 쌓아서 따로 뺐다. */
@@ -81,7 +82,7 @@ export default function FeedbackPage() {
             <figure key={index === 0 ? 'before' : 'after'} className="flex flex-1 flex-col gap-1.5">
               {side.photoUrl ? (
                 <img
-                  src={side.photoUrl}
+                  src={mediaUrl(side.photoUrl)}
                   alt={`${side.ddayLabel} 기록 사진`}
                   className="bg-surface-fill border-border-subtle aspect-square w-full rounded-md border object-cover"
                 />
@@ -167,7 +168,14 @@ export default function FeedbackPage() {
 
       <button
         type="button"
-        onClick={() => navigate(`/cards/${data.cardId}`)}
+        /*
+          cardId가 비어 올 수 있어(계약상 required가 없다) 그때는 회복 탭으로 보낸다 —
+          `/cards/`로 가면 존재하지 않는 카드 상세가 열려 사용자가 막힌다.
+          replace인 이유는 상세에서 뒤로 갔을 때 이미 확인한 피드백이 또 나오지 않게 하려는 것.
+        */
+        onClick={() =>
+          navigate(data.cardId ? `/cards/${data.cardId}` : '/recovery', { replace: true })
+        }
         className="bg-primary text-primary-on typo-label rounded-btn py-4"
       >
         피드백 저장하기

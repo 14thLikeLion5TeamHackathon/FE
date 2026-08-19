@@ -1,6 +1,20 @@
-# FE
+# 마디 (Madi)
 
-멋쟁이사자처럼 14기 5팀 해커톤 프론트엔드 레포지토리입니다.
+시술 후 회복을 하루 단위로 안내하는 웹 앱입니다. 멋쟁이사자처럼 14기 5팀 해커톤 프론트엔드 레포지토리입니다.
+
+시술을 받고 나면 "오늘은 뭘 조심해야 하지"가 매일 생깁니다. 마디는 받은 시술을 **케어 카드**로 등록해 두면
+D-day와 그날의 날씨·자외선·미세먼지를 함께 보고 오늘 할 관리를 한 줄로 알려줍니다.
+
+## 주요 기능
+
+| 화면 | 기능 |
+| --- | --- |
+| 로그인 | 카카오·구글 소셜 로그인(BE 리다이렉트 방식), 온보딩에서 약관 동의와 기본 정보 입력 |
+| 오늘 | 날짜별 관리 브리핑, 오늘의 케어 체크리스트, 날씨·자외선·미세먼지, 구글 캘린더 일정, 기준 위치 변경(GPS 또는 17개 광역시도) |
+| 회복 | 케어 카드 목록과 회복 진행률, 증상 추이 곡선 |
+| 카드 상세 | D-day 진행바, 오늘의 관리, 회복 가이드 구간, 주의사항, 회복 기록 타임라인 |
+| 기록 | 사진·증상 강도·메모로 회복 기록 등록, 등록 직후 AI 피드백과 지난 기록 비교 |
+| 마이 | 개인정보 조회·수정, 구글 캘린더·카카오톡 알림 연동, 로그아웃·회원탈퇴 |
 
 ## 기술 스택
 
@@ -9,7 +23,7 @@
 | UI        | React 19, TypeScript, Tailwind CSS 4, `clsx`, `tailwind-merge` |
 | 라우팅    | React Router 8, 라우트 단위 lazy loading                       |
 | 상태·통신 | TanStack Query, Axios, Zod                                     |
-| 개발 환경 | Vite, MSW, ESLint, Prettier, pnpm                              |
+| 개발 환경 | Vite, ESLint, Prettier, pnpm                                   |
 
 ## 실행 방법
 
@@ -18,11 +32,14 @@ pnpm install
 pnpm dev
 ```
 
-환경 변수는 `.env.example`을 복사해 `.env.local`로 만들어 사용합니다.
+환경 변수는 `.env.example`을 복사해 만들고, 각 값의 의미와 발급처는 그 파일 주석에 적혀 있습니다.
 
 ```bash
-cp .env.example .env.local
+cp .env.example .env
 ```
+
+서버 주소와 키는 공개 레포에 올리지 않습니다 — 팀 노션에서 받아 `.env`에만 넣습니다.
+로컬에서는 `VITE_API_BASE_URL`을 비우고 `VITE_API_PROXY_TARGET`에 서버 오리진을 넣어 vite 프록시로 붙습니다(CORS 우회).
 
 ## 자주 사용하는 명령어
 
@@ -45,8 +62,7 @@ src/
 ├── api/          # Axios 기반 API 호출과 공통 응답 처리
 ├── hooks/        # TanStack Query 도메인 훅
 ├── types/        # Zod 스키마와 API 타입
-├── lib/          # 프레임워크 무관 유틸 (cn 등)
-└── mocks/        # 개발 환경 MSW 핸들러
+└── lib/          # 프레임워크 무관 유틸 (cn, 날짜, 위치 등)
 ```
 
 ### API 레이어 규칙
@@ -76,11 +92,6 @@ export async function getHome(): Promise<HomeResponse> {
 > ⚠️ `text-primary`는 **글자색이 아니라 스카이(`#8DC9F7`)** 입니다. 본문 글자는 `text-text-primary`입니다.
 
 전체 토큰 목록과 자주 하는 실수는 [디자인 토큰 치트시트](https://app.notion.com/p/3b437e6b127e81bfb1eaed6601d61d6f)에 있습니다.
-
-### MSW
-
-BE 미배포 엔드포인트만 `src/mocks/handlers.ts`에 추가합니다. 배포되면 핸들러를 지워 실 API로 넘깁니다.
-목에 없는 요청은 그대로 통과하며(`onUnhandledRequest: 'bypass'`), `import.meta.env.DEV` 가드가 있어 프로덕션 번들에는 포함되지 않습니다.
 
 ## 협업 흐름
 

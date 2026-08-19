@@ -135,9 +135,10 @@ export default function RecordCreatePage() {
         tags: JSON.stringify(tags),
       },
       {
+        // 제출이 끝난 폼은 히스토리에서 뺀다 — 뒤로 가면 같은 기록을 또 올리게 된다
         onSuccess: (data) => {
           const recordId = data?.recordId ?? 0;
-          navigate(`/records/${recordId}/feedback`);
+          navigate(`/records/${recordId}/feedback`, { replace: true });
         },
       }
     );

@@ -13,17 +13,13 @@ type PageHeaderProps = {
  */
 export default function PageHeader({ title }: PageHeaderProps) {
   return (
-    <header className="flex items-center justify-between">
-      <div className="flex items-center gap-2">
-        {/* 제목이 h1이라 로고는 장식이다 — 스크린리더가 "마디 오늘"로 읽지 않게 감춘다.
+    <header className="flex items-center gap-2">
+      {/* 제목이 h1이라 로고는 장식이다 — 스크린리더가 "마디 오늘"로 읽지 않게 감춘다.
             Logo 자체가 role="img"라 바깥에서 subtree째 가린다. */}
-        <span aria-hidden>
-          <Logo symbolOnly size={22} />
-        </span>
-        <h1 className="typo-title">{title}</h1>
-      </div>
-      {/* 프로필 이미지 자리. 에셋 확정 전까지 원형 플레이스홀더 */}
-      <div className="bg-surface-elevated size-7 rounded-full" aria-hidden />
+      <span aria-hidden>
+        <Logo symbolOnly size={22} />
+      </span>
+      <h1 className="typo-title">{title}</h1>
     </header>
   );
 }

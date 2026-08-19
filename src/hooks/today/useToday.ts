@@ -26,11 +26,16 @@ const todayKeys = {
  *
  * `location`은 **요청에 실리지 않는다** — 서버가 저장된 기준 위치를 읽기 때문이다(api/today.ts).
  * 그래도 쿼리 키에 넣는 이유는, 위치를 바꾸면 캐시가 갈려 옛 지역 브리핑이 잠깐 비치는 걸 막기 위해서다.
+ *
+ * `enabled`로 예보 범위 밖을 막는다 — 브리핑은 안에서 날씨를 부르기 때문에 범위를 넘으면
+ * 서버가 400을 낸다. 그건 오류가 아니라 "아직 예보가 없다"는 정상 상태다. 그대로 부르면
+ * 화면이 400을 오류로 읽어 "불러오지 못했어요"를 띄운다.
  */
-export function useBriefing(date: string, location: TodayLocation) {
+export function useBriefing(date: string, location: TodayLocation, enabled = true) {
   return useQuery({
     queryKey: todayKeys.briefing(date, location),
     queryFn: () => getBriefing(date),
+    enabled,
   });
 }
 

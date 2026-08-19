@@ -3,15 +3,12 @@ import { cn } from '../../../lib/cn';
 
 export type TodayCareProps = {
   items: string | string[];
+  /** 목록 아래 보조 문구. 기본값 없이, 필요한 화면에서만 넘긴다 */
   subText?: string;
   className?: string;
 };
 
-export default function TodayCare({
-  items,
-  subText = '오늘 탭·카카오톡과 같은 안내 메시지로 제공됩니다.',
-  className,
-}: TodayCareProps) {
+export default function TodayCare({ items, subText, className }: TodayCareProps) {
   const itemList = Array.isArray(items) ? items : [items];
 
   return (

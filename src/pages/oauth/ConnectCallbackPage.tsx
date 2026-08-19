@@ -3,7 +3,9 @@ import { useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
 
 import { connectCalendar, connectKakaoNotification } from '../../api/connect';
+import Button from '../../components/Button';
 import NavHeader from '../../components/NavHeader';
+import { cn } from '../../lib/cn';
 import { readAuthCode, redirectUri, type ConnectProvider } from '../../lib/connect';
 
 const LABEL: Record<ConnectProvider, string> = {
@@ -51,32 +53,95 @@ export default function ConnectCallbackPage({ provider }: { provider: ConnectPro
     mutate(result.code);
   }, [mutate, result]);
 
-  const message = denied
-    ? `${label} 연동을 취소하셨어요. 마이에서 언제든 다시 연결할 수 있어요.`
+  /**
+   * 상태 넷을 하나로 모은다 — 문구·아이콘·버튼이 따로 갈리면 "성공인데 재시도 버튼"처럼
+   * 서로 어긋난 조합이 생긴다. 한 곳에서 정하고 아래는 그리기만 한다.
+   */
+  const view = denied
+    ? {
+        tone: 'neutral' as const,
+        title: '연동을 취소하셨어요',
+        body: `마이에서 언제든 ${label}을 다시 연결할 수 있어요.`,
+      }
     : connect.isSuccess
-      ? `${label} 연동이 완료됐어요.`
+      ? {
+          tone: 'success' as const,
+          title: `${label} 연동 완료`,
+          body: '이제 오늘 탭 안내에 반영돼요.',
+        }
       : connect.isError || !('code' in result)
-        ? `${label} 연동에 실패했어요. 잠시 후 다시 시도해주세요.`
-        : `${label}을 연결하는 중이에요...`;
+        ? {
+            tone: 'error' as const,
+            title: '연동에 실패했어요',
+            body: '잠시 후 마이에서 다시 시도해주세요.',
+          }
+        : {
+            tone: 'pending' as const,
+            title: `${label}을 연결하는 중이에요`,
+            body: '잠시만 기다려주세요.',
+          };
 
-  const settled = denied || connect.isSuccess || connect.isError || !('code' in result);
+  const settled = view.tone !== 'pending';
 
   return (
-    <div className="flex min-h-dvh flex-col gap-3.5 px-5 pt-5">
+    <div className="flex min-h-dvh flex-col px-5 pt-5 pb-8">
       <NavHeader title="연동" />
-      <p className="typo-body text-text-secondary" aria-live="polite">
-        {message}
-      </p>
 
+      {/* 결과 하나만 있는 화면이라 가운데에 세운다 — 위에 붙이면 빈 화면처럼 보인다 */}
+      <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
+        <StatusMark tone={view.tone} />
+        <div className="flex flex-col gap-1.5">
+          <h2 className="typo-section" aria-live="polite">
+            {view.title}
+          </h2>
+          <p className="typo-body text-text-secondary">{view.body}</p>
+        </div>
+      </div>
+
+      {/* 아직 진행 중일 때 버튼을 두면 연동을 끊고 나가게 된다 */}
       {settled && (
-        <button
-          type="button"
-          onClick={() => navigate('/my', { replace: true })}
-          className="bg-primary text-primary-on typo-label rounded-btn self-start px-6 py-3"
-        >
+        <Button className="w-full py-4" onClick={() => navigate('/my', { replace: true })}>
           마이로 돌아가기
-        </button>
+        </Button>
       )}
+    </div>
+  );
+}
+
+/** 결과를 한눈에 알리는 원형 표시. 색과 기호 둘 다로 구분한다 — 색만으로는 구분 못 하는 사용자가 있다 */
+function StatusMark({ tone }: { tone: 'success' | 'error' | 'neutral' | 'pending' }) {
+  if (tone === 'pending') {
+    return (
+      <div
+        className="border-border-subtle border-t-primary size-12 animate-spin rounded-full border-2"
+        aria-hidden
+      />
+    );
+  }
+
+  return (
+    <div
+      className={cn(
+        'flex size-12 items-center justify-center rounded-full',
+        tone === 'success' && 'bg-primary text-primary-on',
+        tone === 'error' && 'bg-danger text-primary-on',
+        tone === 'neutral' && 'bg-surface-elevated text-text-secondary',
+      )}
+      aria-hidden
+    >
+      <svg
+        viewBox="0 0 24 24"
+        className="size-6"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        {tone === 'success' && <path d="M5 12.5L10 17.5L19 7" />}
+        {tone === 'error' && <path d="M7 7L17 17M17 7L7 17" />}
+        {tone === 'neutral' && <path d="M6 12H18" />}
+      </svg>
     </div>
   );
 }

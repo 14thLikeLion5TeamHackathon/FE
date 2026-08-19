@@ -214,7 +214,7 @@ export default function MyPage() {
             label="구글 캘린더"
             description={
               isCalendarConnected
-                ? '일정을 불러와 오늘 브리핑에 씁니다'
+                ? '일정을 불러와 오늘 브리핑에 써요. 끄면 연동이 해제돼요'
                 : googleConfigured
                   ? '켜면 구글 동의 화면으로 이동해요'
                   : '연동 키가 없어 지금은 켤 수 없어요'
