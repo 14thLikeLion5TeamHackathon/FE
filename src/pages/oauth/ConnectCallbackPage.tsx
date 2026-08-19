@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
 
 import { connectCalendar, connectKakaoNotification } from '../../api/connect';
@@ -32,42 +31,57 @@ export default function ConnectCallbackPage({ provider }: { provider: ConnectPro
    * 렌더 본문에서 `readAuthCode(...)`를 부르면 매 렌더 새 객체가 나오고, 그게 아래 effect의
    * 의존성이라 effect가 계속 다시 돈다. 게다가 성공 직후 `replaceState`로 주소창의 코드를
    * 지우기 때문에, 다시 읽으면 코드가 사라진 상태가 보인다 — 값이 렌더마다 달라지는 셈이다.
-   * 화면이 "연결하는 중"에서 못 벗어나던 원인이다(요청은 200으로 성공해 있었다).
    *
    * 주소창은 지워도 이 값은 남아야 한다. 판단의 근거는 "처음 도착했을 때 뭐가 왔는가"다.
    */
   const [result] = useState(() => readAuthCode(window.location.search));
   const denied = 'error' in result && result.error === 'access_denied';
 
-  const connect = useMutation({
-    mutationFn: (code: string) =>
-      provider === 'google'
-        ? connectCalendar(code, redirectUri('google'))
-        : connectKakaoNotification(code, redirectUri('kakao')),
-    onSuccess: () => {
-      // 주소창에 인가 코드를 남기지 않는다 — 뒤로 가기로 재사용되면 확정 실패다
-      window.history.replaceState(null, '', window.location.pathname);
-    },
-  });
+  /**
+   * 연동 진행 상태.
+   *
+   * **React Query를 쓰지 않는다.** `useMutation`으로 두면 dev에서 화면이 "연결 중"에
+   * 영영 머문다 — StrictMode가 effect를 정리했다 다시 실행하는 사이 mutation observer는
+   * 초기화되는데 아래 `sent` ref는 살아남는다. 그래서 요청은 200으로 성공해 있는데
+   * 새 observer는 idle인 채로 남고, 재요청은 ref에 막힌다.
+   *
+   * 인가 코드는 일회용이라 그 ref 가드를 뺄 수 없다. 남는 선택은 상태를 우리가 들고 있는
+   * 것뿐이고, 요청 한 번에 상태 셋이라 훅을 얹을 이유도 크지 않다.
+   */
+  const [status, setStatus] = useState<'pending' | 'success' | 'error'>('pending');
 
   /**
-   * 인가 코드는 **일회용**이다. React 18 StrictMode는 dev에서 effect를 두 번 실행하는데,
+   * 인가 코드는 **일회용**이다. StrictMode는 dev에서 effect를 두 번 실행하는데,
    * 두 번째 요청은 반드시 실패한다 — 연동은 됐는데 화면만 실패로 보이게 된다.
    */
   const sent = useRef(false);
-  const { mutate } = connect;
 
   useEffect(() => {
     if (sent.current || !('code' in result)) return;
     sent.current = true;
-    mutate(result.code);
-  }, [mutate, result]);
 
-  /*
-    `result`가 이제 안정된 값이라 이 effect는 마운트 뒤 한 번만 돈다.
-    StrictMode가 effect를 두 번 실행해도 sent 가드가 두 번째를 막는다 —
-    인가 코드는 일회용이라 두 번째 요청은 반드시 실패한다.
-  */
+    /*
+      **정리에서 결과를 버리지 않는다.** 흔한 `let alive = true` 패턴을 여기 쓰면 안 된다 —
+      StrictMode가 정리를 한 번 돌려 alive를 false로 만드는데, 이어지는 재실행은 위의 sent
+      가드에 막혀 새 alive를 켜지 못한다. 그러면 응답이 와도 버려져 화면이 "연결 중"에
+      영영 머문다. 고치려던 증상을 그대로 다시 만드는 셈이다.
+
+      React 18부터 언마운트된 컴포넌트의 setState는 경고 없이 무시되므로 그냥 반영한다.
+      요청도 취소하지 않는다 — 이미 나갔고 인가 코드는 일회용이라 취소해도 다시 못 보낸다.
+    */
+    const request =
+      provider === 'google'
+        ? connectCalendar(result.code, redirectUri('google'))
+        : connectKakaoNotification(result.code, redirectUri('kakao'));
+
+    request
+      .then(() => {
+        // 주소창에 인가 코드를 남기지 않는다 — 뒤로 가기로 재사용되면 확정 실패다
+        window.history.replaceState(null, '', window.location.pathname);
+        setStatus('success');
+      })
+      .catch(() => setStatus('error'));
+  }, [provider, result]);
 
   /**
    * 상태 넷을 하나로 모은다 — 문구·아이콘·버튼이 따로 갈리면 "성공인데 재시도 버튼"처럼
@@ -79,13 +93,13 @@ export default function ConnectCallbackPage({ provider }: { provider: ConnectPro
         title: '연동을 취소하셨어요',
         body: `마이에서 언제든 ${label}을 다시 연결할 수 있어요.`,
       }
-    : connect.isSuccess
+    : status === 'success'
       ? {
           tone: 'success' as const,
           title: `${label} 연동 완료`,
           body: '이제 오늘 탭 안내에 반영돼요.',
         }
-      : connect.isError || !('code' in result)
+      : status === 'error' || !('code' in result)
         ? {
             tone: 'error' as const,
             title: '연동에 실패했어요',
