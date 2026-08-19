@@ -58,14 +58,20 @@ export default function HomePage() {
   const today = useMemo(() => startOfDay(new Date()), []);
 
   /**
-   * 예보 범위 밖이면 날씨·대기질 대신 D-day 기준으로만 안내한다.
+   * 날씨·대기질을 붙일 수 없는 날짜면 D-day 기준으로만 안내한다.
    * 조회를 막는 조건이라 쿼리보다 위에 있어야 한다.
+   *
+   * **지난 날짜도 여기 들어간다.** 예보 API는 오늘부터 5일만 주므로 어제도 범위 밖이고,
+   * 브리핑이 안에서 날씨를 부르기 때문에 그대로 두면 어제를 고를 때마다
+   * "불러오지 못했어요"가 뜬다. 미래만 막고 있어서 실제로 그랬다.
    */
+  const isPast = selected < today;
   const isOutOfForecast = selected > forecastEnd(today);
+  const hasNoForecast = isPast || isOutOfForecast;
 
   const hasCards = useHasCards();
   const selectedKey = toKey(selected);
-  const briefing = useBriefing(selectedKey, location, !isOutOfForecast);
+  const briefing = useBriefing(selectedKey, location, !hasNoForecast);
   const checklist = useChecklist(selectedKey);
   const { mutate: toggleItem } = useToggleChecklistItem();
 
@@ -108,17 +114,20 @@ export default function HomePage() {
 
   const dateLabel = formatDayLabel(selected);
 
+  /** 체크리스트는 브리핑과 별개 엔드포인트라 브리핑이 죽어도 온다 (아래 렌더 주석 참고) */
+  const checklistItems = checklist.data?.items ?? [];
+
   /**
    * 날씨·환경 지표. 브리핑과 나눠 받는다 — 한쪽이 실패해도 다른 쪽은 보인다.
    * 예보 범위 밖은 부르지 않는다. 서버가 400을 내는데 그건 오류가 아니라
    * "아직 예보가 없다"는 정상 상태라, 요청 자체를 안 하는 편이 맞다.
    */
-  const weather = useWeather(selectedKey, coords, !isOutOfForecast);
+  const weather = useWeather(selectedKey, coords, !hasNoForecast);
 
   // 예보 범위 밖에서는 비운다 — 브리핑이 "예보가 없어요"라고 말하는데
   // 바로 아래에 자외선·미세먼지 값이 그대로 보이면 서로 어긋난다.
   const metrics =
-    weather.data && !isOutOfForecast
+    weather.data && !hasNoForecast
       ? [
           weather.data.uvLevel && {
             label: '자외선',
@@ -203,26 +212,13 @@ export default function HomePage() {
         />
       )}
 
-      {/* 상태 넷은 반드시 하나만 뜬다. 따로 두면 카드 조회와 브리핑이 병렬이라
+      {/* 브리핑 카드는 상태 넷 중 하나만 뜬다. 따로 두면 카드 조회와 브리핑이 병렬이라
           로딩 카드와 빈 화면이 겹쳐 뜨고, 재조회가 실패하면 직전 데이터가 남아 있어
           에러 카드와 정상 브리핑이 같이 보인다. */}
-      {isOutOfForecast ? (
+      {hasNoForecast ? (
         /* 예보 범위 밖은 오류가 아니라 정상 상태다 — 로딩·에러보다 먼저 잡아야
            서버가 내는 400이 "불러오지 못했어요"로 새어 나가지 않는다 */
-        <>
-          <CareBriefingNoForecast dateLabel={dateLabel} />
-          {/*
-            앞날 일정을 넣는 건 가장 흔한 쓰임이라 여기서도 추가할 수 있어야 한다.
-            다만 이 날짜는 브리핑을 부르지 않아(위 `enabled`) 일정 목록을 모른다 —
-            빈 목록으로 넘기면 "없어요"라고 단정하게 되므로 모른다고 말한다.
-          */}
-          <TodaySchedules
-            schedules={[]}
-            unavailable
-            onAdd={handleAddSchedule}
-            onEdit={handleEditSchedule}
-          />
-        </>
+        <CareBriefingNoForecast dateLabel={dateLabel} past={isPast} />
       ) : isEmpty ? (
         <>
           {/*
@@ -252,27 +248,44 @@ export default function HomePage() {
       ) : !data ? (
         <CareBriefingLoading dateLabel={dateLabel} />
       ) : (
-        <>
-          <CareBriefing
-            dateLabel={dateLabel}
-            /* 날씨는 브리핑이 아니라 전용 API에서 받는다 — 한쪽이 실패해도 다른 쪽은 보인다 */
-            weather={weatherText}
-            /* 회복 기간이 끝난 날짜는 판단이 비어 온다. 시안에 없는 문구라 확인 필요 */
-            message={
-              data.cardJudgement?.actionSentence ??
-              '이 날짜에 예정된 회복 관리는 없어요. 평소 루틴을 유지하시면 돼요.'
-            }
-          />
+        <CareBriefing
+          dateLabel={dateLabel}
+          /* 날씨는 브리핑이 아니라 전용 API에서 받는다 — 한쪽이 실패해도 다른 쪽은 보인다 */
+          weather={weatherText}
+          /* 회복 기간이 끝난 날짜는 판단이 비어 온다. 시안에 없는 문구라 확인 필요 */
+          message={
+            data.cardJudgement?.actionSentence ??
+            '이 날짜에 예정된 회복 관리는 없어요. 평소 루틴을 유지하시면 돼요.'
+          }
+        />
+      )}
 
-          {checklist.data && (
+      {/*
+        아래 블록들은 **브리핑 밖에 둔다.**
+        예전에는 브리핑 성공 분기 안에 들어 있어서, 브리핑이 500이거나 아직 로딩 중이면
+        체크리스트를 200으로 잘 받아놓고도 화면에 그리지 않았다 — 엔드포인트를 나눠 받은
+        이유(한쪽이 실패해도 다른 쪽은 보인다)가 렌더 구조에서 무너져 있었다.
+
+        빈 상태만 예외다. 카드가 없으면 체크리스트도 근거도 비어 있고,
+        그 화면은 자기 몫의 블록을 위에서 이미 그린다.
+      */}
+      {!isEmpty && (
+        <>
+          {checklistItems.length > 0 && (
             <TodayChecklist
-              items={checklist.data.items ?? []}
+              items={checklistItems}
               onToggle={(checklistId, completed) => toggleItem({ checklistId, completed })}
             />
           )}
 
+          {/*
+            날씨를 붙일 수 없는 날짜는 브리핑을 부르지 않아 일정 목록을 모른다 —
+            빈 목록으로 넘기면 "없어요"라고 단정하게 되므로 모른다고 말한다.
+            앞날 일정을 넣는 건 가장 흔한 쓰임이라 추가 버튼은 그대로 살려 둔다.
+          */}
           <TodaySchedules
-            schedules={schedules}
+            schedules={hasNoForecast ? [] : schedules}
+            unavailable={hasNoForecast}
             onAdd={handleAddSchedule}
             onEdit={handleEditSchedule}
           />
