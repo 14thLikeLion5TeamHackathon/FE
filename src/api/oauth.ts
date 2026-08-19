@@ -46,9 +46,23 @@ function isIpOrigin(origin: string) {
   }
 }
 
-/** 동의 화면으로 이동. 돌아온 뒤 처리는 consumeOAuthRedirect가 맡는다. */
+/**
+ * 동의 화면으로 이동. 돌아온 뒤 처리는 consumeOAuthRedirect가 맡는다.
+ *
+ * **`redirect_uri`를 반드시 붙인다.** 안 붙이면 서버가 자기 화이트리스트의 **첫 번째** 주소로
+ * 되돌려보내는데, 그 첫 항목이 `http://localhost:3000`이라 배포본에서 로그인하면
+ * 인증은 성공해 놓고 로컬 주소로 튄다 — 사용자에겐 그냥 실패로 보인다.
+ *
+ * 서버 순서를 바꾸는 걸로는 못 푼다. 그러면 이번엔 로컬에서 로그인해도 배포본으로 튄다.
+ * 각자 자기 주소를 말하는 게 맞다.
+ *
+ * 서버는 scheme·host·port만 비교하므로(경로는 안 본다) `origin`을 그대로 넘기면 된다.
+ * 화이트리스트에 없는 값을 보내면 무시하고 기본값으로 떨어지므로, 새 배포 도메인이
+ * 생기면 서버 목록에도 추가해야 한다.
+ */
 export function startSocialLogin(provider: SocialProvider) {
-  window.location.assign(`${OAUTH_ORIGIN}/oauth2/authorization/${provider}`);
+  const params = new URLSearchParams({ redirect_uri: window.location.origin });
+  window.location.assign(`${OAUTH_ORIGIN}/oauth2/authorization/${provider}?${params}`);
 }
 
 export type OAuthRedirectResult =
