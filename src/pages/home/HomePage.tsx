@@ -14,6 +14,7 @@ import { useTodayLocation } from '../../hooks/today/useTodayLocation';
 import { useWeather } from '../../hooks/weather/useWeather';
 import {
   formatDayLabel,
+  formatShortDayLabel,
   fromDateInputValue,
   monthMatrix,
   startOfDay,
@@ -114,6 +115,14 @@ export default function HomePage() {
   const isEmpty = hasCards === false;
 
   const dateLabel = formatDayLabel(selected);
+
+  /**
+   * 블록 제목에 끼워 쓸 날짜. **오늘이면 undefined다.**
+   *
+   * 오늘을 보고 있을 때까지 "8월 20일 케어"라고 쓰면 매일 여는 화면이 낯설어진다 —
+   * 오늘은 "오늘"이라고 부르는 게 맞다. 다른 날짜일 때만 날짜로 바꿔 어느 날 얘기인지 밝힌다.
+   */
+  const blockDateLabel = selectedKey === toKey(today) ? undefined : formatShortDayLabel(selected);
 
   /** 체크리스트는 브리핑과 별개 엔드포인트라 브리핑이 죽어도 온다 (아래 렌더 주석 참고) */
   const checklistItems = checklist.data?.items ?? [];
@@ -243,11 +252,16 @@ export default function HomePage() {
           */}
           <TodayEnvironment dateLabel={dateLabel} weather={weatherText} />
           {metrics.length > 0 && (
-            <CareEvidence title="오늘의 환경" metrics={metrics} evidence={[]} />
+            <CareEvidence
+              title={blockDateLabel ? `${blockDateLabel} 환경` : '오늘의 환경'}
+              metrics={metrics}
+              evidence={[]}
+            />
           )}
           {/* 일정은 케어 카드와 무관하다 — 카드가 없어도 넣고 볼 수 있어야 한다 */}
           <TodaySchedules
             schedules={schedules}
+            dateLabel={blockDateLabel}
             onAdd={handleAddSchedule}
             onEdit={handleEditSchedule}
           />
@@ -315,6 +329,7 @@ export default function HomePage() {
               <TodayChecklist
                 items={checklistItems}
                 past={isPast}
+                dateLabel={blockDateLabel}
                 onToggle={(checklistId, completed) => toggleItem({ checklistId, completed })}
               />
             )
@@ -328,6 +343,7 @@ export default function HomePage() {
           <TodaySchedules
             schedules={briefingUnavailable ? [] : schedules}
             unavailable={briefingUnavailable}
+            dateLabel={blockDateLabel}
             onAdd={handleAddSchedule}
             onEdit={handleEditSchedule}
           />

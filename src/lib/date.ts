@@ -61,6 +61,16 @@ export function formatDayLabel(date: Date): string {
   return `${date.getMonth() + 1}월 ${date.getDate()}일 (${DOW_LABELS[date.getDay()]})`;
 }
 
+/**
+ * "8월 19일" — 블록 제목에 끼워 쓰는 짧은 날짜.
+ *
+ * `formatDayLabel`은 요일까지 붙어("8월 19일 (수)") 제목 안에 넣으면 길다.
+ * 브리핑 카드처럼 날짜가 주인공인 자리는 그쪽을, 제목 앞에 붙는 자리는 이쪽을 쓴다.
+ */
+export function formatShortDayLabel(date: Date): string {
+  return `${date.getMonth() + 1}월 ${date.getDate()}일`;
+}
+
 /** "2026년 8월" — 월 모드 헤더 */
 export function formatMonthLabel(date: Date): string {
   return `${date.getFullYear()}년 ${date.getMonth() + 1}월`;

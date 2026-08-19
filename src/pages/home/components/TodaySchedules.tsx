@@ -9,6 +9,8 @@ type TodaySchedulesProps = {
    * 모르는 걸 "없다"고 쓰면 일정이 있는 사용자에게 거짓말이 된다.
    */
   unavailable?: boolean;
+  /** 오늘이 아닌 날짜를 보고 있을 때의 날짜("8월 19일"). 오늘이면 넘기지 않는다 */
+  dateLabel?: string;
 };
 
 /**
@@ -25,11 +27,14 @@ export default function TodaySchedules({
   onAdd,
   onEdit,
   unavailable = false,
+  dateLabel,
 }: TodaySchedulesProps) {
   return (
     <section className="bg-surface-raised rounded-md flex flex-col gap-2.5 p-4">
       <header className="flex items-center justify-between">
-        <h2 className="typo-label text-text-tertiary">오늘 일정</h2>
+        <h2 className="typo-label text-text-tertiary">
+          {dateLabel ? `${dateLabel} 일정` : '오늘 일정'}
+        </h2>
         <button
           type="button"
           onClick={onAdd}
