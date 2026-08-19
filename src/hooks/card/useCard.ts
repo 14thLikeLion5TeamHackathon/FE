@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { createCard, getCardDetail, getCardRecords, getCards, getTreatments } from '../../api/card';
 import type { TreatmentCategory } from '../../types/card';
@@ -37,11 +37,27 @@ export function useCardRecords(cardId: string) {
   });
 }
 
-/** 카드 생성 화면의 시술 목록. 카테고리 칩·검색어로 좁힌다. */
+/**
+ * 카드 생성 화면의 시술 목록. 카테고리 칩·검색어로 좁힌다.
+ *
+ * 서버가 페이징으로 바뀌어 한 번에 전부 오지 않는다. 남은 장을 이어 붙여야 해서
+ * `useInfiniteQuery`를 쓴다 — 카테고리·검색어가 바뀌면 쿼리 키가 갈려 1장부터 다시 받는다.
+ */
 export function useTreatments(category?: TreatmentCategory, keyword?: string) {
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: cardKeys.treatments(category, keyword),
-    queryFn: () => getTreatments({ category, keyword }),
+    queryFn: ({ pageParam }) => getTreatments({ category, keyword, page: pageParam }),
+    initialPageParam: 0,
+    /**
+     * `hasNext`를 그대로 믿되, 안 왔을 때는 `totalPages`로 물러난다.
+     * 둘 다 없으면 멈춘다 — 끝을 모르는 채 계속 요청하면 같은 장을 무한히 받는다.
+     */
+    getNextPageParam: (lastPage, allPages) => {
+      const next = (lastPage.page ?? allPages.length - 1) + 1;
+      if (lastPage.hasNext != null) return lastPage.hasNext ? next : undefined;
+      if (lastPage.totalPages != null) return next < lastPage.totalPages ? next : undefined;
+      return undefined;
+    },
   });
 }
 
