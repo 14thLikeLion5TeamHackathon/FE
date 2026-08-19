@@ -144,7 +144,11 @@ export default function HomePage() {
       {/* 좁은 화면에서는 안내가 길어 줄이 넘친다 — 접히게 두고 세로 간격만 좁게 준다 */}
       <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
         {/* selectLocation은 서버 저장을 기다리는 비동기다 — 시트는 즉시 닫히고, 결과는 브리핑 재조회로 드러난다 */}
-        <LocationPicker location={location} onSelect={(next) => void selectLocation(next)} />
+        <LocationPicker
+          location={location}
+          onSelect={(next) => void selectLocation(next)}
+          usingGps={usingGps}
+        />
         <LocationNotice status={geoStatus} location={location} usingGps={usingGps} />
       </div>
 

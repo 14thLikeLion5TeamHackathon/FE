@@ -30,12 +30,11 @@ import { useTodayGeolocation } from './useTodayGeolocation';
  */
 export function useTodayLocation() {
   /** 첫 렌더에 한 번만 읽는다 — 이후 값은 아래 상태가 들고 있다 */
-  const [hadStored] = useState(() => getStoredLocation() !== null);
+  const [stored] = useState(getStoredLocation);
 
-  const [location, setLocation] = useState<TodayLocation>(
-    () => getStoredLocation() ?? DEFAULT_LOCATION,
-  );
-  const [picked, setPicked] = useState(hadStored);
+  const [location, setLocation] = useState<TodayLocation>(stored ?? DEFAULT_LOCATION);
+  /** 저장된 값이 있다는 건 예전에 직접 골랐다는 뜻이다 — 그 선택이 GPS를 이긴다 */
+  const [picked, setPicked] = useState(stored !== null);
 
   const { status: geoStatus, coords: gpsCoords } = useTodayGeolocation();
   const queryClient = useQueryClient();
