@@ -9,6 +9,7 @@
 import { useLocation, useNavigate, useSearchParams, type Location } from 'react-router';
 
 import { isConfigured, startSocialLogin } from '../../api/oauth';
+import Logo from '../../components/Logo';
 import { useAuth } from '../../hooks/auth/useAuth';
 
 export default function LoginPage() {
@@ -42,8 +43,11 @@ export default function LoginPage() {
       <div />
 
       <div className="flex flex-col items-center gap-2">
-        <div className="border-primary size-20 rounded-2xl border" aria-hidden />
-        <h1 className="typo-title text-primary">Madi</h1>
+        {/* 원형/사각 플레이스홀더 대신 실제 로고. Logo가 role="img" aria-label="마디"라
+            h1은 여기서 접근성 이름을 얻는다 — 별도 텍스트를 두면 중복해서 읽힌다. */}
+        <h1>
+          <Logo size={36} />
+        </h1>
         <p className="typo-body text-text-secondary">개인 맞춤 웰니스 페이스메이커</p>
       </div>
 
