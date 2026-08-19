@@ -112,7 +112,7 @@ export default function SignupPage() {
             <p className="typo-label text-text-primary">
               생년월일 <span className="text-primary">*</span>
             </p>
-            <DateField value={birthDate} onChange={setBirthDate} />
+            <DateField value={birthDate} onChange={setBirthDate} label="생년월일" />
           </div>
 
           <SegmentGroup label="성별">

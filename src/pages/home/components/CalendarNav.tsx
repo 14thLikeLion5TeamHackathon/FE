@@ -1,4 +1,3 @@
-import { useNavigate } from 'react-router';
 
 import { cn } from '../../../lib/cn';
 import {
@@ -64,7 +63,6 @@ export default function CalendarNav({
   onSelect,
   onModeChange,
 }: CalendarNavProps) {
-  const navigate = useNavigate();
 
   const move = (direction: 1 | -1) => {
     onAnchorChange(mode === 'week' ? addDays(anchor, 7 * direction) : addMonths(anchor, direction));
@@ -116,13 +114,6 @@ export default function CalendarNav({
           <IconButton label="다음" onClick={() => move(1)}>
             <span className="typo-body">›</span>
           </IconButton>
-          <button
-            type="button"
-            onClick={() => navigate('/schedules/new')}
-            className="bg-primary-tint rounded-chip typo-caption text-primary px-2.5 py-1"
-          >
-            + 일정
-          </button>
         </div>
       </header>
 

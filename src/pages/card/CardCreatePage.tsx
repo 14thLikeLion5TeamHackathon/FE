@@ -137,7 +137,7 @@ export default function CardCreatePage() {
 
       <div className="flex flex-col gap-2">
         <p className="typo-label text-text-primary">시술 날짜</p>
-        <DateField value={treatedAt} onChange={setTreatedAt} />
+        <DateField value={treatedAt} onChange={setTreatedAt} label="시술일" />
       </div>
 
       <Card variant="block" className="flex items-start gap-2.5">

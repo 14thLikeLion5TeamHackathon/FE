@@ -90,7 +90,11 @@ export default function ProfileEditPage() {
         <p className="typo-label text-text-primary">
           생년월일 <span className="text-primary">*</span>
         </p>
-        <DateField value={filled.birthDate} onChange={(value) => patch({ birthDate: value })} />
+        <DateField
+          value={filled.birthDate}
+          onChange={(value) => patch({ birthDate: value })}
+          label="생년월일"
+        />
       </div>
 
       <SegmentGroup label="성별">

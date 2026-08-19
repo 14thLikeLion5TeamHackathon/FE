@@ -7,7 +7,8 @@ import Skeleton from '../../../components/Skeleton';
  * 상태가 넷이지만 껍데기(카드 + 헤더 + 본문)는 같다 — 시안에서도 같은 컴포넌트의 변형이다.
  * 헤더 오른쪽 자리는 상태마다 다른 걸 넣는다: 날씨 / 스켈레톤 / `—` / `예보 없음`.
  *
- * 근거(환경지표·칩·일정)는 CareEvidence로 분리했다 — 왜 → 무엇 → 근거 순서를 지키기 위함.
+ * 근거(환경지표·칩)는 CareEvidence로 분리했다 — 왜 → 무엇 → 근거 순서를 지키기 위함.
+ * 일정은 읽기 전용이 아니라서 CareEvidence에서 다시 TodaySchedules로 빠졌다.
  */
 
 type Props = {
@@ -85,15 +86,24 @@ export function CareBriefingError({ dateLabel, onRetry }: Props & { onRetry: () 
   );
 }
 
-/** 예보 범위 밖 — 날씨·대기질이 없으니 D-day 기준으로만 안내한다 */
-export function CareBriefingNoForecast({ dateLabel }: Props) {
+/**
+ * 날씨·대기질을 붙일 수 없는 날짜 — D-day 기준으로만 안내한다.
+ *
+ * 지난 날짜와 앞날을 **구분해서 말한다.** 어제를 보면서 "아직 예보가 없어요"를 읽으면
+ * 문장이 틀린 게 되고, 사용자는 앱이 고장난 걸로 읽는다.
+ */
+export function CareBriefingNoForecast({ dateLabel, past = false }: Props & { past?: boolean }) {
   return (
     <Shell
       dateLabel={dateLabel}
-      right={<span className="typo-label text-text-secondary">예보 없음</span>}
+      right={
+        <span className="typo-label text-text-secondary">{past ? '지난 날짜' : '예보 없음'}</span>
+      }
     >
       <p className="typo-body text-text-primary w-full">
-        이 날짜는 아직 날씨·대기질 예보가 없어요. 시술 D-day 기준으로만 안내드릴게요.
+        {past
+          ? '지난 날짜의 날씨·대기질은 제공하지 않아요. 시술 D-day 기준으로만 안내드릴게요.'
+          : '이 날짜는 아직 날씨·대기질 예보가 없어요. 시술 D-day 기준으로만 안내드릴게요.'}
       </p>
     </Shell>
   );

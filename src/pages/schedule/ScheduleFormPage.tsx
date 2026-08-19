@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { useLocation, useNavigate, useParams } from 'react-router';
 
 import BottomCTA from '../../components/BottomCTA';
 import Button from '../../components/Button';
@@ -18,10 +18,22 @@ import { toDateInputValue, toEventTime } from '../../lib/date';
 import type { Schedule } from '../../types/schedule';
 import Skeleton from '../../components/Skeleton';
 
+/**
+ * 수정·삭제가 거절됐을 때의 문구.
+ *
+ * 서버가 왜 거절했는지 구분해 알려주지 않고, 브리핑 응답에도 출처 필드가 없어
+ * **누르기 전에는 캘린더 일정인지 알 수 없다.** 그래서 실패를 가장 그럴듯한 원인으로 설명한다.
+ * BE가 출처를 내려주면 애초에 이 화면까지 오지 않게 막는 게 맞다.
+ */
+const READ_ONLY_MESSAGE =
+  '이 일정은 수정·삭제할 수 없어요. 캘린더에서 가져온 일정은 읽기 전용이에요.';
+
 type ScheduleFormFieldsProps = {
   scheduleId?: string;
   isEdit: boolean;
   initialSchedule?: Schedule;
+  /** 추가 화면에서 오늘 탭이 넘겨준 날짜. 없으면 빈칸으로 시작한다 */
+  initialDate?: string;
 };
 
 /**
@@ -29,11 +41,17 @@ type ScheduleFormFieldsProps = {
  * 부모가 로딩·에러를 먼저 걸러낸 뒤에만 마운트하므로, 수정 모드에서도
  * `useState` 초기값으로 곧장 채울 수 있고 effect로 동기화할 필요가 없다.
  */
-function ScheduleFormFields({ scheduleId, isEdit, initialSchedule }: ScheduleFormFieldsProps) {
+function ScheduleFormFields({
+  scheduleId,
+  isEdit,
+  initialSchedule,
+  initialDate,
+}: ScheduleFormFieldsProps) {
   const navigate = useNavigate();
 
   const [title, setTitle] = useState(initialSchedule?.title ?? '');
-  const [date, setDate] = useState(initialSchedule?.date ?? '');
+  const [date, setDate] = useState(initialSchedule?.date ?? initialDate ?? '');
+  const [error, setError] = useState<string | null>(null);
   const [allDay, setAllDay] = useState(initialSchedule ? initialSchedule.time === null : false);
   const [time, setTime] = useState(initialSchedule?.time ?? '');
   const [place, setPlace] = useState(initialSchedule?.place ?? '');
@@ -54,16 +72,29 @@ function ScheduleFormFields({ scheduleId, isEdit, initialSchedule }: ScheduleFor
       location: place.trim() || null,
     };
 
+    setError(null);
+    const handlers = {
+      onSuccess: () => navigate('/', { replace: true }),
+      onError: () => setError(READ_ONLY_MESSAGE),
+    };
+
     if (isEdit) {
-      updateSchedule(payload, { onSuccess: () => navigate('/', { replace: true }) });
+      updateSchedule(payload, handlers);
     } else {
-      createSchedule(payload, { onSuccess: () => navigate('/', { replace: true }) });
+      createSchedule(payload, {
+        ...handlers,
+        onError: () => setError('일정을 저장하지 못했어요. 잠시 후 다시 시도해주세요.'),
+      });
     }
   };
 
   const handleDelete = () => {
     if (!scheduleId) return;
-    deleteSchedule(scheduleId, { onSuccess: () => navigate('/', { replace: true }) });
+    setError(null);
+    deleteSchedule(scheduleId, {
+      onSuccess: () => navigate('/', { replace: true }),
+      onError: () => setError(READ_ONLY_MESSAGE),
+    });
   };
 
   return (
@@ -86,7 +117,7 @@ function ScheduleFormFields({ scheduleId, isEdit, initialSchedule }: ScheduleFor
         <p className="typo-label text-text-primary">
           날짜 <span className="text-primary">*</span>
         </p>
-        <DateField value={date} onChange={setDate} />
+        <DateField value={date} onChange={setDate} label="일정 날짜" />
       </div>
 
       <div className="flex flex-col gap-2">
@@ -130,6 +161,12 @@ function ScheduleFormFields({ scheduleId, isEdit, initialSchedule }: ScheduleFor
         </p>
       </Card>
 
+      {error && (
+        <p className="typo-caption text-danger" role="alert">
+          {error}
+        </p>
+      )}
+
       {isEdit && (
         <Button
           variant="secondary"
@@ -160,9 +197,22 @@ export default function ScheduleFormPage() {
   const { scheduleId } = useParams();
   const isEdit = Boolean(scheduleId);
 
-  const { data, isLoading, isError } = useSchedule(scheduleId);
+  /**
+   * 목록에서 넘겨받은 값을 먼저 쓴다.
+   *
+   * **단건 조회 API가 서버에 없어서** 이게 유일한 경로다(api/schedule.ts). 오늘 탭 일정 목록이
+   * 이미 제목·시간·장소를 들고 있으므로 그대로 넘겨받으면 조회가 필요 없다.
+   * state 없이 주소로 직접 들어온 경우에만 조회를 시도하고, 그건 지금 반드시 실패한다.
+   */
+  const { state } = useLocation() as {
+    state: { schedule?: Schedule; date?: string } | null;
+  };
+  const passed = state?.schedule;
 
-  if (isEdit && isLoading) {
+  const { data, isLoading, isError } = useSchedule(passed ? undefined : scheduleId);
+  const schedule = passed ?? data;
+
+  if (isEdit && !passed && isLoading) {
     return (
       <div className="flex flex-col gap-3.5 px-5 pt-5 pb-6">
         <NavHeader title="일정 수정" />
@@ -175,7 +225,7 @@ export default function ScheduleFormPage() {
     );
   }
 
-  if (isEdit && isError) {
+  if (isEdit && !passed && isError) {
     return (
       <div className="flex flex-col gap-3.5 px-5 pt-5 pb-6">
         <NavHeader title="일정 수정" />
@@ -184,5 +234,12 @@ export default function ScheduleFormPage() {
     );
   }
 
-  return <ScheduleFormFields scheduleId={scheduleId} isEdit={isEdit} initialSchedule={data} />;
+  return (
+    <ScheduleFormFields
+      scheduleId={scheduleId}
+      isEdit={isEdit}
+      initialSchedule={schedule}
+      initialDate={state?.date}
+    />
+  );
 }
