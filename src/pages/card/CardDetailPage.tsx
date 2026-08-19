@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 
 import NavHeader from '../../components/NavHeader';
@@ -119,9 +120,13 @@ function buildCautionList(
   return items;
 }
 
+/** 처음에 펼쳐 두는 기록 수. 나머지는 토글로 연다 */
+const VISIBLE_RECORD_COUNT = 1;
+
 export default function CardDetailPage() {
   const { cardId = '1' } = useParams();
   const navigate = useNavigate();
+  const [showAllRecords, setShowAllRecords] = useState(false);
 
   // TODO: city/district는 사용자 프로필 또는 위치 정보에서 가져오도록 연동 필요
   const { data: cardDetail, isLoading: isCardLoading } = useCardDetail(cardId, getLocationParams());
@@ -162,7 +167,16 @@ export default function CardDetailPage() {
    */
   const progressTotalDays = cardDetail.recoveryTotalDays ?? undefined;
   const transitionDay = cardDetail.recoveryTransitionDay ?? 0;
-  const records = cardRecords?.careRecords ?? [];
+  /**
+   * 최신 기록이 위로 온다. 서버가 순서를 보장하지 않는데, 화면은 앞에서 잘라 보여주므로
+   * 순서가 뒤집히면 접힌 상태에서 **가장 오래된 기록**만 남는다.
+   * `recordedAt`이 비어 올 수 있어(계약상 선택) 그때는 recordId로 물러난다 — 증가하는 값이다.
+   */
+  const records = [...(cardRecords?.careRecords ?? [])].sort((a, b) => {
+    const byDate = (b.recordedAt ?? '').localeCompare(a.recordedAt ?? '');
+    return byDate !== 0 ? byDate : b.recordId - a.recordId;
+  });
+  const visibleRecords = showAllRecords ? records : records.slice(0, VISIBLE_RECORD_COUNT);
 
   // 주의사항 공통 가이드 (문구는 FE 카피, 날짜 경계는 서버 값에서 계산 — 위 블록 설명 참고)
   const cautionList = buildCautionList(transitionDay, totalDays);
@@ -214,7 +228,7 @@ export default function CardDetailPage() {
 
         {/* 회복 기록 카드 목록 */}
         <div className="mt-1 flex flex-col gap-3">
-          {records.map((record) => (
+          {visibleRecords.map((record) => (
             <RecordCard
               key={record.recordId}
               title={[record.recordedAt, cardDetail.treatmentName]
@@ -235,6 +249,24 @@ export default function CardDetailPage() {
             />
           ))}
         </div>
+
+        {/*
+          기록 하나가 사진·태그·AI 피드백까지 붙어 길다. 전부 펼치면 회복이 길어질수록
+          카드 상세가 끝없이 늘어난다. 최근 것부터 보고 싶은 화면이라 앞에서 자른다.
+          전체를 접지 않는 이유: 방금 쓴 기록이 안 보이면 매번 펼쳐야 한다.
+        */}
+        {records.length > VISIBLE_RECORD_COUNT && (
+          <button
+            type="button"
+            onClick={() => setShowAllRecords((prev) => !prev)}
+            aria-expanded={showAllRecords}
+            className="typo-label text-text-secondary border-border-subtle rounded-btn border py-3"
+          >
+            {showAllRecords
+              ? '접기'
+              : `지난 기록 ${records.length - VISIBLE_RECORD_COUNT}건 더 보기`}
+          </button>
+        )}
       </section>
 
       {/* 6. 재방문 유도 — 매장 이름이 있을 때만 노출.
