@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 
 import PageHeader from '../../components/PageHeader';
@@ -20,6 +20,7 @@ import {
   startOfDay,
   toKey,
 } from '../../lib/date';
+import { syncScheduleDate } from '../../lib/scheduleDates';
 import { toLevel } from '../../types/today';
 import CalendarNav from './components/CalendarNav';
 import CareBriefing, {
@@ -190,6 +191,20 @@ export default function HomePage() {
         ]
       : [],
   );
+
+  /**
+   * 브리핑이 온 김에 그 날짜의 사실을 기억해 둔다 — 캘린더 점의 근거가 된다.
+   *
+   * 직접 입력한 일정은 날짜 범위로 물을 방법이 없어서 넣을 때 기억해 두는데(useSchedule),
+   * 그것만으로는 다른 기기에서 넣은 일정을 모른다. 날짜를 열어볼 때마다 여기서 메운다.
+   * 지운 일정도 이 경로로 사라진다 — 삭제 후 브리핑을 다시 받으면 빈 목록이 온다.
+   *
+   * 브리핑을 못 받은 날짜는 건드리지 않는다. 모르는 걸 "없다"로 저장하면 멀쩡한 점이 지워진다.
+   */
+  useEffect(() => {
+    if (!data) return;
+    syncScheduleDate(selectedKey, (data.schedules ?? []).length > 0);
+  }, [data, selectedKey]);
 
   /** 고른 날짜를 넘겨 추가 화면의 날짜칸을 채운다 — 안 넘기면 매번 다시 고르게 된다 */
   const handleAddSchedule = () =>

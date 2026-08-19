@@ -1,10 +1,11 @@
-import { useMemo } from 'react';
+import { useMemo, useSyncExternalStore } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { getCards } from '../../api/card';
 import { getBriefing, getCalendarEvents, getChecklist, updateChecklistItem } from '../../api/today';
 import { addDays, toKey } from '../../lib/date';
 import type { TodayLocation } from '../../lib/location';
+import { getScheduleDates, subscribeScheduleDates } from '../../lib/scheduleDates';
 import { eventDateKey } from '../../types/today';
 
 /** 카드 목록은 카드 도메인과 같은 캐시를 쓴다 — 같은 리소스를 두 번 받지 않으려는 것 */
@@ -88,9 +89,10 @@ export function forecastEnd(today: Date): Date {
 /**
  * 캘린더에 점을 찍을 날짜들.
  *
- * 서버가 날짜별 marked를 주지 않아서 두 곳에서 모아 조립한다 —
- * 구글 캘린더 일정이 있는 날, 그리고 카드의 회복 분기점(시술일·회복 종료일).
- * 캘린더를 연동하지 않은 사용자에게도 점이 보이려면 카드 쪽이 필요하다.
+ * 서버가 날짜별 marked를 주지 않아서 **세 곳에서** 모아 조립한다 —
+ * 구글 캘린더 일정이 있는 날, 카드의 회복 분기점(시술일·회복 종료일),
+ * 그리고 직접 입력한 일정이 있는 날.
+ * 캘린더를 연동하지 않은 사용자에게도 점이 보이려면 뒤의 둘이 필요하다.
  */
 export function useMarkedDates(startDate: string, endDate: string, calendarConnected: boolean) {
   const events = useQuery({
@@ -105,9 +107,17 @@ export function useMarkedDates(startDate: string, endDate: string, calendarConne
 
   const cards = useQuery({ queryKey: cardKeys.list, queryFn: getCards });
 
+  /**
+   * 직접 입력한 일정이 있는 날짜. 쿼리가 아니라 로컬 저장소에서 온다 —
+   * 서버에 날짜 범위로 물을 방법이 없어서다(lib/scheduleDates.ts 주석).
+   */
+  const manualDates = useSyncExternalStore(subscribeScheduleDates, getScheduleDates);
+
   // 매 렌더 새 Set을 만들면 이걸 받는 캘린더의 메모이제이션이 무력화된다.
   return useMemo(() => {
     const marked = new Set<string>();
+
+    for (const date of manualDates) marked.add(date);
 
     for (const event of events.data ?? []) {
       const key = eventDateKey(event);
@@ -129,5 +139,5 @@ export function useMarkedDates(startDate: string, endDate: string, calendarConne
     }
 
     return marked;
-  }, [events.data, cards.data]);
+  }, [events.data, cards.data, manualDates]);
 }
