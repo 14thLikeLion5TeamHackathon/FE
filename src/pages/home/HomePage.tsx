@@ -291,9 +291,19 @@ export default function HomePage() {
               <Skeleton className="bg-surface-fill h-4 w-4/5" />
             </section>
           ) : (
-            checklistItems.length > 0 && (
+            /*
+              항목이 없어도 지난 날짜에서는 블록을 남긴다.
+              서버가 지난 날짜의 체크리스트를 주지 않아 빈 목록이 오는데, 그대로 감추면
+              그 자리가 아무 설명 없이 비어 사용자는 앱이 날짜를 잊은 줄 안다 —
+              바로 아래 일정 블록이 같은 상황에서 "아직 불러올 수 없어요"라고 말하는 것과도 어긋났다.
+
+              오늘·앞날의 빈 목록은 그대로 감춘다. 그쪽은 브리핑이 이미 할 말을 하고 있어
+              여기까지 빈 상자를 더하면 같은 얘기가 두 번 나온다.
+            */
+            (checklistItems.length > 0 || isPast) && (
               <TodayChecklist
                 items={checklistItems}
+                past={isPast}
                 onToggle={(checklistId, completed) => toggleItem({ checklistId, completed })}
               />
             )
