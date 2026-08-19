@@ -1,4 +1,5 @@
 import Button from '../../../components/Button';
+import RefreshButton from '../../../components/RefreshButton';
 import Skeleton from '../../../components/Skeleton';
 
 /**
@@ -37,15 +38,24 @@ export default function CareBriefing({
   dateLabel,
   weather,
   message,
+  onRefresh,
+  isRefreshing = false,
 }: Props & {
   /** "온흐림 26°". 서버가 날씨를 못 주면 null */
   weather: string | null;
   message: string;
+  onRefresh: () => void;
+  isRefreshing?: boolean;
 }) {
   return (
     <Shell
       dateLabel={dateLabel}
-      right={weather && <span className="typo-label text-text-secondary">{weather}</span>}
+      right={
+        <div className="flex items-center gap-1.5">
+          {weather && <span className="typo-label text-text-secondary">{weather}</span>}
+          <RefreshButton onClick={onRefresh} isRefreshing={isRefreshing} />
+        </div>
+      }
     >
       <p className="typo-body text-text-primary">{message}</p>
     </Shell>

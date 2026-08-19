@@ -415,6 +415,8 @@ export default function HomePage() {
             data.cardJudgement?.actionSentence ??
             '이 날짜에 예정된 회복 관리는 없어요. 평소 루틴을 유지하시면 돼요.'
           }
+          onRefresh={() => void briefing.refetch()}
+          isRefreshing={briefing.isFetching}
         />
       )}
 
@@ -463,6 +465,8 @@ export default function HomePage() {
                 past={isPast}
                 dateLabel={blockDateLabel}
                 onToggle={(checklistId, completed) => toggleItem({ checklistId, completed })}
+                onRefresh={() => void checklist.refetch()}
+                isRefreshing={checklist.isFetching}
               />
             )
           )}
