@@ -28,7 +28,16 @@ export default function CardCreatePage() {
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [treatedAt, setTreatedAt] = useState('');
 
-  const { data: treatments, isLoading, isError } = useTreatments(category, query || undefined);
+  const {
+    data,
+    isLoading,
+    isError,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useTreatments(category, query || undefined);
+  /** 받아온 장들을 이어 붙인다 — 화면은 한 목록으로만 다룬다 */
+  const treatments = data?.pages.flatMap((page) => page.content ?? []) ?? [];
   const { mutate: createCard, isPending } = useCreateCard();
 
   const toggleTreatment = (id: number) => {
@@ -117,22 +126,40 @@ export default function CardCreatePage() {
 
       {isError && <p className="typo-body text-text-secondary">시술 목록을 불러오지 못했어요.</p>}
 
-      {!isLoading && !isError && (treatments?.length ?? 0) === 0 && (
+      {!isLoading && !isError && treatments.length === 0 && (
         <p className="typo-body text-text-secondary">해당 카테고리에 시술이 없어요.</p>
       )}
 
-      {!isLoading && !isError && (treatments?.length ?? 0) > 0 && (
-        <ul className="flex flex-col gap-2.5">
-          {treatments?.map((treatment) => (
-            <li key={treatment.treatmentId}>
-              <TreatmentListItem
-                treatment={treatment}
-                selected={selectedIds.includes(treatment.treatmentId)}
-                onToggle={() => toggleTreatment(treatment.treatmentId)}
-              />
-            </li>
-          ))}
-        </ul>
+      {!isLoading && !isError && treatments.length > 0 && (
+        <>
+          <ul className="flex flex-col gap-2.5">
+            {treatments.map((treatment) => (
+              <li key={treatment.treatmentId}>
+                <TreatmentListItem
+                  treatment={treatment}
+                  selected={selectedIds.includes(treatment.treatmentId)}
+                  onToggle={() => toggleTreatment(treatment.treatmentId)}
+                />
+              </li>
+            ))}
+          </ul>
+
+          {/*
+            남은 장이 있을 때만 보여준다. 자동 무한 스크롤 대신 버튼을 둔 건, 이 화면에서
+            아래쪽에 시술 날짜와 만들기 버튼이 기다리고 있어서다 — 스크롤할 때마다 목록이
+            늘어나면 그 자리에 영영 닿지 못한다.
+          */}
+          {hasNextPage && (
+            <button
+              type="button"
+              onClick={() => void fetchNextPage()}
+              disabled={isFetchingNextPage}
+              className="bg-surface-raised text-text-secondary typo-body rounded-md border-border-subtle w-full border py-3 disabled:opacity-50"
+            >
+              {isFetchingNextPage ? '불러오는 중…' : '더 보기'}
+            </button>
+          )}
+        </>
       )}
 
       <div className="flex flex-col gap-2">

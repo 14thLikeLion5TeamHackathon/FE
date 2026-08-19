@@ -202,6 +202,26 @@ export const Treatment = z.object({
 });
 export type Treatment = z.infer<typeof Treatment>;
 
+/**
+ * 시술 목록 응답 — 페이지 한 장.
+ *
+ * 서버가 배열에서 페이지 객체로 바꿨다(`page` 기본 0, `size` 기본 6).
+ * 예전 `z.array(Treatment)`로 그대로 받으면 `.parse()`가 터져 **시술 목록이 통째로 빈 화면**이 된다.
+ *
+ * `content`만 실질적으로 쓰고 나머지는 다음 장이 있는지 판단하는 데만 본다.
+ * 스웨거에 required가 없어 전부 선택으로 둔다 — 페이지 메타 하나가 비었다고
+ * 이미 받아온 시술 목록을 버릴 이유가 없다.
+ */
+export const TreatmentPage = z.object({
+  content: z.array(Treatment).nullish(),
+  page: z.number().nullish(),
+  size: z.number().nullish(),
+  totalElements: z.number().nullish(),
+  totalPages: z.number().nullish(),
+  hasNext: z.boolean().nullish(),
+});
+export type TreatmentPage = z.infer<typeof TreatmentPage>;
+
 export const CreateCardTreatment = z.object({
   treatmentId: z.number(),
   /** 시술명을 정확히 모를 때 직접 적는 이름. 지금 화면에서는 보내지 않는다(이슈 #68) */

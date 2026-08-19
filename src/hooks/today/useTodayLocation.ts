@@ -49,9 +49,14 @@ export function useTodayLocation() {
       } catch {
         // 인터셉터가 이미 ApiError로 정규화하고 401이면 로그인으로 보낸다. 여기서 더 할 일이 없다.
       }
-      // 브리핑은 저장된 위치를 읽으므로 쿼리 키가 갈리는 것만으로는 부족하다 —
-      // 같은 날짜를 다시 고르는 경우엔 키가 그대로라 캐시가 그대로 남는다.
-      void queryClient.invalidateQueries({ queryKey: ['today', 'briefing'] });
+      /*
+        오늘 탭을 통째로 무효화한다. 브리핑만 지우면 체크리스트가 옛 기준으로 남는다.
+
+        **체크리스트도 위치를 본다(BE 확인).** 두 엔드포인트 모두 파라미터가 `date`
+        하나뿐이라 서버에 저장된 위치를 읽는데, 쿼리 키에는 그 위치가 드러나지 않는다 —
+        키가 갈리길 기다릴 수 없으니 저장이 끝난 뒤 여기서 직접 지워야 한다.
+      */
+      void queryClient.invalidateQueries({ queryKey: ['today'] });
     },
     [queryClient, saveLocation],
   );

@@ -111,9 +111,46 @@ export const CalendarEvent = z
     date: z.string().optional(),
     startDate: z.string().optional(),
     start: z.string().optional(),
+    /**
+     * 목록에 제목을 띄우려면 필요하다. 이름 후보를 넓게 받는 이유는 위와 같다 —
+     * 스웨거 응답이 `additionalProperties: object`라 필드 이름이 확정돼 있지 않고,
+     * 구글 원본은 `summary`를 쓰는데 BE가 그대로 흘리는지 감싸는지 모른다.
+     */
+    title: z.string().nullish(),
+    summary: z.string().nullish(),
+    name: z.string().nullish(),
+    /** 시간·장소. 없으면 종일·장소 없음으로 본다 */
+    time: z.string().nullish(),
+    eventTime: z.string().nullish(),
+    startTime: z.string().nullish(),
+    location: z.string().nullish(),
+    /** 목록 key로 쓸 식별자 후보 */
+    eventId: z.union([z.string(), z.number()]).nullish(),
+    id: z.union([z.string(), z.number()]).nullish(),
   })
   .passthrough();
 export type CalendarEvent = z.infer<typeof CalendarEvent>;
+
+/** 후보 중 실제로 온 제목. 하나도 없으면 null — 제목 없는 줄은 목록에서 뜻이 없다 */
+export function eventTitle(event: CalendarEvent): string | null {
+  const raw = event.title ?? event.summary ?? event.name;
+  return raw?.trim() ? raw : null;
+}
+
+/**
+ * "19:00" 꼴의 시각. 날짜만 온 종일 일정이면 null이다.
+ *
+ * 날짜 필드에 시간이 붙어 오는 경우("2026-08-15T19:00:00")도 있어서 거기서도 뽑는다 —
+ * 전용 시간 필드가 없는 응답을 봤을 때 종일로 잘못 읽지 않으려는 것.
+ */
+export function eventTimeLabel(event: CalendarEvent): string | null {
+  const explicit = event.time ?? event.eventTime ?? event.startTime;
+  if (explicit?.trim()) return explicit.slice(0, 5);
+
+  const raw = event.eventDate ?? event.date ?? event.startDate ?? event.start;
+  const match = raw && /\d{2}:\d{2}/.exec(raw);
+  return match ? match[0] : null;
+}
 
 /** 위 후보 중 실제로 온 필드에서 YYYY-MM-DD만 뽑는다 */
 export function eventDateKey(event: CalendarEvent): string | null {
