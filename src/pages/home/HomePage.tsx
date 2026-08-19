@@ -209,7 +209,20 @@ export default function HomePage() {
       {isOutOfForecast ? (
         /* 예보 범위 밖은 오류가 아니라 정상 상태다 — 로딩·에러보다 먼저 잡아야
            서버가 내는 400이 "불러오지 못했어요"로 새어 나가지 않는다 */
-        <CareBriefingNoForecast dateLabel={dateLabel} />
+        <>
+          <CareBriefingNoForecast dateLabel={dateLabel} />
+          {/*
+            앞날 일정을 넣는 건 가장 흔한 쓰임이라 여기서도 추가할 수 있어야 한다.
+            다만 이 날짜는 브리핑을 부르지 않아(위 `enabled`) 일정 목록을 모른다 —
+            빈 목록으로 넘기면 "없어요"라고 단정하게 되므로 모른다고 말한다.
+          */}
+          <TodaySchedules
+            schedules={[]}
+            unavailable
+            onAdd={handleAddSchedule}
+            onEdit={handleEditSchedule}
+          />
+        </>
       ) : isEmpty ? (
         <>
           {/*

@@ -4,6 +4,11 @@ type TodaySchedulesProps = {
   schedules: Schedule[];
   onAdd: () => void;
   onEdit: (schedule: Schedule) => void;
+  /**
+   * 목록을 못 받아온 상태. 빈 배열과 구분해야 한다 —
+   * 모르는 걸 "없다"고 쓰면 일정이 있는 사용자에게 거짓말이 된다.
+   */
+  unavailable?: boolean;
 };
 
 /**
@@ -15,7 +20,12 @@ type TodaySchedulesProps = {
  *
  * 일정이 없어도 블록째 감추지 않는다. 감추면 추가할 자리도 같이 사라진다.
  */
-export default function TodaySchedules({ schedules, onAdd, onEdit }: TodaySchedulesProps) {
+export default function TodaySchedules({
+  schedules,
+  onAdd,
+  onEdit,
+  unavailable = false,
+}: TodaySchedulesProps) {
   return (
     <section className="bg-surface-raised rounded-md flex flex-col gap-2.5 p-4">
       <header className="flex items-center justify-between">
@@ -29,7 +39,11 @@ export default function TodaySchedules({ schedules, onAdd, onEdit }: TodaySchedu
         </button>
       </header>
 
-      {schedules.length === 0 ? (
+      {unavailable ? (
+        <p className="typo-caption text-text-tertiary">
+          이 날짜의 일정은 아직 불러올 수 없어요. 추가는 지금 할 수 있어요
+        </p>
+      ) : schedules.length === 0 ? (
         <p className="typo-caption text-text-tertiary">등록한 일정이 없어요</p>
       ) : (
         <ul className="flex flex-col">

@@ -7,7 +7,8 @@ import Skeleton from '../../../components/Skeleton';
  * 상태가 넷이지만 껍데기(카드 + 헤더 + 본문)는 같다 — 시안에서도 같은 컴포넌트의 변형이다.
  * 헤더 오른쪽 자리는 상태마다 다른 걸 넣는다: 날씨 / 스켈레톤 / `—` / `예보 없음`.
  *
- * 근거(환경지표·칩·일정)는 CareEvidence로 분리했다 — 왜 → 무엇 → 근거 순서를 지키기 위함.
+ * 근거(환경지표·칩)는 CareEvidence로 분리했다 — 왜 → 무엇 → 근거 순서를 지키기 위함.
+ * 일정은 읽기 전용이 아니라서 CareEvidence에서 다시 TodaySchedules로 빠졌다.
  */
 
 type Props = {
