@@ -13,6 +13,8 @@ export const KakaoNotificationResponse = z.object({
   consent: z.boolean().nullish(),
   /** ISO date-time */
   consentedAt: z.string().nullish(),
+  /** 연동 자체가 살아 있는지. 수신 동의(consent)와 다른 값이다 */
+  connected: z.boolean().nullish(),
 });
 export type KakaoNotificationResponse = z.infer<typeof KakaoNotificationResponse>;
 

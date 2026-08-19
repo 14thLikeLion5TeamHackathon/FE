@@ -4,11 +4,11 @@ import {
   deleteAccount,
   disconnectKakaoNotification,
   getMyProfile,
-  logout,
   postOnboarding,
   updateProfile,
 } from '../../api/user';
 import type { OnboardingRequest, UpdateProfileRequest } from '../../types/user';
+import { notificationKeys } from '../notification/useNotification';
 
 const userKeys = {
   me: ['user', 'me'] as const,
@@ -51,13 +51,6 @@ export function useUpdateProfile() {
   });
 }
 
-/** POST — 로그아웃 */
-export function useLogout() {
-  return useMutation({
-    mutationFn: logout,
-  });
-}
-
 /** DELETE — 회원 탈퇴 */
 export function useDeleteAccount() {
   return useMutation({
@@ -65,7 +58,12 @@ export function useDeleteAccount() {
   });
 }
 
-/** DELETE — 카카오 알림 연동 해제 */
+/**
+ * DELETE — 카카오 알림 **연동 해제**. 수신 on/off(PATCH)와 다르다 — 연결 자체를 끊는다.
+ *
+ * 끊고 나면 수신 동의 캐시는 더 이상 유효하지 않다. 조회 API가 없어 다시 알아낼 방법도
+ * 없으니 지워서 "모름"으로 되돌린다 — 남겨두면 없는 연동을 켜져 있다고 그린다.
+ */
 export function useDisconnectKakao() {
   const queryClient = useQueryClient();
 
@@ -73,6 +71,8 @@ export function useDisconnectKakao() {
     mutationFn: disconnectKakaoNotification,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: userKeys.me });
+      // 조회 엔드포인트가 생겼으니 지우지 말고 다시 받는다 — 해제 후 connected:false를 확인해야 한다
+      void queryClient.invalidateQueries({ queryKey: notificationKeys.kakaoStatus });
     },
   });
 }

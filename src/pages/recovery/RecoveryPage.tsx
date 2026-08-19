@@ -2,18 +2,13 @@ import { useNavigate } from 'react-router';
 
 import PageHeader from '../../components/PageHeader';
 import { useRecovery } from '../../hooks/recovery/useRecovery';
-import type { CareCard as CareCardData } from '../../types/card';
+import { NO_TREATMENT_NAME, type CareCard as CareCardData } from '../../types/card';
 import CareCard from './components/CareCard';
 import RecoveryCurve from './components/RecoveryCurve';
 
-/** 섹션 제목 + 우측 액션. 이 화면에서만 쓰여서 여기 둔다. */
-function SectionHeader({ title, action }: { title: string; action?: React.ReactNode }) {
-  return (
-    <div className="flex items-center justify-between">
-      <h2 className="typo-section">{title}</h2>
-      {action}
-    </div>
-  );
+/** 섹션 제목. 이 화면에서만 쓰여서 여기 둔다. */
+function SectionHeader({ title }: { title: string }) {
+  return <h2 className="typo-section">{title}</h2>;
 }
 
 /**
@@ -71,7 +66,7 @@ export default function RecoveryPage() {
   // 곡선 카드 선택지는 진행 중 카드뿐이다 — 회복이 끝난 카드의 추세는 카드 상세에서 본다
   const cardOptions = inProgress.map((card) => ({
     cardId: card.cardId,
-    treatmentName: card.treatmentName,
+    treatmentName: card.treatmentName ?? NO_TREATMENT_NAME,
   }));
 
   return (
@@ -107,18 +102,7 @@ export default function RecoveryPage() {
 
           {inProgress.length > 0 && (
             <>
-              <SectionHeader
-                title={`진행 중 ${inProgress.length}`}
-                action={
-                  <button
-                    type="button"
-                    onClick={() => navigate('/cards/new')}
-                    className="typo-caption text-primary"
-                  >
-                    + 카드 추가
-                  </button>
-                }
-              />
+              <SectionHeader title={`진행 중 ${inProgress.length}`} />
               {renderCards(inProgress)}
             </>
           )}
@@ -129,6 +113,17 @@ export default function RecoveryPage() {
               {renderCards(done)}
             </>
           )}
+
+          {/* 진행 중 섹션 헤더에 달려 있던 추가 버튼을 목록 끝으로 옮겼다.
+              헤더에 두면 완료 카드만 남은 사용자에게 진입점이 사라지고, 상단에 또 두면
+              같은 동작의 버튼이 두 개가 된다. 목록 끝은 카드 유무와 무관하게 한 번만 나온다. */}
+          <button
+            type="button"
+            onClick={() => navigate('/cards/new')}
+            className="border-border-subtle text-primary typo-label rounded-md border border-dashed py-3"
+          >
+            + 카드 추가
+          </button>
         </>
       )}
     </div>

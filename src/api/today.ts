@@ -1,4 +1,3 @@
-import type { TodayLocation } from '../lib/location';
 import {
   BriefingResponse,
   CalendarEvent,
@@ -11,15 +10,14 @@ import type { ApiResponse } from './types';
 
 /**
  * 관리 행동 브리핑.
- * 날씨·자외선·미세먼지가 위치에 따라 달라지므로 기준 위치를 함께 보낸다 — 좌표 변환은 서버가 한다.
- * 세 파라미터 모두 필수다.
+ *
+ * **파라미터는 `date` 하나다.** 예전에는 city/district를 같이 보냈지만 스펙에서 빠졌고,
+ * 지금은 서버가 저장된 기준 위치를 읽는다(`PATCH /api/v1/mypage/location`, api/location.ts).
+ * 그래서 위치를 바꿀 때는 저장을 먼저 하고 이 쿼리를 무효화해야 한다 — useTodayLocation이 그 순서를 맡는다.
  */
-export async function getBriefing(
-  date: string,
-  location: TodayLocation,
-): Promise<BriefingResponse> {
+export async function getBriefing(date: string): Promise<BriefingResponse> {
   const res = await axiosInstance.get<ApiResponse>('/api/v1/today/briefing', {
-    params: { date, city: location.city, district: location.district },
+    params: { date },
   });
   return BriefingResponse.parse(getResult(res));
 }
@@ -56,13 +54,22 @@ export async function getCalendarEvents(
   startDate: string,
   endDate: string,
 ): Promise<CalendarEvent[]> {
-  const res = await axiosInstance.get<ApiResponse>('/api/v1/today/calendar/events', {
+  // 스펙상 이 응답에는 공통 봉투가 없다(벌거벗은 맵). `getResult`를 태우면 `data.data`를 읽어
+  // 항상 undefined가 되고, 그러면 에러 없이 점이 하나도 안 찍힌다 — 그래서 본문을 그대로 넘긴다.
+  // 봉투가 오는 경우도 toCalendarEvents가 한 겹 벗겨 받는다(미연동이라 실응답을 아직 못 봤다).
+  const res = await axiosInstance.get<unknown>('/api/v1/today/calendar/events', {
     params: { startDate, endDate },
   });
-  return toCalendarEvents(getResult(res));
+  return toCalendarEvents(res.data);
 }
 
-function toCalendarEvents(result: unknown): CalendarEvent[] {
+function toCalendarEvents(input: unknown): CalendarEvent[] {
+  // 봉투가 올 수도, 안 올 수도 있다(위 주석). 있으면 한 겹 벗기고 없으면 그대로 본다.
+  const result =
+    typeof input === 'object' && input !== null && 'data' in input
+      ? (input as { data: unknown }).data
+      : input;
+
   if (typeof result === 'object' && result !== null && 'schedules' in result) {
     const { schedules } = result as { schedules: unknown };
     if (Array.isArray(schedules)) return parseEvents(schedules);

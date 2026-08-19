@@ -1,6 +1,13 @@
 import { z } from 'zod';
 
-import { EvidenceChip, INTENSITY_LABEL, Intensity, SymptomKey, Trend } from './common';
+import {
+  EvidenceChip,
+  INTENSITY_LABEL,
+  Intensity,
+  SymptomKey,
+  Trend,
+  normalizeDday,
+} from './common';
 
 /**
  * AI 피드백 — 기록 직후 생성되는 결과 화면.
@@ -81,7 +88,8 @@ function toIntensity(label: string | null | undefined): number | null {
 }
 
 export const SymptomTrend = z.object({
-  type: z.string(),
+  /** 스웨거에 required가 없다 — 키를 못 읽으면 그 줄만 버린다(toAiFeedback) */
+  type: z.string().nullish(),
   name: z.string().nullish(),
   trend: z.string().nullish(),
   previousLabel: z.string().nullish(),
@@ -103,22 +111,36 @@ export const AnalysisTags = z.object({
   photoCount: z.number().nullish(),
 });
 
-/** 서버 응답 그대로. D-day는 카드와 마찬가지로 `dDay`(대문자 D)로 온다 */
-export const AiFeedbackResponse = z.object({
-  feedbackId: z.number(),
-  recordId: z.number().nullish(),
-  cardId: z.number(),
-  treatmentName: z.string().nullish(),
-  dDay: z.number().nullish(),
-  comparison: ComparisonInfo.nullish(),
-  analysisSummary: z.string().nullish(),
-  analysisTags: AnalysisTags.nullish(),
-  intensityReview: z.string().nullish(),
-  todayCare: z.array(z.string()).nullish(),
-  needsConsultation: z.boolean().nullish(),
-  consultationMessage: z.string().nullish(),
-  consultationCriteria: z.string().nullish(),
-});
+/**
+ * 서버 응답 그대로.
+ *
+ * D-day는 실서버가 `dDay`(대문자 D)로 주는데 **스웨거 필드명은 `dday`**다. 지금은 실서버가
+ * 맞지만 BE가 문서대로 고치면 에러 없이 라벨만 틀리는 쪽으로 조용히 퇴화한다 — 그래서
+ * 카드·기록과 같은 `normalizeDday`를 씌워 두 이름을 모두 받는다.
+ *
+ * `feedbackId`·`cardId`까지 선택으로 둔다. 스웨거 응답 DTO에 required가 하나도 없는데,
+ * 여기서 `.parse()`가 터지면 기록 저장 직후 피드백 화면이 죽고 사용자는 실패한 줄 알고
+ * 같은 기록을 두 번 만든다 — `CreateRecordResponse`가 겪은 사고와 구조가 같다.
+ */
+export const AiFeedbackResponse = z.preprocess(
+  normalizeDday,
+  z.object({
+    feedbackId: z.number().nullish(),
+    recordId: z.number().nullish(),
+    cardId: z.number().nullish(),
+    treatmentName: z.string().nullish(),
+    /** normalizeDday가 값을 못 찾으면 0으로 채운다 — 그래도 라벨이 사라지진 않는다 */
+    dday: z.number().nullish(),
+    comparison: ComparisonInfo.nullish(),
+    analysisSummary: z.string().nullish(),
+    analysisTags: AnalysisTags.nullish(),
+    intensityReview: z.string().nullish(),
+    todayCare: z.array(z.string()).nullish(),
+    needsConsultation: z.boolean().nullish(),
+    consultationMessage: z.string().nullish(),
+    consultationCriteria: z.string().nullish(),
+  }),
+);
 export type AiFeedbackResponse = z.infer<typeof AiFeedbackResponse>;
 
 /**
@@ -149,10 +171,10 @@ function toEvidence(tags: AiFeedbackResponse['analysisTags']): { label: string }
 /** 서버 응답을 화면이 쓰는 모양으로 바꾼다 */
 export function toAiFeedback(raw: AiFeedbackResponse): AiFeedback {
   const comparison = raw.comparison;
-  const dday = raw.dDay;
+  const dday = raw.dday;
 
   const deltas = (comparison?.symptoms ?? []).flatMap((symptom) => {
-    const key = SYMPTOM_BY_TYPE[symptom.type];
+    const key = symptom.type ? SYMPTOM_BY_TYPE[symptom.type] : undefined;
     const before = toIntensity(symptom.previousLabel);
     const after = toIntensity(symptom.currentLabel);
     // 하나라도 못 읽으면 그 줄만 버린다 — 비교 한 줄 때문에 화면 전체를 막지 않는다
@@ -169,8 +191,9 @@ export function toAiFeedback(raw: AiFeedbackResponse): AiFeedback {
   });
 
   return {
-    id: String(raw.feedbackId),
-    cardId: String(raw.cardId),
+    // 서버가 id를 빼고 보내도 화면은 그려야 한다. 빈 문자열이면 저장 버튼이 이동을 포기한다
+    id: raw.feedbackId == null ? '' : String(raw.feedbackId),
+    cardId: raw.cardId == null ? '' : String(raw.cardId),
     cardName: raw.treatmentName ?? '',
     contextLabel: dday === null || dday === undefined ? '오늘 기록' : `D+${dday} · 오늘 기록`,
     before: {
