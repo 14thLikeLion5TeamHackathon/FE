@@ -214,8 +214,10 @@ export default function HomePage() {
    * 브리핑의 `schedules`에는 직접 입력한 일정만 온다 — 연동해 둔 사용자는 캘린더에 점만
    * 찍히고 목록은 비어 있어서, 일정이 있는 날인데 "등록한 일정이 없어요"를 읽게 됐다.
    *
-   * 이쪽은 **`editable: false`다.** 위의 직접 입력 일정과 달리 출처를 확실히 알기 때문이다 —
-   * 그동안 출처를 몰라 전부 열어두고 서버 거절에 기대던 문제(#111)가 이 목록에서는 없다.
+   * 이쪽은 **`editable: false`다.** 이 응답은 구글 일정만 담기 때문에 출처를 확실히 안다.
+   * 위의 브리핑 쪽은 여전히 모른다 — 거기에 캘린더 일정이 섞여 오는지 확인되지 않았다(#111).
+   *
+   * 그 불확실성 때문에 아래에서 **중복을 걸러낸다.** 섞여 온다면 같은 일정이 두 줄이 된다.
    */
   const eventSchedules: Schedule[] = (calendarEvents.data ?? []).flatMap((event, index) => {
     if (eventDateKey(event) !== selectedKey) return [];
@@ -236,10 +238,26 @@ export default function HomePage() {
     ];
   });
 
+  /**
+   * 브리핑에 이미 있는 일정은 캘린더 쪽에서 뺀다.
+   *
+   * 브리핑의 `schedules`에 캘린더 일정이 섞여 오는지가 확정돼 있지 않다(#111·#127).
+   * 섞여 온다면 같은 일정이 두 줄로 뜬다 — 하나는 눌러서 수정 화면에 갔다가 서버에
+   * 거절당하는 줄, 하나는 "캘린더" 배지가 붙은 줄. 사용자에겐 앱이 고장난 것으로 보인다.
+   *
+   * **브리핑 쪽을 남긴다.** 거기에는 `scheduleId`가 있어 수정 진입이 되고, 캘린더 쪽은
+   * 어차피 읽기 전용이라 잃는 게 없다. 직접 입력한 일정과 캘린더 일정이 우연히 제목·시각이
+   * 같은 경우에도 한 줄로 합쳐지는데, 그건 사용자 눈에 원래 같은 일정이다.
+   *
+   * 출처 필드가 내려오면(#111) 이 추측은 사라진다.
+   */
+  const manualKeys = new Set(manualSchedules.map((schedule) => scheduleKey(schedule)));
+
   /** 종일(시간 없음)을 위로. 나머지는 시각순 — 시간이 뒤죽박죽이면 목록을 훑을 수 없다 */
-  const schedules: Schedule[] = [...manualSchedules, ...eventSchedules].sort((a, b) =>
-    (a.time ?? '').localeCompare(b.time ?? ''),
-  );
+  const schedules: Schedule[] = [
+    ...manualSchedules,
+    ...eventSchedules.filter((schedule) => !manualKeys.has(scheduleKey(schedule))),
+  ].sort((a, b) => (a.time ?? '').localeCompare(b.time ?? ''));
 
   /** 고른 날짜를 넘겨 추가 화면의 날짜칸을 채운다 — 안 넘기면 매번 다시 고르게 된다 */
   const handleAddSchedule = () =>
@@ -398,8 +416,11 @@ export default function HomePage() {
               브리핑이 없어도 캘린더 일정은 안다 — 그건 달 단위로 따로 받기 때문이다.
               통째로 비우면 알고 있는 것까지 감추게 되므로, 아는 만큼은 그대로 보여주고
               "직접 넣은 일정은 아직 모른다"고만 덧붙인다(unavailable).
+
+              브리핑이 없으면 manualSchedules가 비어 schedules는 캘린더 일정만 남는다 —
+              따로 갈라 쓸 필요가 없다.
             */
-            schedules={briefingUnavailable ? eventSchedules : schedules}
+            schedules={schedules}
             unavailable={briefingUnavailable}
             dateLabel={blockDateLabel}
             onAdd={handleAddSchedule}
@@ -414,4 +435,15 @@ export default function HomePage() {
       )}
     </div>
   );
+}
+
+/**
+ * 같은 일정인지 가르는 값. 제목과 시각만 본다.
+ *
+ * `scheduleId`로는 못 가른다 — 브리핑과 캘린더가 서로 다른 체계의 식별자를 쓴다.
+ * 장소는 빼뒀다. 한쪽에만 들어 있는 경우가 흔해서, 넣으면 같은 일정을 다르다고 보게 된다.
+ * 제목은 앞뒤 공백을 털어 비교한다.
+ */
+function scheduleKey(schedule: Schedule): string {
+  return `${schedule.title.trim()}|${schedule.time ?? ''}`;
 }
