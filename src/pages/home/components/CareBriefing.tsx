@@ -91,6 +91,9 @@ export function CareBriefingError({ dateLabel, onRetry }: Props & { onRetry: () 
  *
  * 지난 날짜와 앞날을 **구분해서 말한다.** 어제를 보면서 "아직 예보가 없어요"를 읽으면
  * 문장이 틀린 게 되고, 사용자는 앱이 고장난 걸로 읽는다.
+ *
+ * `past`는 이제 "지난 날짜라서 안 부른다"가 아니라 **"불렀는데 그날 기록이 없었다"**는 뜻이다.
+ * 지난 날짜도 서버에 물어본다 — DB에 그날 날씨가 남아 있으면 브리핑이 정상으로 온다.
  */
 export function CareBriefingNoForecast({ dateLabel, past = false }: Props & { past?: boolean }) {
   return (
@@ -102,7 +105,7 @@ export function CareBriefingNoForecast({ dateLabel, past = false }: Props & { pa
     >
       <p className="typo-body text-text-primary w-full">
         {past
-          ? '지난 날짜의 날씨·대기질은 제공하지 않아요. 시술 D-day 기준으로만 안내드릴게요.'
+          ? '그날의 날씨·대기질 기록이 없어요. 시술 D-day 기준으로만 안내드릴게요.'
           : '이 날짜는 아직 날씨·대기질 예보가 없어요. 시술 D-day 기준으로만 안내드릴게요.'}
       </p>
     </Shell>
