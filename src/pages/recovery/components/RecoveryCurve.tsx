@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import { cn } from '../../../lib/cn';
+import { mediaUrl } from '../../../lib/mediaUrl';
 import type {
   RecoveryCardOption,
   RecoveryCurve as RecoveryCurveData,
@@ -60,7 +61,15 @@ function PhotoFrame({
 }) {
   return (
     <div className={cn('bg-surface-fill border-border-subtle overflow-hidden border', className)}>
-      {url && <img src={url} alt={alt} className="size-full object-cover" loading="lazy" />}
+      {/*
+        서버가 준 경로를 그대로 쓰면 안 된다. `/uploads/<uuid>.png`처럼 상대경로로 오는데,
+        브라우저는 그걸 지금 보고 있는 도메인에 붙인다 — 배포본에서는 프론트 도메인으로
+        요청이 나가고 Vercel이 SPA 폴백 HTML을 200으로 돌려줘서 사진이 전부 깨진다.
+        404가 아니라 200이라 원인이 잘 안 보인다(lib/mediaUrl.ts 주석).
+      */}
+      {url && (
+        <img src={mediaUrl(url)} alt={alt} className="size-full object-cover" loading="lazy" />
+      )}
     </div>
   );
 }
