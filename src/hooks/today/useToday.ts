@@ -94,8 +94,14 @@ export function forecastEnd(today: Date): Date {
  * 그리고 직접 입력한 일정이 있는 날.
  * 캘린더를 연동하지 않은 사용자에게도 점이 보이려면 뒤의 둘이 필요하다.
  */
-export function useMarkedDates(startDate: string, endDate: string, calendarConnected: boolean) {
-  const events = useQuery({
+/**
+ * 연동된 구글 캘린더 일정. 보이는 달 전체를 한 번에 받는다.
+ *
+ * 캘린더 점과 일정 목록이 **같은 응답을 나눠 쓴다** — 쿼리 키가 같으므로 두 곳에서 불러도
+ * 요청은 한 번이다. 따로 받으면 같은 데이터를 두 번 가져오고, 한쪽만 갱신돼 어긋난다.
+ */
+export function useCalendarEvents(startDate: string, endDate: string, calendarConnected: boolean) {
+  return useQuery({
     queryKey: todayKeys.events(startDate, endDate),
     queryFn: () => getCalendarEvents(startDate, endDate),
     /**
@@ -104,6 +110,10 @@ export function useMarkedDates(startDate: string, endDate: string, calendarConne
      */
     enabled: calendarConnected,
   });
+}
+
+export function useMarkedDates(startDate: string, endDate: string, calendarConnected: boolean) {
+  const events = useCalendarEvents(startDate, endDate, calendarConnected);
 
   const cards = useQuery({ queryKey: cardKeys.list, queryFn: getCards });
 

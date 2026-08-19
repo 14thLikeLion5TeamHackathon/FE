@@ -5,6 +5,7 @@ import PageHeader from '../../components/PageHeader';
 import {
   forecastEnd,
   useBriefing,
+  useCalendarEvents,
   useChecklist,
   useHasCards,
   useMarkedDates,
@@ -21,7 +22,7 @@ import {
   toKey,
 } from '../../lib/date';
 import { syncScheduleDate } from '../../lib/scheduleDates';
-import { toLevel } from '../../types/today';
+import { eventDateKey, eventTimeLabel, eventTitle, toLevel } from '../../types/today';
 import CalendarNav from './components/CalendarNav';
 import CareBriefing, {
   CareBriefingError,
@@ -86,11 +87,12 @@ export default function HomePage() {
     return [toKey(days[0]), toKey(days[days.length - 1])];
   }, [anchor]);
 
-  const markedKeys = useMarkedDates(
-    monthStart,
-    monthEnd,
-    briefing.data?.calendarConnected ?? false,
-  );
+  const calendarConnected = briefing.data?.calendarConnected ?? false;
+
+  const markedKeys = useMarkedDates(monthStart, monthEnd, calendarConnected);
+
+  /** 캘린더 점과 같은 쿼리다 — 키가 같아 요청은 한 번만 나간다(useCalendarEvents 주석) */
+  const calendarEvents = useCalendarEvents(monthStart, monthEnd, calendarConnected);
 
   /** 예보 범위 밖은 흐리게. 서버가 범위를 주지 않아 오늘부터 5일로 계산한다 */
   const { outOfForecastKeys, forecastNote } = useMemo(() => {
@@ -177,7 +179,7 @@ export default function HomePage() {
    * 가져온 일정과 직접 입력한 일정을 구분할 방법이 없다. 전부 열어두고, 서버가 거절하면
    * 그때 안내한다 — 직접 입력한 일정까지 막아버리는 쪽이 손해가 크다고 봤다.
    */
-  const schedules: Schedule[] = (data?.schedules ?? []).flatMap((schedule) =>
+  const manualSchedules: Schedule[] = (data?.schedules ?? []).flatMap((schedule) =>
     schedule.title
       ? [
           {
@@ -205,6 +207,39 @@ export default function HomePage() {
     if (!data) return;
     syncScheduleDate(selectedKey, (data.schedules ?? []).length > 0);
   }, [data, selectedKey]);
+
+  /**
+   * 연동된 구글 캘린더 일정 중 고른 날짜의 것.
+   *
+   * 브리핑의 `schedules`에는 직접 입력한 일정만 온다 — 연동해 둔 사용자는 캘린더에 점만
+   * 찍히고 목록은 비어 있어서, 일정이 있는 날인데 "등록한 일정이 없어요"를 읽게 됐다.
+   *
+   * 이쪽은 **`editable: false`다.** 위의 직접 입력 일정과 달리 출처를 확실히 알기 때문이다 —
+   * 그동안 출처를 몰라 전부 열어두고 서버 거절에 기대던 문제(#111)가 이 목록에서는 없다.
+   */
+  const eventSchedules: Schedule[] = (calendarEvents.data ?? []).flatMap((event, index) => {
+    if (eventDateKey(event) !== selectedKey) return [];
+
+    const title = eventTitle(event);
+    if (!title) return []; // 제목 없는 줄은 목록에서 아무 뜻이 없다 — 직접 입력 쪽과 같은 규칙
+
+    return [
+      {
+        // 식별자가 없을 수 있어 순번으로 물러난다. 수정하지 않으므로 목록 key로만 쓰인다.
+        id: `calendar-${String(event.eventId ?? event.id ?? index)}`,
+        title,
+        date: fromDateInputValue(selectedKey),
+        time: eventTimeLabel(event),
+        place: event.location ?? null,
+        editable: false,
+      },
+    ];
+  });
+
+  /** 종일(시간 없음)을 위로. 나머지는 시각순 — 시간이 뒤죽박죽이면 목록을 훑을 수 없다 */
+  const schedules: Schedule[] = [...manualSchedules, ...eventSchedules].sort((a, b) =>
+    (a.time ?? '').localeCompare(b.time ?? ''),
+  );
 
   /** 고른 날짜를 넘겨 추가 화면의 날짜칸을 채운다 — 안 넘기면 매번 다시 고르게 된다 */
   const handleAddSchedule = () =>
@@ -320,7 +355,10 @@ export default function HomePage() {
             자리를 비워두면 화면이 멈춘 것처럼 보이고, 뒤늦게 나타나면서 아래 블록을 밀어낸다.
           */}
           {checklist.isLoading ? (
-            <section className="bg-surface-raised rounded-md flex flex-col gap-3 p-4" aria-busy="true">
+            <section
+              className="bg-surface-raised rounded-md flex flex-col gap-3 p-4"
+              aria-busy="true"
+            >
               <div className="flex items-center justify-between">
                 <Skeleton className="bg-surface-fill h-4 w-20" />
                 <Skeleton className="bg-surface-fill h-3 w-10" />
@@ -356,7 +394,12 @@ export default function HomePage() {
             앞날 일정을 넣는 건 가장 흔한 쓰임이라 추가 버튼은 그대로 살려 둔다.
           */}
           <TodaySchedules
-            schedules={briefingUnavailable ? [] : schedules}
+            /*
+              브리핑이 없어도 캘린더 일정은 안다 — 그건 달 단위로 따로 받기 때문이다.
+              통째로 비우면 알고 있는 것까지 감추게 되므로, 아는 만큼은 그대로 보여주고
+              "직접 넣은 일정은 아직 모른다"고만 덧붙인다(unavailable).
+            */
+            schedules={briefingUnavailable ? eventSchedules : schedules}
             unavailable={briefingUnavailable}
             dateLabel={blockDateLabel}
             onAdd={handleAddSchedule}
