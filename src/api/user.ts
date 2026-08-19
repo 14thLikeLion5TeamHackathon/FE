@@ -32,7 +32,12 @@ export async function deleteAccount(): Promise<void> {
   await axiosInstance.delete<ApiResponse>('/api/v1/mypage/users/me');
 }
 
-/** POST /api/v1/mypage/auth/logout — 로그아웃 */
+/**
+ * POST /api/v1/mypage/auth/logout — 로그아웃.
+ *
+ * 같은 엔드포인트를 부르는 `api/auth.ts`의 `postLogout`이 따로 있었다. 둘이 갈라져 있으면
+ * 한쪽만 고쳤을 때 어긋나므로 이쪽 하나로 합쳤다(응답 본문은 ApiResponseVoid라 볼 게 없다).
+ */
 export async function logout(): Promise<void> {
   await axiosInstance.post<ApiResponse>('/api/v1/mypage/auth/logout');
 }

@@ -11,6 +11,7 @@ import RecordCard from './components/RecordCard';
 import StoreGuide from './components/StoreGuide';
 
 import { useCardDetail, useCardRecords } from '../../hooks/card/useCard';
+import { NO_TREATMENT_NAME } from '../../types/card';
 import { getLocationParams } from '../../lib/location';
 import type { GuideStage } from './components/RecoveryGuide';
 
@@ -152,46 +153,48 @@ export default function CardDetailPage() {
   }
 
   const currentDDay = cardDetail.dday;
-  const totalDays = cardDetail.recoveryTotalDays;
+  // 스웨거 응답에 required가 하나도 없어서 회복일 수·오늘의 관리가 통째로 비어 올 수 있다.
+  // 0으로 받으면 아래 두 계산이 알아서 빈 목록을 낸다 — 있지도 않은 구간을 지어내지 않는다.
+  const totalDays = cardDetail.recoveryTotalDays ?? 0;
+  /**
+   * 진행바에 쓰는 총 회복일은 0으로 메우지 않는다 — `dday / 0`은 NaN·Infinity가 되고
+   * CareInfo의 기본값(29일)은 `undefined`일 때만 적용된다.
+   */
+  const progressTotalDays = cardDetail.recoveryTotalDays ?? undefined;
+  const transitionDay = cardDetail.recoveryTransitionDay ?? 0;
   const records = cardRecords?.careRecords ?? [];
 
   // 주의사항 공통 가이드 (문구는 FE 카피, 날짜 경계는 서버 값에서 계산 — 위 블록 설명 참고)
-  const cautionList = buildCautionList(
-    cardDetail.recoveryTransitionDay,
-    totalDays,
-  );
+  const cautionList = buildCautionList(transitionDay, totalDays);
 
   // 회복 가이드 구간 계산 (문구는 FE 카피, 날짜 경계는 서버 값에서 계산 — 위 블록 설명 참고)
-  const guideStages = buildGuideStages(
-    cardDetail.recoveryTransitionDay,
-    totalDays,
-    currentDDay,
-  );
+  const guideStages = buildGuideStages(transitionDay, totalDays, currentDDay);
 
   // 증상 값 → 한글 라벨 변환
   const getSymptomLabels = (record: (typeof records)[number]) => {
+    // 강도가 비어 온 증상은 태그를 달지 않는다 — 0으로 치면 "없음"이라고 답한 것처럼 보인다
     const labels: string[] = [];
-    if (record.redness > 0) labels.push('붉은기');
-    if (record.swelling > 0) labels.push('부기');
-    if (record.pain > 0) labels.push('통증');
-    if (record.dryness > 0) labels.push('건조함');
+    if ((record.redness ?? 0) > 0) labels.push('붉은기');
+    if ((record.swelling ?? 0) > 0) labels.push('부기');
+    if ((record.pain ?? 0) > 0) labels.push('통증');
+    if ((record.dryness ?? 0) > 0) labels.push('건조함');
     return labels;
   };
 
   return (
     <div className="flex flex-col gap-3.5 px-5 pt-5 pb-6">
       {/* 0. 상단 네비게이션 바 */}
-      <NavHeader title={cardDetail.treatmentName} />
+      <NavHeader title={cardDetail.treatmentName ?? NO_TREATMENT_NAME} />
 
       {/* 1. 시술일 & D-day 진행바 */}
       <CareInfo
-        date={cardDetail.treatmentDate}
+        date={cardDetail.treatmentDate ?? '정보 없음'}
         dday={currentDDay}
-        totalDays={totalDays}
+        totalDays={progressTotalDays}
       />
 
       {/* 2. 오늘의 관리 */}
-      <TodayCare items={cardDetail.todayCare} />
+      <TodayCare items={cardDetail.todayCare ?? []} />
 
       {/* 3. 회복 가이드 */}
       <RecoveryGuide stages={guideStages} />
@@ -214,7 +217,9 @@ export default function CardDetailPage() {
           {records.map((record) => (
             <RecordCard
               key={record.recordId}
-              title={`${record.recordedAt} · ${cardDetail.treatmentName}`}
+              title={[record.recordedAt, cardDetail.treatmentName]
+                .filter(Boolean)
+                .join(' · ')}
               dday={`D+${record.dday}`}
               photoUrls={record.photoUrls ?? undefined}
               memo={record.statusDescription ?? ''}
@@ -225,12 +230,13 @@ export default function CardDetailPage() {
         </div>
       </section>
 
-      {/* 6. 재방문 유도 — visitedStore가 있을 때만 노출 */}
-      {cardDetail.visitedStore && (
+      {/* 6. 재방문 유도 — 매장 이름이 있을 때만 노출.
+          매장 필드도 전부 선택이라, 이름 없는 매장 블록은 사용자에게 아무 의미가 없다 */}
+      {cardDetail.visitedStore?.name && (
         <StoreGuide
           name={cardDetail.visitedStore.name}
-          distanceInfo={cardDetail.visitedStore.address}
-          mapUrl={cardDetail.visitedStore.url}
+          distanceInfo={cardDetail.visitedStore.address ?? undefined}
+          mapUrl={cardDetail.visitedStore.url ?? undefined}
         />
       )}
     </div>

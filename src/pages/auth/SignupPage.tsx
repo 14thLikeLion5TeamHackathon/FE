@@ -8,13 +8,16 @@ import DateField from '../../components/DateField';
 import NavHeader from '../../components/NavHeader';
 import ProgressBar from '../../components/ProgressBar';
 import Segment from '../../components/Segment';
+import { useUpdateKakaoConsent } from '../../hooks/notification/useNotification';
 import { useOnboarding } from '../../hooks/user/useUser';
 import { cn } from '../../lib/cn';
 import { toDateInputValue } from '../../lib/date';
+import { TERMS, type Term, type TermId } from '../../lib/terms';
 import { GENDER_LABEL, type Gender } from '../../types/user';
 import AgreementItem from './components/AgreementItem';
 import LabeledField from './components/LabeledField';
 import SegmentGroup from './components/SegmentGroup';
+import TermsSheet from './components/TermsSheet';
 
 type Visited = 'VISITED' | 'FIRST';
 
@@ -23,11 +26,12 @@ const VISITED_LABEL: Record<Visited, string> = {
   FIRST: '처음이에요',
 };
 
-type Agreements = {
-  personalInfo: boolean;
-  healthData: boolean;
-  scheduleData: boolean;
-};
+/** 약관 id → 동의 여부. 항목은 lib/terms의 TERMS가 단일 소스라 여기서 나열하지 않는다. */
+type Agreements = Record<TermId, boolean>;
+
+const NO_AGREEMENTS: Agreements = Object.fromEntries(
+  TERMS.map((term) => [term.id, false]),
+) as Agreements;
 
 /**
  * 회원가입 — 기본 정보 → 약관 동의 2스텝.
@@ -37,6 +41,7 @@ export default function SignupPage() {
   const navigate = useNavigate();
 
   const { mutate: onboard, isPending, isError } = useOnboarding();
+  const { mutate: setKakaoConsent } = useUpdateKakaoConsent();
 
   const [step, setStep] = useState<1 | 2>(1);
 
@@ -45,25 +50,25 @@ export default function SignupPage() {
   const [gender, setGender] = useState<Gender | null>(null);
   const [visited, setVisited] = useState<Visited | null>(null);
 
-  const [agreements, setAgreements] = useState<Agreements>({
-    personalInfo: false,
-    healthData: false,
-    scheduleData: false,
-  });
+  const [agreements, setAgreements] = useState<Agreements>(NO_AGREEMENTS);
+
+  /** 전문 시트에 띄울 약관. null이면 닫힌 상태 */
+  const [viewing, setViewing] = useState<Term | null>(null);
 
   const isStep1Valid =
     name.trim() !== '' && birthDate.trim() !== '' && gender !== null && visited !== null;
 
-  const isAllAgreed = agreements.personalInfo && agreements.healthData && agreements.scheduleData;
-  const isStep2Valid = agreements.personalInfo && agreements.healthData;
+  const isAllAgreed = TERMS.every((term) => agreements[term.id]);
+  /** 가입 조건은 **필수 약관만**이다. 선택 약관까지 요구하면 동의를 강제하는 게 된다. */
+  const isStep2Valid = TERMS.every((term) => !term.required || agreements[term.id]);
 
-  const toggleAgreement = (key: keyof Agreements) => () => {
+  const toggleAgreement = (key: TermId) => () => {
     setAgreements((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
   const toggleAll = () => {
     const next = !isAllAgreed;
-    setAgreements({ personalInfo: next, healthData: next, scheduleData: next });
+    setAgreements(Object.fromEntries(TERMS.map((term) => [term.id, next])) as Agreements);
   };
 
   const handleSubmit = () => {
@@ -78,7 +83,17 @@ export default function SignupPage() {
         agreeCalendarData: agreements.scheduleData,
         hasAacOfflineExperience: visited === 'VISITED',
       },
-      { onSuccess: () => navigate('/') },
+      {
+        onSuccess: () => {
+          // 카카오 알림 동의는 온보딩 요청에 담을 자리가 없다(스펙에 필드가 없음) —
+          // 가입이 끝난 뒤 따로 보낸다. **실패해도 가입을 막지 않는다.** 선택 약관이고,
+          // 이 시점엔 카카오 연동 자체가 없어 서버가 거절할 수 있다(BE 확인 중).
+          // 실패하면 알림만 안 올 뿐이고, 마이페이지 토글로 언제든 다시 켤 수 있다.
+          // TODO(#85): 온보딩이 agreeKakaoNotification을 받아주면 이 호출을 지운다.
+          if (agreements.kakaoNotification) setKakaoConsent(true);
+          navigate('/');
+        },
+      },
     );
   };
 
@@ -157,30 +172,24 @@ export default function SignupPage() {
               </div>
             </Card>
 
-            <AgreementItem
-              required
-              title="개인정보 수집 및 처리 동의"
-              checked={agreements.personalInfo}
-              onToggle={toggleAgreement('personalInfo')}
-            />
-            <AgreementItem
-              required
-              title="건강·시술 데이터 연동 동의"
-              description="AAC 매장 방문 및 시술 정보 수신에 동의합니다"
-              checked={agreements.healthData}
-              onToggle={toggleAgreement('healthData')}
-            />
-            <AgreementItem
-              title="일정 데이터 활용 동의"
-              description="캘린더 일정을 분석해 전날 밤 사전 경고를 보내드려요"
-              checked={agreements.scheduleData}
-              onToggle={toggleAgreement('scheduleData')}
-            />
+            {TERMS.map((term) => (
+              <AgreementItem
+                key={term.id}
+                required={term.required}
+                title={term.title}
+                badge={term.badge}
+                description={term.summary}
+                checked={agreements[term.id]}
+                onToggle={toggleAgreement(term.id)}
+                onView={() => setViewing(term)}
+              />
+            ))}
           </div>
 
           <p className="typo-caption text-text-tertiary">
-            일정 동의는 선택이에요. 동의하지 않아도 가입할 수 있고, 이 경우 사전 경고와 일정 기반
-            안내 없이 D-day·환경 지표만으로 안내해드려요.
+            선택 항목은 동의하지 않아도 가입할 수 있어요. 일정 동의가 없으면 사전 경고 없이
+            D-day·환경 지표만으로 안내하고, 카카오 알림 동의가 없으면 앱 내 푸시로 보내드려요.
+            둘 다 마이페이지에서 언제든 바꿀 수 있어요.
           </p>
 
           {/* 실패해도 화면이 그대로면 사용자는 버튼이 안 먹은 줄 안다 */}
@@ -197,6 +206,8 @@ export default function SignupPage() {
         disabled={step === 1 ? !isStep1Valid : !isStep2Valid || isPending}
         onClick={step === 1 ? () => setStep(2) : handleSubmit}
       />
+
+      <TermsSheet term={viewing} onClose={() => setViewing(null)} />
     </div>
   );
 }

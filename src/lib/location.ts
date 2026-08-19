@@ -64,11 +64,29 @@ export type CityEntry = {
   name: string;
   label: string;
   districts: string[];
+  /**
+   * 시청 좌표. `PATCH /api/v1/mypage/location`이 **좌표만 받기 때문에** 필요하다 —
+   * 시·구 이름을 그대로 보낼 방법이 없어서 고른 시의 대표 좌표로 옮겨 보낸다.
+   *
+   * 그래서 서버에 저장되는 기준 위치는 **시 단위까지만 정확하다.** 날씨(`/environment/weather`)는
+   * 시·구 이름을 그대로 받으므로 구 단위로 맞고, 브리핑만 시 단위가 된다.
+   * 구 좌표를 지어내지 않은 이유는, 틀린 좌표를 보내면 사용자가 남의 동네 판단을 자기 것으로 믿기 때문이다.
+   *
+   * TODO(#86): BE가 이 엔드포인트에서 city/district도 받아주면 좌표 변환 없이 그대로 넘긴다.
+   */
+  coords: Coords;
+};
+
+/** `PATCH /api/v1/mypage/location`이 받는 형태 */
+export type Coords = {
+  latitude: number;
+  longitude: number;
 };
 
 export const CITIES: CityEntry[] = [
   {
     id: 'seoul',
+    coords: { latitude: 37.5665, longitude: 126.978 },
     name: '서울특별시',
     label: '서울',
     districts: [
@@ -79,6 +97,7 @@ export const CITIES: CityEntry[] = [
   },
   {
     id: 'busan',
+    coords: { latitude: 35.1796, longitude: 129.0756 },
     name: '부산광역시',
     label: '부산',
     districts: [
@@ -88,6 +107,7 @@ export const CITIES: CityEntry[] = [
   },
   {
     id: 'incheon',
+    coords: { latitude: 37.4563, longitude: 126.7052 },
     name: '인천광역시',
     label: '인천',
     districts: [
@@ -96,12 +116,14 @@ export const CITIES: CityEntry[] = [
   },
   {
     id: 'daegu',
+    coords: { latitude: 35.8714, longitude: 128.6014 },
     name: '대구광역시',
     label: '대구',
     districts: ['남구', '달서구', '달성군', '동구', '북구', '서구', '수성구', '중구'],
   },
   {
     id: 'gwangju',
+    coords: { latitude: 35.1595, longitude: 126.8526 },
     name: '광주광역시',
     label: '광주',
     districts: ['광산구', '남구', '동구', '북구', '서구'],
@@ -111,6 +133,11 @@ export const CITIES: CityEntry[] = [
 /** 시 이름("서울특별시")으로 CityEntry를 찾는다 */
 export function findCity(name: string): CityEntry | undefined {
   return CITIES.find((c) => c.name === name);
+}
+
+/** 저장할 좌표. 목록에 없는 시면 null이라 호출부가 요청을 건너뛴다 */
+export function locationCoords(loc: TodayLocation): Coords | null {
+  return findCity(loc.city)?.coords ?? null;
 }
 
 /** "서울특별시 강남구" → "서울 강남구" */

@@ -1,6 +1,6 @@
 import Card from '../../../components/Card';
 import { cn } from '../../../lib/cn';
-import type { Treatment } from '../../../types/card';
+import { NO_TREATMENT_NAME, type Treatment } from '../../../types/card';
 
 type TreatmentListItemProps = {
   treatment: Treatment;
@@ -21,8 +21,13 @@ export default function TreatmentListItem({ treatment, selected, onToggle }: Tre
         )}
       >
         <div className="min-w-0 flex-1">
-          <p className="typo-card-title truncate">{treatment.name}</p>
-          <p className="typo-caption text-text-secondary mt-1 truncate">{treatment.description}</p>
+          {/* 이름·설명 모두 스웨거에서 선택이다. 설명이 없으면 줄 자체를 없앤다 */}
+          <p className="typo-card-title truncate">{treatment.name ?? NO_TREATMENT_NAME}</p>
+          {treatment.description && (
+            <p className="typo-caption text-text-secondary mt-1 truncate">
+              {treatment.description}
+            </p>
+          )}
         </div>
 
         <span

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 
-import type { CareCard } from '../../types/card';
+import { NO_TREATMENT_NAME, type CareCard } from '../../types/card';
 import type { RecordTimelineItem } from '../../types/record';
 import type { RecoveryCurve, RecoveryPoint } from '../../types/recovery';
 import { useCardRecords, useCards } from '../card/useCard';
@@ -23,32 +23,46 @@ import { useCardRecords, useCards } from '../card/useCard';
 function pickDefaultCurveCard(inProgress: CareCard[]): CareCard | null {
   if (inProgress.length === 0) return null;
 
+  // 시술일이 비어 올 수 있다(스웨거 응답에 required가 없다). 빈 값은 가장 오래된 것으로 취급해
+  // 뒤로 밀어 둔다 — 날짜를 모르는 카드가 기본 곡선을 차지하면 사용자가 헛다리를 짚는다.
+  const treatedAt = (card: CareCard) => card.treatmentDate ?? '';
+
   return inProgress.reduce((latest, card) =>
-    card.treatmentDate > latest.treatmentDate ||
-    (card.treatmentDate === latest.treatmentDate && card.cardId > latest.cardId)
+    treatedAt(card) > treatedAt(latest) ||
+    (treatedAt(card) === treatedAt(latest) && card.cardId > latest.cardId)
       ? card
       : latest,
   );
 }
 
-/** "2026-08-01" → "08.01". 곡선 라벨은 폭이 좁아 연도를 뺀다. */
-function toDateLabel(recordedAt: string): string {
+/** "2026-08-01" → "08.01". 곡선 라벨은 폭이 좁아 연도를 뺀다. 날짜가 없으면 D-day만 남긴다. */
+function toDateLabel(recordedAt: string | null | undefined): string {
+  if (!recordedAt) return '';
   const [, month, day] = recordedAt.split('-');
   return month && day ? `${month}.${day}` : recordedAt;
 }
 
 function toPoint(record: RecordTimelineItem): RecoveryPoint {
+  /**
+   * 강도가 비어 온 증상은 **점을 만들지 않고 뺀다.** 0으로 채우면 사용자가 "없음"이라고
+   * 답한 것처럼 곡선이 바닥으로 떨어져, 실제로는 없는 회복을 보여주게 된다.
+   * 빠진 자리는 SymptomChart가 알아서 메운다(찾지 못하면 0).
+   */
+  const symptoms: RecoveryPoint['symptoms'] = (
+    [
+      ['SWELLING', record.swelling],
+      ['PAIN', record.pain],
+      ['REDNESS', record.redness],
+      ['DRYNESS', record.dryness],
+    ] as const
+  ).flatMap(([key, intensity]) => (typeof intensity === 'number' ? [{ key, intensity }] : []));
+
   return {
     recordId: record.recordId,
     ddayLabel: `D+${record.dday}`,
     dateLabel: toDateLabel(record.recordedAt),
     photoUrl: record.photoUrls?.[0] ?? null,
-    symptoms: [
-      { key: 'SWELLING', intensity: record.swelling },
-      { key: 'PAIN', intensity: record.pain },
-      { key: 'REDNESS', intensity: record.redness },
-      { key: 'DRYNESS', intensity: record.dryness },
-    ],
+    symptoms,
   };
 }
 
@@ -86,11 +100,15 @@ export function useRecovery() {
     if (!curveCard || !recordsQuery.data) return null;
 
     // 서버가 정렬 순서를 계약으로 보장하지 않는다. 곡선은 순서가 곧 의미라 여기서 고정한다.
-    const points = [...recordsQuery.data.careRecords]
+    const points = [...(recordsQuery.data.careRecords ?? [])]
       .sort((a, b) => a.dday - b.dday || a.recordId - b.recordId)
       .map(toPoint);
 
-    return { cardId: curveCard.cardId, treatmentName: curveCard.treatmentName, points };
+    return {
+      cardId: curveCard.cardId,
+      treatmentName: curveCard.treatmentName ?? NO_TREATMENT_NAME,
+      points,
+    };
   }, [curveCard, recordsQuery.data]);
 
   return {

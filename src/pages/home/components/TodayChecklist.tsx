@@ -12,7 +12,9 @@ type TodayChecklistProps = {
  * 매일 앱을 여는 이유라서 브리핑 바로 다음, 근거보다 위에 둔다.
  */
 export default function TodayChecklist({ items, onToggle }: TodayChecklistProps) {
-  const doneCount = items.filter((item) => item.completed).length;
+  // completed·label·sourceLabel은 계약상 빠질 수 있다(types/today.ts). 없으면 "안 함"·빈 문자열로 본다 —
+  // 항목을 통째로 버리면 사용자가 자기 할 일을 잃어버린 것처럼 보이기 때문이다.
+  const doneCount = items.filter((item) => item.completed === true).length;
   const ratio = items.length === 0 ? 0 : (doneCount / items.length) * 100;
 
   return (
@@ -33,9 +35,9 @@ export default function TodayChecklist({ items, onToggle }: TodayChecklistProps)
         {items.map((item) => (
           <li key={item.checklistId} className="flex items-center gap-3">
             <Checkbox
-              checked={item.completed}
+              checked={item.completed ?? false}
               onChange={(event) => onToggle(item.checklistId, event.target.checked)}
-              aria-label={item.label}
+              aria-label={item.label ?? '체크리스트 항목'}
             />
             <span
               className={cn(
@@ -43,9 +45,9 @@ export default function TodayChecklist({ items, onToggle }: TodayChecklistProps)
                 item.completed ? 'text-text-tertiary' : 'text-text-primary',
               )}
             >
-              {item.label}
+              {item.label ?? ''}
             </span>
-            <span className="typo-caption text-text-tertiary">{item.sourceLabel}</span>
+            <span className="typo-caption text-text-tertiary">{item.sourceLabel ?? ''}</span>
           </li>
         ))}
       </ul>
