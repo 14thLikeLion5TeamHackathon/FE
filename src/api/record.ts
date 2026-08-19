@@ -21,10 +21,16 @@ export async function createRecord(
   formData.append('statusDescription', body.statusDescription);
   formData.append('tags', body.tags);
 
+  // axiosInstance는 기본 헤더로 Content-Type: application/json을 깔아 둔다.
+  // FormData를 보낼 땐 boundary가 포함된 Content-Type을 브라우저가 채워야 하므로,
+  // 여기서 'multipart/form-data'로 직접 고정하면 boundary가 빠져 서버가 파싱하지 못한다.
+  // 그렇다고 헤더 옵션을 아예 생략하면 인스턴스 기본값인 application/json이 그대로 적용되고,
+  // axios가 FormData를 JSON으로 잘못 직렬화해 버린다. undefined로 명시해서 기본값을 지워야
+  // 브라우저가 boundary 포함 Content-Type을 자동으로 채운다.
   const res = await axiosInstance.post<ApiResponse>(
     `/api/v1/now/care-cards/${cardId}/records`,
     formData,
-    { headers: { 'Content-Type': 'multipart/form-data' } },
+    { headers: { 'Content-Type': undefined } },
   );
   return CreateRecordResponse.parse(getResult(res));
 }
