@@ -13,8 +13,8 @@ type LocationPickerProps = {
  * 오늘 안내의 기준 위치를 바꾸는 진입점.
  * 평소엔 읽기만 하는 한 줄이고, 눌렀을 때만 시트를 펼친다.
  *
- * 시트는 시 → 구 2단이다. 서버가 아는 조합이 시·구 쌍이라 둘 다 받아야 하는데,
- * 60여 개를 한 번에 늘어놓으면 고를 수가 없다.
+ * 시트는 시 → 구 2단이다. 17개 시도의 시군구를 한 번에 늘어놓으면 250개가 넘어 고를 수가 없다.
+ * 좌표는 시도 단위(시청·도청)라 구 선택이 조회 결과를 바꾸지는 않는다 — 표시용이다.
  */
 export default function LocationPicker({ location, onSelect }: LocationPickerProps) {
   const [open, setOpen] = useState(false);
@@ -74,7 +74,7 @@ export default function LocationPicker({ location, onSelect }: LocationPickerPro
           <h2 className="typo-section">{city ? city.label : '기준 위치'}</h2>
         </div>
 
-        {/* 구는 서울만 25개라 시트가 넘친다. 높이를 묶고 목록만 스크롤시킨다 */}
+        {/* 경기도만 31개고 시 목록도 17개다. 높이를 묶고 목록만 스크롤시킨다 */}
         <ul className="grid max-h-[55vh] grid-cols-3 gap-2 overflow-y-auto">
           {city
             ? city.districts.map((district) => (
