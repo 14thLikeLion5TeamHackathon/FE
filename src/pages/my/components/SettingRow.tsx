@@ -15,6 +15,11 @@ type SettingRowProps = {
   /** 있으면 button으로, 없으면 div로 렌더된다. */
   onClick?: () => void;
   tone?: 'default' | 'danger';
+  /**
+   * 눌러도 아무 일이 없어야 하는 상태. 요청이 날아가는 동안 연타를 막는 데 쓴다 —
+   * 되돌릴 수 없는 행(연동 해제·탈퇴)에서 같은 요청이 두 번 나가면 두 번째는 404가 된다.
+   */
+  disabled?: boolean;
 };
 
 function Chevron() {
@@ -42,6 +47,7 @@ export default function SettingRow({
   chevron,
   onClick,
   tone = 'default',
+  disabled = false,
 }: SettingRowProps) {
   const showChevron = chevron ?? Boolean(onClick);
   const className =
@@ -64,7 +70,12 @@ export default function SettingRow({
 
   if (onClick) {
     return (
-      <button type="button" onClick={onClick} className={className}>
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={disabled}
+        className={cn(className, disabled && 'opacity-50')}
+      >
         {content}
       </button>
     );

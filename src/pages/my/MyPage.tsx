@@ -47,7 +47,8 @@ export default function MyPage() {
   const { data, isLoading, isError } = useMyProfile();
   const { mutate: doLogout } = useLogout();
   const { mutate: doDeleteAccount } = useDeleteAccount();
-  const { mutate: doDisconnectKakao } = useDisconnectKakao();
+  // 진행 상태·실패 여부를 화면에서 읽어야 해서 mutate만 꺼내지 않는다
+  const disconnectKakao = useDisconnectKakao();
   const { data: calendarConnected } = useCalendarStatus();
   const disconnectCalendar = useDisconnectCalendar();
   // undefined = "꺼짐"이 아니라 "모름"이다 (조회 API가 없다 — hooks/notification 참고)
@@ -126,9 +127,16 @@ export default function MyPage() {
     });
   };
 
+  /**
+   * 카카오 알림 **연동 해제**(DELETE). 수신 on/off와 다르다 — 다시 켜려면 동의 화면을 거쳐야 한다.
+   *
+   * 요청이 날아가는 동안 행을 잠근다. 연타하면 같은 DELETE가 두 번 나가고, 첫 요청이
+   * 연동을 지운 뒤라 두 번째는 404가 된다 — 해제는 됐는데 화면은 실패로 보인다.
+   */
   const handleDisconnectKakao = () => {
+    if (disconnectKakao.isPending) return;
     if (!window.confirm('카카오 알림 연동을 해제하시겠어요?')) return;
-    doDisconnectKakao();
+    disconnectKakao.mutate();
   };
 
   /*
@@ -268,9 +276,27 @@ export default function MyPage() {
             }
           />
 
-          {/* 연동이 있다고 확인된 뒤에만 보여준다 — 연동한 적 없는 사람에게 해제를 권하지 않는다 */}
+          {/*
+            연동이 있다고 확인된 뒤에만 보여준다 — 연동한 적 없는 사람에게 해제를 권하지 않는다.
+
+            실패하면 행에 남아 말한다. 토스트가 없어서 이 자리 말고는 알릴 데가 없고,
+            아무 말도 안 하면 사용자는 눌렀는데 아무 일도 안 일어난 것으로 본다 —
+            연동은 그대로인데 해제된 줄 알고 떠나는 쪽이 더 나쁘다.
+          */}
           {kakaoConnected && (
-            <SettingRow label="카카오톡 알림 연동 해제" onClick={handleDisconnectKakao} chevron />
+            <SettingRow
+              label="카카오톡 알림 연동 해제"
+              description={
+                disconnectKakao.isPending
+                  ? '해제하고 있어요'
+                  : disconnectKakao.isError
+                    ? '해제하지 못했어요. 잠시 후 다시 시도해주세요'
+                    : undefined
+              }
+              onClick={handleDisconnectKakao}
+              disabled={disconnectKakao.isPending}
+              chevron
+            />
           )}
         </Card>
       </Group>
