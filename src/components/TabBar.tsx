@@ -2,26 +2,64 @@ import { NavLink } from 'react-router';
 
 import { cn } from '../lib/cn';
 
+/**
+ * 탭 아이콘.
+ *
+ * 선(stroke) 기반에 `currentColor`를 쓴다 — 활성/비활성 색을 라벨과 같은 클래스 하나로
+ * 맞추기 위해서다. 채움(fill) 아이콘으로 두면 활성 상태에서 라벨보다 훨씬 무거워 보인다.
+ * viewBox는 20으로 통일해 세 아이콘의 시각적 굵기가 어긋나지 않게 한다.
+ */
+type IconProps = { className?: string };
+
+/** 오늘 — 캘린더. 날짜를 고르는 화면이라는 뜻 */
+function TodayIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 20 20" className={className} fill="none" aria-hidden>
+      <rect x="2.75" y="4.25" width="14.5" height="13" rx="2.5" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M2.75 8.25h14.5M6.75 2.75v3M13.25 2.75v3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+/** 회복 — 우상향 곡선. 이 탭의 주인공인 회복 곡선을 그대로 줄인 모양 */
+function RecoveryIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 20 20" className={className} fill="none" aria-hidden>
+      <path d="M2.75 14.5c3.5 0 4.5-9 7-9s3.5 5 7.5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M2.75 17.25h14.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+/** 마이 — 사람 */
+function MyIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 20 20" className={className} fill="none" aria-hidden>
+      <circle cx="10" cy="6.75" r="3.25" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M3.75 16.75c0-3 2.8-4.75 6.25-4.75s6.25 1.75 6.25 4.75" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 const TABS = [
-  { to: '/', label: '오늘' },
-  { to: '/recovery', label: '회복' },
+  { to: '/', label: '오늘', Icon: TodayIcon },
+  { to: '/recovery', label: '회복', Icon: RecoveryIcon },
 ] as const;
 
-function TabItem({ to, label }: { to: string; label: string }) {
+function TabItem({ to, label, Icon }: { to: string; label: string; Icon: React.FC<IconProps> }) {
   return (
     <NavLink to={to} end className="flex flex-1 flex-col items-center gap-1">
       {({ isActive }) => (
-        <>
-          <span
-            className={cn(
-              'size-[18px] rounded-full',
-              isActive ? 'bg-primary' : 'bg-surface-fill-strong',
-            )}
-          />
-          <span className={cn('typo-caption', isActive ? 'text-primary' : 'text-text-tertiary')}>
-            {label}
-          </span>
-        </>
+        // 색을 부모에서 한 번만 정한다 — 아이콘은 currentColor라 라벨과 늘 같은 색이 된다
+        <div
+          className={cn(
+            'flex flex-col items-center gap-1',
+            isActive ? 'text-primary' : 'text-text-tertiary',
+          )}
+        >
+          <Icon className="size-[18px]" />
+          <span className="typo-caption">{label}</span>
+        </div>
       )}
     </NavLink>
   );
@@ -75,7 +113,7 @@ export default function TabBar({ onRecord }: TabBarProps) {
         <span className="typo-caption text-text-tertiary">기록</span>
       </div>
 
-      <TabItem to="/my" label="마이" />
+      <TabItem to="/my" label="마이" Icon={MyIcon} />
     </nav>
   );
 }

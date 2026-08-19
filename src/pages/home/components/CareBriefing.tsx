@@ -1,4 +1,5 @@
 import Button from '../../../components/Button';
+import Skeleton from '../../../components/Skeleton';
 
 /**
  * 메인 상단 브리핑 (시안 `CareBriefing`).
@@ -14,7 +15,11 @@ type Props = {
   dateLabel: string;
 };
 
-function Shell({ dateLabel, right, children }: Props & { right: React.ReactNode; children: React.ReactNode }) {
+function Shell({
+  dateLabel,
+  right,
+  children,
+}: Props & { right: React.ReactNode; children: React.ReactNode }) {
   return (
     <section className="bg-surface-raised border-border-subtle rounded-md flex flex-col items-start gap-2.5 border p-4">
       <header className="flex w-full items-center justify-between overflow-clip whitespace-nowrap">
@@ -46,16 +51,18 @@ export default function CareBriefing({
   );
 }
 
-/** 불러오는 중. 날짜는 이미 알고 있으므로 그대로 두고 나머지만 스켈레톤으로 */
+/**
+ * 불러오는 중. 날짜는 이미 알고 있으므로 그대로 두고 나머지만 스켈레톤으로.
+ *
+ * 색은 `bg-surface-fill`로 덮는다 — Skeleton 기본색이 이 카드 배경과 같아서
+ * 그대로 두면 상자가 배경에 묻혀 아무것도 안 뜨는 것처럼 보인다.
+ */
 export function CareBriefingLoading({ dateLabel }: Props) {
   return (
-    <Shell
-      dateLabel={dateLabel}
-      right={<div className="bg-surface-fill rounded-sm h-2.5 w-[52px]" />}
-    >
+    <Shell dateLabel={dateLabel} right={<Skeleton className="bg-surface-fill h-2.5 w-[52px]" />}>
       <div className="flex w-full flex-col items-start gap-2" aria-busy="true">
-        <div className="bg-surface-fill rounded-sm h-3 w-full" />
-        <div className="bg-surface-fill rounded-sm h-3 w-[236px]" />
+        <Skeleton className="bg-surface-fill h-3 w-full" />
+        <Skeleton className="bg-surface-fill h-3 w-[236px]" />
       </div>
     </Shell>
   );

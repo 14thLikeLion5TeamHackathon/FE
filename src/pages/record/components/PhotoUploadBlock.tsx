@@ -16,7 +16,7 @@ export default function PhotoUploadBlock({
       <input
         id="camera-input"
         type="file"
-        accept="image/*"
+        accept="image/jpeg,image/png,image/webp"
         capture="environment"
         className="hidden"
         onChange={onSelectPhoto}
@@ -24,7 +24,7 @@ export default function PhotoUploadBlock({
       <input
         id="album-input"
         type="file"
-        accept="image/*"
+        accept="image/jpeg,image/png,image/webp"
         multiple
         className="hidden"
         onChange={onSelectPhoto}

@@ -25,7 +25,7 @@ export default function SymptomSelectBlock({
               disabled ? 'cursor-default' : 'cursor-pointer',
               isSelected
                 ? 'border-primary bg-primary-tint text-primary'
-                : 'border-border-strong bg-transparent text-text-secondary'
+                : 'border-border-strong bg-transparent text-text-secondary',
             )}
             onClick={disabled ? undefined : () => onToggleSymptom?.(key)}
           >

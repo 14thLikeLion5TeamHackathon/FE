@@ -16,25 +16,14 @@ export type RecordHeaderProps = {
  * ├── Title ("회복 기록")
  * └── Count ("N건")
  */
-export default function RecordHeader({
-  count,
-  title = '회복 기록',
-  className,
-}: RecordHeaderProps) {
+export default function RecordHeader({ count, title = '회복 기록', className }: RecordHeaderProps) {
   return (
-    <div
-      className={cn(
-        'flex w-full items-center justify-between',
-        className,
-      )}
-    >
+    <div className={cn('flex w-full items-center justify-between', className)}>
       {/* Title */}
       <h2 className="typo-section text-text-primary">{title}</h2>
 
       {/* Count */}
-      <span className="typo-caption text-right text-text-tertiary">
-        {count}건
-      </span>
+      <span className="typo-caption text-right text-text-tertiary">{count}건</span>
     </div>
   );
 }

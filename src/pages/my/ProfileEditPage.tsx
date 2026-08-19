@@ -10,6 +10,7 @@ import { useMyProfile, useUpdateProfile } from '../../hooks/user/useUser';
 import { fromDateInputValue, toDateInputValue } from '../../lib/date';
 import { GENDER_LABEL, type Gender } from '../../types/user';
 import SegmentGroup from '../auth/components/SegmentGroup';
+import Skeleton from '../../components/Skeleton';
 
 /**
  * 개인정보 수정 — 이름·생년월일·성별.
@@ -30,9 +31,11 @@ export default function ProfileEditPage() {
    * 조회 응답이 오기 전에는 빈 문자열로 두고, 오면 그때 한 번만 채운다.
    * `useState`의 초기값은 첫 렌더에만 쓰이므로 데이터가 늦게 와도 반영되지 않는다.
    */
-  const [form, setForm] = useState<{ name: string; birthDate: string; gender: Gender | null } | null>(
-    null,
-  );
+  const [form, setForm] = useState<{
+    name: string;
+    birthDate: string;
+    gender: Gender | null;
+  } | null>(null);
 
   const filled = form ?? {
     name: data?.name ?? '',
@@ -62,7 +65,7 @@ export default function ProfileEditPage() {
     return (
       <div className="flex flex-col gap-3.5 px-5 pt-5" aria-busy="true">
         <NavHeader title="개인정보 수정" />
-        <div className="bg-surface-raised rounded-card h-40 animate-pulse" />
+        <Skeleton className="h-40" />
       </div>
     );
   }

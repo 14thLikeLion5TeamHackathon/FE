@@ -12,10 +12,26 @@ type TodayChecklistProps = {
  * 매일 앱을 여는 이유라서 브리핑 바로 다음, 근거보다 위에 둔다.
  */
 export default function TodayChecklist({ items, onToggle }: TodayChecklistProps) {
+  /*
+    항목이 없는 건 오류가 아니다. 회복 기간이 끝났거나(D+11인데 회복 10일) 아직 시술 전이면
+    서버가 빈 배열을 준다. 그때 진행바와 "0/0"을 그대로 그리면 제목만 남은 빈 상자가 되어
+    사용자는 화면이 깨진 줄 안다 — 개수 대신 이유를 말한다.
+  */
+  if (items.length === 0) {
+    return (
+      <section className="bg-surface-raised rounded-md flex flex-col gap-1.5 p-4">
+        <h2 className="typo-section">오늘의 케어</h2>
+        <p className="typo-body text-text-secondary">
+          오늘 할 케어가 없어요. 회복 기간이 끝났거나 아직 시작 전이에요.
+        </p>
+      </section>
+    );
+  }
+
   // completed·label·sourceLabel은 계약상 빠질 수 있다(types/today.ts). 없으면 "안 함"·빈 문자열로 본다 —
   // 항목을 통째로 버리면 사용자가 자기 할 일을 잃어버린 것처럼 보이기 때문이다.
   const doneCount = items.filter((item) => item.completed === true).length;
-  const ratio = items.length === 0 ? 0 : (doneCount / items.length) * 100;
+  const ratio = (doneCount / items.length) * 100;
 
   return (
     <section className="bg-surface-raised rounded-md flex flex-col gap-3 p-4">

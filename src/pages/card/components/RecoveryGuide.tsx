@@ -12,10 +12,7 @@ export type RecoveryGuideProps = {
   className?: string;
 };
 
-export default function RecoveryGuide({
-  stages,
-  className,
-}: RecoveryGuideProps) {
+export default function RecoveryGuide({ stages, className }: RecoveryGuideProps) {
   return (
     <Card
       className={cn(
@@ -32,17 +29,13 @@ export default function RecoveryGuide({
             className={cn(
               'flex w-full items-center gap-[10px] rounded-[6px] px-[10px] py-[8px] transition-colors',
               // 🎯 current 시 확실히 눈에 띄는 투명도 들어간 하이라이트 배경(bg-primary/10 또는 bg-white/5) 적용
-              stage.current
-                ? 'bg-primary/10 border border-primary/20'
-                : 'bg-transparent',
+              stage.current ? 'bg-primary/10 border border-primary/20' : 'bg-transparent',
             )}
           >
             <span
               className={cn(
                 'w-[58px] shrink-0 typo-caption',
-                stage.current
-                  ? 'font-bold text-primary'
-                  : 'text-text-tertiary',
+                stage.current ? 'font-bold text-primary' : 'text-text-tertiary',
               )}
             >
               {stage.range}
@@ -51,9 +44,7 @@ export default function RecoveryGuide({
             <p
               className={cn(
                 'flex-1 typo-body',
-                stage.current
-                  ? 'font-semibold text-text-primary'
-                  : 'text-text-secondary',
+                stage.current ? 'font-semibold text-text-primary' : 'text-text-secondary',
               )}
             >
               {stage.description}

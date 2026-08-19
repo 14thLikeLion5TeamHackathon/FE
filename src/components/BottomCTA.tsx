@@ -7,7 +7,7 @@ type BottomCTAProps = {
   /** 좌측에 함께 둘 보조 버튼 (예: 삭제) */
   secondary?: { label: string; onClick?: () => void; tone?: 'default' | 'danger' };
   /** 🔥 하단에 추가할 서브 텍스트 (없으면 안 그려짐) */
-  subText?: string | React.ReactNode; 
+  subText?: string | React.ReactNode;
 };
 
 /**
@@ -20,7 +20,13 @@ type BottomCTAProps = {
  * 시안의 Content padding-bottom 값이며, 바 높이(약 84px)에 여유를 더한 값이다.
  * 세이프 에어리어는 바가 자체 처리하므로 화면이 신경 쓸 필요 없다.
  */
-export default function BottomCTA({ label, onClick, disabled = false, secondary, subText }: BottomCTAProps) {
+export default function BottomCTA({
+  label,
+  onClick,
+  disabled = false,
+  secondary,
+  subText,
+}: BottomCTAProps) {
   return (
     <div
       // 🔥 최상위를 flex-col(세로 정렬)로 변경
@@ -57,11 +63,7 @@ export default function BottomCTA({ label, onClick, disabled = false, secondary,
       </div>
 
       {/* 🔥 subText가 전달되었을 때만 렌더링 (기존 화면 영향 0%) */}
-      {subText && (
-        <p className="typo-caption text-center text-text-tertiary">
-          {subText}
-        </p>
-      )}
+      {subText && <p className="typo-caption text-center text-text-tertiary">{subText}</p>}
     </div>
   );
 }

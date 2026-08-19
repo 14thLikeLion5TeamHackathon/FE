@@ -26,7 +26,7 @@ export type Term = {
   sections: { label: string; body: string }[];
 };
 
-export type TermId = 'personalInfo' | 'healthData' | 'scheduleData' | 'kakaoNotification';
+export type TermId = 'personalInfo' | 'healthData' | 'scheduleData';
 
 export const TERMS: Term[] = [
   {
@@ -96,27 +96,6 @@ export const TERMS: Term[] = [
       {
         label: '동의 거부 방법·절차·효과',
         body: '동의하지 않아도 가입 및 서비스 이용이 가능합니다. 이 경우 사전 경고 알림 없이 D-day·환경 지표 기반 안내만 제공됩니다. 마이페이지 > 캘린더 연동 해제에서 언제든 철회할 수 있습니다.',
-      },
-    ],
-  },
-  {
-    id: 'kakaoNotification',
-    title: '카카오톡 알림 발송 동의',
-    required: false,
-    badge: '제3자 제공',
-    summary: '예약 확인·D-day 리마인드를 알림톡으로 보내드려요',
-    sections: [
-      {
-        label: '목적',
-        body: '카카오 알림톡을 통한 예약 확인, D-day 리마인드, 회복 케어 알림 발송',
-      },
-      { label: '제공받는 자', body: '카카오 주식회사' },
-      { label: '제공 항목', body: '휴대전화번호' },
-      { label: '보유 기간', body: '발송 완료 후 지체없이 파기' },
-      { label: '법적 근거', body: '「개인정보 보호법」 제17조제1항제1호(동의)' },
-      {
-        label: '동의 거부 권리 및 불이익',
-        body: '동의하지 않아도 서비스 이용이 가능하며, 이 경우 앱 내 푸시 알림으로 대체 발송됩니다.',
       },
     ],
   },

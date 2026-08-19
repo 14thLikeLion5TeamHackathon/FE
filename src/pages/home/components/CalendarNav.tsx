@@ -67,9 +67,7 @@ export default function CalendarNav({
   const navigate = useNavigate();
 
   const move = (direction: 1 | -1) => {
-    onAnchorChange(
-      mode === 'week' ? addDays(anchor, 7 * direction) : addMonths(anchor, direction),
-    );
+    onAnchorChange(mode === 'week' ? addDays(anchor, 7 * direction) : addMonths(anchor, direction));
   };
 
   const today = startOfDay(new Date());
@@ -95,7 +93,9 @@ export default function CalendarNav({
           <span className="typo-section">
             {mode === 'week' ? formatShortMonthLabel(anchor) : formatMonthLabel(anchor)}
           </span>
-          <span className={cn('typo-caption text-text-secondary', mode === 'month' && 'rotate-180')}>
+          <span
+            className={cn('typo-caption text-text-secondary', mode === 'month' && 'rotate-180')}
+          >
             ⌄
           </span>
         </button>

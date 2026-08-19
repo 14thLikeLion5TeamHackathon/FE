@@ -87,11 +87,21 @@ export function useRecovery() {
   const [pickedCardId, setPickedCardId] = useState<number | null>(null);
 
   /**
-   * 사용자가 고른 카드가 목록에서 사라질 수 있다(완료 처리·삭제).
+   * 곡선을 볼 수 있는 카드. **완료된 카드도 포함한다** — 회복이 끝난 시술의 추세야말로
+   * 다시 꺼내 보고 싶은 것이고, 그걸 빼면 카드가 하나뿐인 사용자에게는 선택지 자체가 없다.
+   * 기본 선택은 진행 중 카드에서 고른다(끝난 회복보다 지금 관리 중인 게 먼저다).
+   */
+  const curveCards = [...inProgress, ...done];
+
+  /**
+   * 사용자가 고른 카드가 목록에서 사라질 수 있다(삭제).
    * 그때 선택을 붙들고 있으면 빈 곡선이 남으므로 기본 규칙으로 되돌린다.
    */
   const curveCard =
-    inProgress.find((card) => card.cardId === pickedCardId) ?? pickDefaultCurveCard(inProgress);
+    curveCards.find((card) => card.cardId === pickedCardId) ??
+    pickDefaultCurveCard(inProgress) ??
+    curveCards[0] ??
+    null;
 
   // cardId가 없으면 useCardRecords가 enabled: false로 쉰다
   const recordsQuery = useCardRecords(curveCard ? String(curveCard.cardId) : '');
@@ -115,7 +125,8 @@ export function useRecovery() {
     inProgress,
     done,
     curve,
-    /** 곡선 카드 선택 — 진행 중 카드가 2장 이상일 때만 화면에 노출한다 */
+    /** 곡선을 볼 수 있는 카드들(진행 중 + 완료). 2장 이상일 때만 선택기가 나온다 */
+    curveCards,
     curveCardId: curveCard?.cardId ?? null,
     selectCurveCard: setPickedCardId,
     /** 카드 목록이 화면의 뼈대다. 곡선은 그 뒤에 채워지므로 로딩 판정에 넣지 않는다. */

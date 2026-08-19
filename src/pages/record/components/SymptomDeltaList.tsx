@@ -25,13 +25,17 @@ export default function SymptomDeltaList({ deltas }: SymptomDeltaListProps) {
         {deltas.map((delta) => {
           const trend = TREND[delta.trend];
           return (
-            <li key={delta.key} className="flex items-center justify-between">
-              <span className="typo-body text-text-secondary">{SYMPTOM_LABEL[delta.key]}</span>
-              <span className={cn('typo-body flex items-center gap-1.5', trend.color)}>
-                <span aria-hidden>{trend.glyph}</span>
-                <span>
-                  {INTENSITY_LABEL[delta.before]} → {INTENSITY_LABEL[delta.after]}
+            <li key={delta.key} className="flex items-center justify-between gap-2">
+              {/* 화살표는 증상 이름 옆에 둔다 — 값과 붙여 두면 "약간 → 심함" 안에 방향 기호가
+                  하나 더 끼어 화살표가 둘로 보인다 */}
+              <span className="flex items-center gap-1.5">
+                <span className="typo-body text-text-secondary">{SYMPTOM_LABEL[delta.key]}</span>
+                <span className={trend.color} aria-hidden>
+                  {trend.glyph}
                 </span>
+              </span>
+              <span className={cn('typo-body', trend.color)}>
+                {INTENSITY_LABEL[delta.before]} → {INTENSITY_LABEL[delta.after]}
                 {/* 화면에는 기호로 충분하지만 읽어 줄 때는 말이 필요하다 */}
                 <span className="sr-only">{trend.label}</span>
               </span>
