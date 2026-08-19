@@ -4,7 +4,6 @@ import {
   deleteAccount,
   disconnectKakaoNotification,
   getMyProfile,
-  logout,
   postOnboarding,
   updateProfile,
 } from '../../api/user';
@@ -49,13 +48,6 @@ export function useUpdateProfile() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: userKeys.me });
     },
-  });
-}
-
-/** POST — 로그아웃 */
-export function useLogout() {
-  return useMutation({
-    mutationFn: logout,
   });
 }
 

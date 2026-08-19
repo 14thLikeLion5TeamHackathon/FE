@@ -9,7 +9,9 @@ import {
   startGoogleCalendarConnect,
   startKakaoNotificationConnect,
 } from '../../lib/connect';
-import { useDeleteAccount, useDisconnectKakao, useLogout, useMyProfile } from '../../hooks/user/useUser';
+import { useDeleteAccount, useDisconnectKakao, useMyProfile } from '../../hooks/user/useUser';
+// 로그아웃은 auth 쪽 훅을 쓴다 — 서버 호출 성패와 무관하게 토큰과 쿼리 캐시까지 비운다.
+import { useLogout } from '../../hooks/auth/useAuth';
 import { useKakaoConsent, useUpdateKakaoConsent } from '../../hooks/notification/useNotification';
 import { clearAccessToken } from '../../api/token';
 import { GENDER_LABEL, type Gender } from '../../types/user';
@@ -94,12 +96,19 @@ export default function MyPage() {
 
   const genderLabel = GENDER_LABEL[data.gender as Gender] ?? data.gender;
 
+  /**
+   * 로그아웃.
+   *
+   * `onSuccess`가 아니라 `onSettled`다. 서버 호출이 실패해도 — 네트워크가 끊겼거나,
+   * 토큰이 이미 만료돼 401이 나거나 — 로그아웃 버튼을 눌렀으면 로그아웃이 돼야 한다.
+   * 성공했을 때만 내보내면 그 경우 로그인 상태로 남아 버튼이 안 먹은 것처럼 보인다.
+   *
+   * 토큰 삭제와 캐시 비우기는 `useLogout`이 자기 `onSettled`에서 한다 — 여기서 또 부르면
+   * 로그아웃 경로가 두 군데로 갈라져 한쪽만 고치는 사고가 난다.
+   */
   const handleLogout = () => {
     doLogout(undefined, {
-      onSuccess: () => {
-        clearAccessToken();
-        navigate('/login', { replace: true });
-      },
+      onSettled: () => navigate('/login', { replace: true }),
     });
   };
 
