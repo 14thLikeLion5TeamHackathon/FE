@@ -42,7 +42,11 @@ export default function CardCreatePage() {
         treatmentDate: toDateInputValue(treatedAt),
         treatments: selectedIds.map((treatmentId) => ({ treatmentId })),
       },
-      { onSuccess: (card) => navigate(`/cards/${card.cardId}`) },
+      {
+        // cardId가 비어 오면 상세로 못 간다. 그렇다고 실패로 보이면 사용자가 같은 카드를
+        // 또 만드니, 새 카드가 목록에 보이는 회복 탭으로 보낸다.
+        onSuccess: (card) => navigate(card.cardId ? `/cards/${card.cardId}` : '/recovery'),
+      },
     );
   };
 

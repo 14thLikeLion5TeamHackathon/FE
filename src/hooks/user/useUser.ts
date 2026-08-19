@@ -9,6 +9,7 @@ import {
   updateProfile,
 } from '../../api/user';
 import type { OnboardingRequest, UpdateProfileRequest } from '../../types/user';
+import { notificationKeys } from '../notification/useNotification';
 
 const userKeys = {
   me: ['user', 'me'] as const,
@@ -65,7 +66,12 @@ export function useDeleteAccount() {
   });
 }
 
-/** DELETE — 카카오 알림 연동 해제 */
+/**
+ * DELETE — 카카오 알림 **연동 해제**. 수신 on/off(PATCH)와 다르다 — 연결 자체를 끊는다.
+ *
+ * 끊고 나면 수신 동의 캐시는 더 이상 유효하지 않다. 조회 API가 없어 다시 알아낼 방법도
+ * 없으니 지워서 "모름"으로 되돌린다 — 남겨두면 없는 연동을 켜져 있다고 그린다.
+ */
 export function useDisconnectKakao() {
   const queryClient = useQueryClient();
 
@@ -73,6 +79,7 @@ export function useDisconnectKakao() {
     mutationFn: disconnectKakaoNotification,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: userKeys.me });
+      queryClient.removeQueries({ queryKey: notificationKeys.kakaoConsent });
     },
   });
 }

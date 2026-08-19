@@ -8,6 +8,7 @@ import { useCardDetail } from '../../hooks/card/useCard';
 import { useCreateRecord, useStatusTags } from '../../hooks/record/useRecord';
 import { cn } from '../../lib/cn';
 import { getLocationParams } from '../../lib/location';
+import { NO_TREATMENT_NAME } from '../../types/card';
 import type { Intensity, SymptomKey } from '../../types/common';
 import { SYMPTOM_TAG_KEY, toSymptomKey } from '../../types/record';
 
@@ -57,12 +58,19 @@ export default function RecordCreatePage() {
   const targetCardId = cardDetail?.cardId ?? cardId;
   const displayTitle = !hasCardId
     ? '카드를 선택해주세요'
-    : cardDetail?.treatmentName ?? '시술 정보 불러오는 중...';
+    : (cardDetail?.treatmentName ?? (cardDetail ? NO_TREATMENT_NAME : '시술 정보 불러오는 중...'));
   const displayDateInfo = cardDetail
-    ? `D+${cardDetail.dday} · ${cardDetail.treatmentDate} 시술`
+    ? [`D+${cardDetail.dday}`, cardDetail.treatmentDate && `${cardDetail.treatmentDate} 시술`]
+        .filter(Boolean)
+        .join(' · ')
     : '';
 
-  const feedbackQuota = cardDetail?.feedbackQuota ?? { used: 0, total: 3 };
+  // 스웨거 응답에 required가 없어서 횟수 정보가 통째로 비어 올 수 있다.
+  // 그때 기록 자체를 막으면 안 되므로 "아직 안 썼다"로 두고 기본 한도(3회)를 쓴다.
+  const feedbackQuota = {
+    used: cardDetail?.feedbackQuota?.used ?? 0,
+    total: cardDetail?.feedbackQuota?.total ?? 3,
+  };
   const isLimitReached = feedbackQuota.used >= feedbackQuota.total;
 
   // 입력 상태

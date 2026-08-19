@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router';
 
 import Card from '../../components/Card';
 import PageHeader from '../../components/PageHeader';
+import Switch from '../../components/Switch';
 import { useCalendarStatus, useDisconnectCalendar } from '../../hooks/calendar/useCalendar';
 import {
   isConnectConfigured,
@@ -9,6 +10,7 @@ import {
   startKakaoNotificationConnect,
 } from '../../lib/connect';
 import { useDeleteAccount, useDisconnectKakao, useLogout, useMyProfile } from '../../hooks/user/useUser';
+import { useKakaoConsent, useUpdateKakaoConsent } from '../../hooks/notification/useNotification';
 import { clearAccessToken } from '../../api/token';
 import { GENDER_LABEL, type Gender } from '../../types/user';
 import SettingRow from './components/SettingRow';
@@ -23,8 +25,17 @@ function Group({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-/** 프로필이 미완성인지 판별 (핵심 필드가 null이면 미완성) */
-function isProfileIncomplete(data: { name: string | null; birthDate: string | null; gender: string | null }) {
+/**
+ * 프로필이 미완성인지 판별 (핵심 필드가 비어 있으면 미완성).
+ *
+ * 값이 `null`(서버가 빈 값이라고 알려줌)이든 `undefined`(키 자체가 안 옴)든 똑같이 미완성이다 —
+ * 스펙상 `UserInfoResponse`에 required가 하나도 없어서 두 경우가 다 온다.
+ */
+function isProfileIncomplete(data: {
+  name?: string | null;
+  birthDate?: string | null;
+  gender?: string | null;
+}) {
   return !data.name || !data.birthDate || !data.gender;
 }
 
@@ -35,7 +46,10 @@ export default function MyPage() {
   const { mutate: doDeleteAccount } = useDeleteAccount();
   const { mutate: doDisconnectKakao } = useDisconnectKakao();
   const { data: calendarConnected } = useCalendarStatus();
-  const { mutate: doDisconnectCalendar } = useDisconnectCalendar();
+  const disconnectCalendar = useDisconnectCalendar();
+  // undefined = "꺼짐"이 아니라 "모름"이다 (조회 API가 없다 — hooks/notification 참고)
+  const { data: kakaoConsent } = useKakaoConsent();
+  const updateKakaoConsent = useUpdateKakaoConsent();
 
   if (isLoading) {
     return (
@@ -104,10 +118,49 @@ export default function MyPage() {
     doDisconnectKakao();
   };
 
-  const handleDisconnectCalendar = () => {
+  /*
+    토글의 켜기와 끄기는 대칭이 아니다.
+    켜기는 제공자 동의 화면으로 페이지를 떠나므로 낙관적 표시를 할 자리가 없고,
+    끄기는 서버 mutation이라 확인을 받는다. 취소하면 mutate를 부르지 않을 뿐이고,
+    화면은 서버 상태(쿼리)만 보므로 스위치가 저절로 제자리로 돌아온다 —
+    로컬 state를 두면 그 자리에서 서버와 어긋난다.
+  */
+  const handleCalendarToggle = (next: boolean) => {
+    if (next) {
+      startGoogleCalendarConnect();
+      return;
+    }
     if (!window.confirm('구글 캘린더 연동을 해제하시겠어요?')) return;
-    doDisconnectCalendar();
+    disconnectCalendar.mutate();
   };
+
+  /*
+    카카오는 "연동"과 "수신 동의"가 다른 개념이라 토글이 무엇을 뜻하는지 정해야 했다.
+    토글 = 수신 on/off(PATCH consent)로 둔다. 매번 껐다 켤 때마다 동의 화면을 왕복시키는
+    건 과하고, PATCH는 연결을 살려둔 채 수신만 바꾼다. 연동을 통째로 끊는 DELETE는
+    되돌리려면 재동의가 필요한 무거운 동작이라 아래 별도 행으로 남긴다.
+
+    상태를 모를 때(첫 진입) 켜기는 PATCH가 아니라 동의 화면으로 보낸다 —
+    연동이 아직 없을 수 있고, 그때 PATCH는 붙을 곳이 없다.
+  */
+  const handleKakaoToggle = (next: boolean) => {
+    if (next) {
+      if (kakaoConsent === false) {
+        updateKakaoConsent.mutate(true); // 연동은 살아 있고 수신만 꺼둔 상태
+        return;
+      }
+      startKakaoNotificationConnect();
+      return;
+    }
+    if (!window.confirm('카카오톡 알림 수신을 끄시겠어요?')) return;
+    updateKakaoConsent.mutate(false);
+  };
+
+  const googleConfigured = isConnectConfigured('google');
+  const kakaoConfigured = isConnectConfigured('kakao');
+  const isCalendarConnected = calendarConnected ?? false;
+  /** 이번 접속에서 카카오 수신 상태를 실제로 확인했는지 */
+  const kakaoStatusKnown = kakaoConsent !== undefined;
 
   return (
     <div className="flex flex-col gap-3.5 px-5 pt-5 pb-6">
@@ -138,25 +191,58 @@ export default function MyPage() {
       <Group label="연동">
         <Card variant="list">
           {/*
-            키가 없으면 연결 줄을 감추고 상태만 보여준다 — 눌러도 동의 화면 대신
-            제공자의 에러 페이지로 가기 때문이다. 소셜 로그인 버튼과 같은 판단이다.
+            키가 없어도 행을 감추지 않는다 — 감추면 왜 없는지 알 수 없다.
+            스위치만 잠가서 "있지만 지금은 켤 수 없다"를 그대로 보여준다.
           */}
-          {calendarConnected ? (
-            <SettingRow label="구글 캘린더 연동 해제" onClick={handleDisconnectCalendar} chevron />
-          ) : isConnectConfigured('google') ? (
-            <SettingRow label="구글 캘린더 연동하기" onClick={startGoogleCalendarConnect} chevron />
-          ) : (
-            <SettingRow label="구글 캘린더" value="연동 안 됨" />
-          )}
+          <SettingRow
+            label="구글 캘린더"
+            description={
+              isCalendarConnected
+                ? '일정을 불러와 오늘 브리핑에 씁니다'
+                : googleConfigured
+                  ? '켜면 구글 동의 화면으로 이동해요'
+                  : '연동 키가 없어 지금은 켤 수 없어요'
+            }
+            action={
+              <Switch
+                label="구글 캘린더 연동"
+                checked={isCalendarConnected}
+                disabled={disconnectCalendar.isPending || (!isCalendarConnected && !googleConfigured)}
+                onChange={handleCalendarToggle}
+              />
+            }
+          />
 
-          {isConnectConfigured('kakao') && (
-            <SettingRow
-              label="카카오톡 알림 연동하기"
-              onClick={startKakaoNotificationConnect}
-              chevron
-            />
+          {/*
+            상태를 모를 때도 스위치는 꺼진 모양이지만, 설명에서 "모른다"고 분명히 말한다.
+            꺼짐으로 단정해 "연동 안 됨"이라고 쓰면 이미 연동한 사람에게 거짓말이 된다.
+            비활성으로 두는 안도 검토했지만 그러면 연동 자체를 시작할 길이 막힌다.
+          */}
+          <SettingRow
+            label="카카오톡 알림"
+            description={
+              kakaoConsent === true
+                ? '알림을 받고 있어요'
+                : kakaoConsent === false
+                  ? '수신을 꺼뒀어요. 다시 켜면 바로 받아요'
+                  : kakaoConfigured
+                    ? '연동 상태를 확인할 수 없어요. 켜면 카카오 동의 화면으로 이동해요'
+                    : '연동 키가 없어 지금은 켤 수 없어요'
+            }
+            action={
+              <Switch
+                label="카카오톡 알림 수신"
+                checked={kakaoConsent === true}
+                disabled={updateKakaoConsent.isPending || (!kakaoStatusKnown && !kakaoConfigured)}
+                onChange={handleKakaoToggle}
+              />
+            }
+          />
+
+          {/* 연동이 있다고 확인된 뒤에만 보여준다 — 연동한 적 없는 사람에게 해제를 권하지 않는다 */}
+          {kakaoStatusKnown && (
+            <SettingRow label="카카오톡 알림 연동 해제" onClick={handleDisconnectKakao} chevron />
           )}
-          <SettingRow label="카카오톡 알림 연동 해제" onClick={handleDisconnectKakao} chevron />
         </Card>
       </Group>
 

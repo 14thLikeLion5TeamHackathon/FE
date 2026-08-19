@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-import { postLogout } from '../../api/auth';
+import { logout } from '../../api/user';
 import {
   clearAccessToken,
   getAccessToken,
@@ -33,7 +33,7 @@ export function useLogout() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: postLogout,
+    mutationFn: logout,
     onSettled: () => {
       clearAccessToken();
       // 이전 사용자의 응답이 다음 로그인에 섞이지 않도록 캐시를 비운다.

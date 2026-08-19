@@ -2,7 +2,7 @@ import Button from '../../../components/Button';
 import Chip from '../../../components/Chip';
 import { cn } from '../../../lib/cn';
 import { daysSince } from '../../../lib/date';
-import type { CareCard as CareCardData } from '../../../types/card';
+import { NO_TREATMENT_NAME, type CareCard as CareCardData } from '../../../types/card';
 
 type CareCardProps = {
   card: CareCardData;
@@ -30,10 +30,11 @@ export default function CareCard({ card, onDetail, onRecord }: CareCardProps) {
    * 시술일이 D+0이라 시술일부터 센 날수가 곧 경과일이다(서버 확인).
    * 날짜를 못 읽으면 서버 값으로 물러난다 — 숫자가 사라지는 것보다는 낫다.
    */
-  const dday = daysSince(card.treatmentDate) ?? card.dday ?? 0;
-  const progress = card.recoveryTotalDays
-    ? Math.min(100, (dday / card.recoveryTotalDays) * 100)
-    : 0;
+  const dday = (card.treatmentDate ? daysSince(card.treatmentDate) : null) ?? card.dday ?? 0;
+
+  /** 총 회복일도 비어 올 수 있다. 그때는 진행률을 지어내지 않고 경과일만 보여준다. */
+  const totalDays = card.recoveryTotalDays ?? 0;
+  const progress = totalDays > 0 ? Math.min(100, (dday / totalDays) * 100) : 0;
 
   return (
     <article
@@ -45,8 +46,10 @@ export default function CareCard({ card, onDetail, onRecord }: CareCardProps) {
       <div className="flex flex-col gap-2.5">
         <header className="flex items-start justify-between gap-2">
           <div className="flex flex-col gap-1">
-            <h3 className="typo-card-title">{card.treatmentName}</h3>
-            <p className="typo-caption text-text-secondary">시술일 {card.treatmentDate}</p>
+            <h3 className="typo-card-title">{card.treatmentName ?? NO_TREATMENT_NAME}</h3>
+            {card.treatmentDate && (
+              <p className="typo-caption text-text-secondary">시술일 {card.treatmentDate}</p>
+            )}
           </div>
           <Chip>D+{dday}</Chip>
         </header>
@@ -58,7 +61,7 @@ export default function CareCard({ card, onDetail, onRecord }: CareCardProps) {
           <div className="flex items-center justify-between">
             <span className="typo-caption text-text-secondary">회복 진행</span>
             <span className="typo-caption text-text-secondary">
-              {done ? '완료' : `${dday} / ${card.recoveryTotalDays}일`}
+              {done ? '완료' : totalDays > 0 ? `${dday} / ${totalDays}일` : `${dday}일째`}
             </span>
           </div>
         </div>

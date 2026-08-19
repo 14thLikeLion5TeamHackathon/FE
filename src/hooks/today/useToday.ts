@@ -12,6 +12,7 @@ const cardKeys = { list: ['card', 'list'] as const };
 
 const todayKeys = {
   all: ['today'] as const,
+  /** location은 요청 파라미터가 아니라 캐시를 가르는 축이다 — useBriefing 주석 참고 */
   briefing: (date: string, location: TodayLocation) =>
     ['today', 'briefing', date, `${location.city}_${location.district}`] as const,
   checklist: (date: string) => ['today', 'checklist', date] as const,
@@ -20,11 +21,16 @@ const todayKeys = {
   events: (startDate: string, endDate: string) => ['today', 'events', startDate, endDate] as const,
 };
 
-/** 관리 행동 브리핑. 날짜를 바꾸면 그 날짜 기준으로 다시 받는다 */
+/**
+ * 관리 행동 브리핑. 날짜를 바꾸면 그 날짜 기준으로 다시 받는다.
+ *
+ * `location`은 **요청에 실리지 않는다** — 서버가 저장된 기준 위치를 읽기 때문이다(api/today.ts).
+ * 그래도 쿼리 키에 넣는 이유는, 위치를 바꾸면 캐시가 갈려 옛 지역 브리핑이 잠깐 비치는 걸 막기 위해서다.
+ */
 export function useBriefing(date: string, location: TodayLocation) {
   return useQuery({
     queryKey: todayKeys.briefing(date, location),
-    queryFn: () => getBriefing(date, location),
+    queryFn: () => getBriefing(date),
   });
 }
 
@@ -104,11 +110,15 @@ export function useMarkedDates(startDate: string, endDate: string, calendarConne
     }
 
     for (const card of cards.data ?? []) {
+      // 시술일이 없으면 이 카드로는 찍을 점이 없다 — 종료일도 시술일에서 세기 때문이다.
+      if (!card.treatmentDate) continue;
       marked.add(card.treatmentDate);
+
       // 회복 종료일. 서버가 시술일을 D+0으로 세므로(8/8 시술 → 8/16이 D+8)
       // 종료일도 시술일 + recoveryTotalDays가 맞다.
+      // 기간을 모르면 종료일 점은 건너뛴다 — 0일로 치면 시술일에 종료 점이 겹쳐 찍힌다.
       const treated = new Date(`${card.treatmentDate}T00:00:00`);
-      if (!Number.isNaN(treated.getTime())) {
+      if (card.recoveryTotalDays != null && !Number.isNaN(treated.getTime())) {
         marked.add(toKey(addDays(treated, card.recoveryTotalDays)));
       }
     }

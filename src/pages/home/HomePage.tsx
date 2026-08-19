@@ -125,12 +125,19 @@ export default function HomePage() {
 
   const evidence = (data?.cardJudgement?.reasons ?? []).map((label) => ({ label }));
 
-  const schedules = (data?.schedules ?? []).map((schedule) => ({
-    id: schedule.scheduleId,
-    title: schedule.title,
-    time: schedule.time,
-    place: schedule.location,
-  }));
+  // 제목 없는 일정은 버린다 — 시간만 있는 빈 줄은 근거가 되지 않는다
+  const schedules = (data?.schedules ?? []).flatMap((schedule) =>
+    schedule.title
+      ? [
+          {
+            id: schedule.scheduleId,
+            title: schedule.title,
+            time: schedule.time ?? null,
+            place: schedule.location ?? null,
+          },
+        ]
+      : [],
+  );
 
   return (
     <div className="flex flex-col gap-3.5 px-5 pt-5 pb-6">
@@ -138,7 +145,8 @@ export default function HomePage() {
 
       {/* 좁은 화면에서는 안내가 길어 줄이 넘친다 — 접히게 두고 세로 간격만 좁게 준다 */}
       <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
-        <LocationPicker location={location} onSelect={selectLocation} />
+        {/* selectLocation은 서버 저장을 기다리는 비동기다 — 시트는 즉시 닫히고, 결과는 브리핑 재조회로 드러난다 */}
+        <LocationPicker location={location} onSelect={(next) => void selectLocation(next)} />
         <LocationNotice status={geoStatus} location={location} />
       </div>
 
@@ -194,7 +202,7 @@ export default function HomePage() {
 
           {checklist.data && (
             <TodayChecklist
-              items={checklist.data.items}
+              items={checklist.data.items ?? []}
               onToggle={(checklistId, completed) => toggleItem({ checklistId, completed })}
             />
           )}
