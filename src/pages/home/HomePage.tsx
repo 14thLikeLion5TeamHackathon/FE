@@ -30,6 +30,7 @@ import CareEvidence from './components/CareEvidence';
 import LocationNotice from './components/LocationNotice';
 import LocationPicker from './components/LocationPicker';
 import TodayChecklist from './components/TodayChecklist';
+import Skeleton from '../../components/Skeleton';
 import TodayEmptyState from './components/TodayEmptyState';
 import TodayEnvironment from './components/TodayEnvironment';
 import TodaySchedules from './components/TodaySchedules';
@@ -271,11 +272,28 @@ export default function HomePage() {
       */}
       {!isEmpty && (
         <>
-          {checklistItems.length > 0 && (
-            <TodayChecklist
-              items={checklistItems}
-              onToggle={(checklistId, completed) => toggleItem({ checklistId, completed })}
-            />
+          {/*
+            체크리스트는 AI로 문구를 만들어 오느라 브리핑보다 늦게 도착한다.
+            자리를 비워두면 화면이 멈춘 것처럼 보이고, 뒤늦게 나타나면서 아래 블록을 밀어낸다.
+          */}
+          {checklist.isLoading ? (
+            <section className="bg-surface-raised rounded-md flex flex-col gap-3 p-4" aria-busy="true">
+              <div className="flex items-center justify-between">
+                <Skeleton className="bg-surface-fill h-4 w-20" />
+                <Skeleton className="bg-surface-fill h-3 w-10" />
+              </div>
+              <Skeleton className="bg-surface-fill h-1.5 w-full" />
+              <Skeleton className="bg-surface-fill h-4 w-3/4" />
+              <Skeleton className="bg-surface-fill h-4 w-2/3" />
+              <Skeleton className="bg-surface-fill h-4 w-4/5" />
+            </section>
+          ) : (
+            checklistItems.length > 0 && (
+              <TodayChecklist
+                items={checklistItems}
+                onToggle={(checklistId, completed) => toggleItem({ checklistId, completed })}
+              />
+            )
           )}
 
           {/*
