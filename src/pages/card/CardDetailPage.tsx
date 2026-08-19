@@ -156,6 +156,11 @@ export default function CardDetailPage() {
   // 스웨거 응답에 required가 하나도 없어서 회복일 수·오늘의 관리가 통째로 비어 올 수 있다.
   // 0으로 받으면 아래 두 계산이 알아서 빈 목록을 낸다 — 있지도 않은 구간을 지어내지 않는다.
   const totalDays = cardDetail.recoveryTotalDays ?? 0;
+  /**
+   * 진행바에 쓰는 총 회복일은 0으로 메우지 않는다 — `dday / 0`은 NaN·Infinity가 되고
+   * CareInfo의 기본값(29일)은 `undefined`일 때만 적용된다.
+   */
+  const progressTotalDays = cardDetail.recoveryTotalDays ?? undefined;
   const transitionDay = cardDetail.recoveryTransitionDay ?? 0;
   const records = cardRecords?.careRecords ?? [];
 
@@ -185,7 +190,7 @@ export default function CardDetailPage() {
       <CareInfo
         date={cardDetail.treatmentDate ?? '정보 없음'}
         dday={currentDDay}
-        totalDays={totalDays}
+        totalDays={progressTotalDays}
       />
 
       {/* 2. 오늘의 관리 */}

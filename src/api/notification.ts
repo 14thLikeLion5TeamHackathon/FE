@@ -13,3 +13,12 @@ export async function updateKakaoConsent(consent: boolean): Promise<KakaoNotific
   const res = await axiosInstance.patch<ApiResponse>('/api/v1/notification/kakao', { consent });
   return KakaoNotificationResponse.parse(getResult(res));
 }
+
+/**
+ * 연동·수신 상태 조회.
+ * 미연동이어도 200이 온다 — 그때는 `connected: false`만 담겨 온다.
+ */
+export async function getKakaoStatus(): Promise<KakaoNotificationResponse> {
+  const res = await axiosInstance.get<ApiResponse>('/api/v1/notification/kakao');
+  return KakaoNotificationResponse.parse(getResult(res));
+}

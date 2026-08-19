@@ -12,7 +12,7 @@ import {
 import { useDeleteAccount, useDisconnectKakao, useMyProfile } from '../../hooks/user/useUser';
 // 로그아웃은 auth 쪽 훅을 쓴다 — 서버 호출 성패와 무관하게 토큰과 쿼리 캐시까지 비운다.
 import { useLogout } from '../../hooks/auth/useAuth';
-import { useKakaoConsent, useUpdateKakaoConsent } from '../../hooks/notification/useNotification';
+import { useKakaoStatus, useUpdateKakaoConsent } from '../../hooks/notification/useNotification';
 import { clearAccessToken } from '../../api/token';
 import { GENDER_LABEL, type Gender } from '../../types/user';
 import SettingRow from './components/SettingRow';
@@ -50,7 +50,7 @@ export default function MyPage() {
   const { data: calendarConnected } = useCalendarStatus();
   const disconnectCalendar = useDisconnectCalendar();
   // undefined = "꺼짐"이 아니라 "모름"이다 (조회 API가 없다 — hooks/notification 참고)
-  const { data: kakaoConsent } = useKakaoConsent();
+  const { data: kakaoStatus, isError: kakaoStatusFailed } = useKakaoStatus();
   const updateKakaoConsent = useUpdateKakaoConsent();
 
   if (isLoading) {
@@ -143,18 +143,27 @@ export default function MyPage() {
     disconnectCalendar.mutate();
   };
 
+  /**
+   * 조회가 끝나기 전에는 연동 여부를 단정하지 않는다.
+   * 조회가 실패한 경우는 "모름"이 아니라 "확인 불가"로 따로 본다 — 그때까지 스위치를
+   * 잠가 두면 연동을 시작할 길 자체가 막힌다. 동의 화면은 보낼 수 있게 열어 둔다.
+   */
+  const kakaoStatusKnown = kakaoStatus !== undefined;
+  const kakaoConnected = kakaoStatus?.connected === true;
+  const kakaoReceiving = kakaoConnected && kakaoStatus?.consent === true;
+
   /*
     카카오는 "연동"과 "수신 동의"가 다른 개념이라 토글이 무엇을 뜻하는지 정해야 했다.
     토글 = 수신 on/off(PATCH consent)로 둔다. 매번 껐다 켤 때마다 동의 화면을 왕복시키는
     건 과하고, PATCH는 연결을 살려둔 채 수신만 바꾼다. 연동을 통째로 끊는 DELETE는
     되돌리려면 재동의가 필요한 무거운 동작이라 아래 별도 행으로 남긴다.
 
-    상태를 모를 때(첫 진입) 켜기는 PATCH가 아니라 동의 화면으로 보낸다 —
-    연동이 아직 없을 수 있고, 그때 PATCH는 붙을 곳이 없다.
+    연동이 아직 없을 때 켜기는 PATCH가 아니라 동의 화면으로 보낸다 —
+    붙을 연동이 없으면 서버가 404를 낸다. 상태를 모르는 동안은 스위치를 잠가 둔다.
   */
   const handleKakaoToggle = (next: boolean) => {
     if (next) {
-      if (kakaoConsent === false) {
+      if (kakaoConnected) {
         updateKakaoConsent.mutate(true); // 연동은 살아 있고 수신만 꺼둔 상태
         return;
       }
@@ -168,8 +177,6 @@ export default function MyPage() {
   const googleConfigured = isConnectConfigured('google');
   const kakaoConfigured = isConnectConfigured('kakao');
   const isCalendarConnected = calendarConnected ?? false;
-  /** 이번 접속에서 카카오 수신 상태를 실제로 확인했는지 */
-  const kakaoStatusKnown = kakaoConsent !== undefined;
 
   return (
     <div className="flex flex-col gap-3.5 px-5 pt-5 pb-6">
@@ -223,33 +230,40 @@ export default function MyPage() {
           />
 
           {/*
-            상태를 모를 때도 스위치는 꺼진 모양이지만, 설명에서 "모른다"고 분명히 말한다.
+            조회가 실패했을 때도 스위치는 꺼진 모양이지만, 설명에서 "모른다"고 분명히 말한다.
             꺼짐으로 단정해 "연동 안 됨"이라고 쓰면 이미 연동한 사람에게 거짓말이 된다.
-            비활성으로 두는 안도 검토했지만 그러면 연동 자체를 시작할 길이 막힌다.
           */}
           <SettingRow
             label="카카오톡 알림"
             description={
-              kakaoConsent === true
-                ? '알림을 받고 있어요'
-                : kakaoConsent === false
-                  ? '수신을 꺼뒀어요. 다시 켜면 바로 받아요'
-                  : kakaoConfigured
-                    ? '연동 상태를 확인할 수 없어요. 켜면 카카오 동의 화면으로 이동해요'
-                    : '연동 키가 없어 지금은 켤 수 없어요'
+              kakaoStatusFailed
+                ? '연동 상태를 확인할 수 없어요. 켜면 카카오 동의 화면으로 이동해요'
+                : !kakaoStatusKnown
+                  ? '연동 상태를 확인하고 있어요'
+                  : kakaoReceiving
+                    ? '알림을 받고 있어요'
+                    : kakaoConnected
+                      ? '수신을 꺼뒀어요. 다시 켜면 바로 받아요'
+                      : kakaoConfigured
+                        ? '켜면 카카오 동의 화면으로 이동해요'
+                        : '연동 키가 없어 지금은 켤 수 없어요'
             }
             action={
               <Switch
                 label="카카오톡 알림 수신"
-                checked={kakaoConsent === true}
-                disabled={updateKakaoConsent.isPending || (!kakaoStatusKnown && !kakaoConfigured)}
+                checked={kakaoReceiving}
+                disabled={
+                  updateKakaoConsent.isPending ||
+                  (!kakaoStatusKnown && !kakaoStatusFailed) ||
+                  (!kakaoConnected && !kakaoConfigured)
+                }
                 onChange={handleKakaoToggle}
               />
             }
           />
 
           {/* 연동이 있다고 확인된 뒤에만 보여준다 — 연동한 적 없는 사람에게 해제를 권하지 않는다 */}
-          {kakaoStatusKnown && (
+          {kakaoConnected && (
             <SettingRow label="카카오톡 알림 연동 해제" onClick={handleDisconnectKakao} chevron />
           )}
         </Card>
