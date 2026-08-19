@@ -39,8 +39,28 @@ function Section({
   );
 }
 
-/** 서버 `LocalFileStorageService`가 받아주는 형식. HEIC는 여기 없다 */
+/** 브라우저가 미리보기까지 그릴 수 있는 형식. HEIC/HEIF는 여기 없다 */
 const SUPPORTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
+/** 확실히 못 쓰는 형식. 이름으로만 알 수 있는 경우가 있어 확장자도 같이 본다 */
+const UNSUPPORTED_EXTENSIONS = ['.heic', '.heif'];
+
+/**
+ * 이 파일을 올릴 수 있는가.
+ *
+ * **`file.type`만 믿으면 안 된다.** 안드로이드 카메라는 빈 문자열을 주는 경우가 있고,
+ * 그러면 목록에 없다는 이유로 멀쩡한 사진이 거절된다 — 갤럭시에서 촬영이 안 되던 원인 중 하나다.
+ * 그래서 "허용 목록에 있으면 통과"가 아니라 **"못 쓰는 게 확실할 때만 거절"**로 뒤집는다.
+ * 형식을 알 수 없으면 일단 받는다. 서버가 거절하면 그때 오류가 뜨는 편이,
+ * 찍은 사진이 이유 없이 사라지는 것보다 낫다.
+ */
+function isUploadable(file: File): boolean {
+  const name = file.name.toLowerCase();
+  if (UNSUPPORTED_EXTENSIONS.some((ext) => name.endsWith(ext))) return false;
+  if (!file.type) return true; // 형식을 안 알려준 경우 — 안드로이드 카메라
+  if (file.type.startsWith('image/heic') || file.type.startsWith('image/heif')) return false;
+  return SUPPORTED_IMAGE_TYPES.includes(file.type) || file.type.startsWith('image/');
+}
 
 export default function RecordCreatePage() {
   const navigate = useNavigate();
@@ -116,12 +136,14 @@ export default function RecordCreatePage() {
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
     const selectedFiles = Array.from(e.target.files);
-    const supported = selectedFiles.filter((file) => SUPPORTED_IMAGE_TYPES.includes(file.type));
+    const supported = selectedFiles.filter(isUploadable);
 
+    // 아이폰만의 문제가 아니다 — 갤럭시도 '고효율 이미지'를 켜면 HEIF로 찍힌다.
+    // 기기 이름을 넣으면 다른 기기 사용자가 자기 얘기가 아니라고 읽는다.
     setPhotoError(
       supported.length === selectedFiles.length
         ? null
-        : '아이폰 사진(HEIC)은 올릴 수 없어요. JPG 또는 PNG로 저장한 뒤 다시 골라주세요.',
+        : '이 사진 형식(HEIC/HEIF)은 올릴 수 없어요. 카메라 설정에서 "고효율 이미지"를 끄거나, JPG로 저장한 뒤 다시 골라주세요.',
     );
 
     if (supported.length === 0) return;
