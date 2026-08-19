@@ -225,6 +225,13 @@ export default function CardDetailPage() {
               memo={record.statusDescription ?? ''}
               tags={getSymptomLabels(record)}
               aiFeedback={record.aiFeedback?.changeSummary ?? undefined}
+              /* 요약만 카드에 보이므로 증상 변화·지난 사진 비교는 전체 화면에서 본다.
+                 피드백이 있는 기록에만 건넨다 — 없는 기록은 열자마자 생성이 돌아 횟수를 쓴다 */
+              onViewFeedback={
+                record.aiFeedback
+                  ? () => navigate(`/records/${record.recordId}/feedback`)
+                  : undefined
+              }
             />
           ))}
         </div>

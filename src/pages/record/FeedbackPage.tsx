@@ -178,7 +178,7 @@ export default function FeedbackPage() {
         }
         className="bg-primary text-primary-on typo-label rounded-btn py-4"
       >
-        피드백 저장하기
+        케어 카드로 이동
       </button>
     </div>
   );
