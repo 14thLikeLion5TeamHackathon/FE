@@ -4,7 +4,6 @@ import {
   deleteAccount,
   disconnectKakaoNotification,
   getMyProfile,
-  patchLocation,
   postOnboarding,
   updateProfile,
 } from '../../api/user';
@@ -74,19 +73,6 @@ export function useDisconnectKakao() {
       void queryClient.invalidateQueries({ queryKey: userKeys.me });
       // 조회 엔드포인트가 생겼으니 지우지 말고 다시 받는다 — 해제 후 connected:false를 확인해야 한다
       void queryClient.invalidateQueries({ queryKey: notificationKeys.kakaoStatus });
-    },
-  });
-}
-
-/** PATCH — 현재 위치(GPS 좌표) 서버에 저장 */
-export function useUpdateLocation() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ latitude, longitude }: { latitude: number; longitude: number }) =>
-      patchLocation(latitude, longitude),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['today'] });
     },
   });
 }

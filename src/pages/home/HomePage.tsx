@@ -53,7 +53,7 @@ export default function HomePage() {
 
   const navigate = useNavigate();
   // 기준 좌표는 GPS와 직접 선택 중 하나로 정해진다 — 규칙은 useTodayLocation 주석 참고
-  const { location, selectLocation, coords, usingGps, geoStatus } = useTodayLocation();
+  const { location, selectLocation, coords, usingGps, geoStatus, gpsCoords, useCurrentLocation } = useTodayLocation();
 
   /** 오늘 날짜는 한 번만 구해 공유한다 — 곳곳에서 new Date()를 부르면 서로 어긋난다 */
   const today = useMemo(() => startOfDay(new Date()), []);
@@ -194,6 +194,9 @@ export default function HomePage() {
           location={location}
           onSelect={(next) => void selectLocation(next)}
           usingGps={usingGps}
+          gpsCoords={gpsCoords}
+          geoStatus={geoStatus}
+          onUseCurrentLocation={() => void useCurrentLocation()}
         />
         <LocationNotice status={geoStatus} location={location} usingGps={usingGps} />
       </div>

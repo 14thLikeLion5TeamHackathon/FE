@@ -3,7 +3,7 @@ import { useState } from 'react';
 import BottomSheet from '../../../components/BottomSheet';
 import { cn } from '../../../lib/cn';
 import { CITIES, findCity, formatLocation, type TodayLocation } from '../../../lib/location';
-import { useUpdateLocation } from '../../../hooks/user/useUser';
+import type { Coords, GeolocationStatus } from '../../../hooks/today/useTodayGeolocation';
 
 type LocationPickerProps = {
   location: TodayLocation;
@@ -15,6 +15,12 @@ type LocationPickerProps = {
    * 그대로 내보이면 칩은 "서울 강남구", 바로 옆 안내는 "현재 위치 기준"이라 서로 어긋난다.
    */
   usingGps?: boolean;
+  /** useTodayGeolocation에서 내려오는 GPS 좌표 */
+  gpsCoords?: Coords | null;
+  /** useTodayGeolocation에서 내려오는 GPS 상태 */
+  geoStatus?: GeolocationStatus;
+  /** GPS 좌표 기반으로 현재 위치 사용 시 호출할 콜백 (picked를 false로 리셋) */
+  onUseCurrentLocation?: () => void;
 };
 
 /**
@@ -28,6 +34,9 @@ export default function LocationPicker({
   location,
   onSelect,
   usingGps = false,
+  gpsCoords,
+  geoStatus,
+  onUseCurrentLocation,
 }: LocationPickerProps) {
   const [open, setOpen] = useState(false);
   /** null이면 1차(시) 화면 */
@@ -37,7 +46,6 @@ export default function LocationPicker({
   const label = usingGps ? '현재 위치' : formatLocation(location);
 
   const openSheet = () => {
-    // 열 때마다 지금 기준 위치의 시부터 보여준다 — 대개 같은 시 안에서 구만 바꾼다
     setCityId(findCity(location.city)?.id ?? null);
     setOpen(true);
   };
@@ -47,6 +55,17 @@ export default function LocationPicker({
     onSelect({ city: city.name, district });
     setOpen(false);
   };
+
+  const handleUseCurrentLocation = () => {
+    if (onUseCurrentLocation) {
+      onUseCurrentLocation();
+      setOpen(false);
+    }
+  };
+
+  /** GPS 버튼을 보여줄 조건: GPS 좌표가 있고, 콜백이 있을 때 */
+  const canUseGps = gpsCoords && onUseCurrentLocation;
+  const gpsUnavailable = geoStatus === 'denied' || geoStatus === 'unsupported';
 
   return (
     <>
@@ -88,7 +107,32 @@ export default function LocationPicker({
         </div>
 
         {/* 현재 위치 사용 버튼 — 시 선택 화면에서만 노출 */}
-        {!city && <CurrentLocationButton />}
+        {!city && (
+          <div className="mb-3 flex flex-col gap-1">
+            {canUseGps && (
+              <button
+                type="button"
+                onClick={handleUseCurrentLocation}
+                className={cn(
+                  'typo-label rounded-btn w-full border border-dashed py-2.5 transition-colors',
+                  'border-primary text-primary',
+                )}
+              >
+                현재 위치로 설정
+              </button>
+            )}
+            {gpsUnavailable && (
+              <p className="typo-caption text-text-tertiary">
+                {geoStatus === 'denied'
+                  ? '위치 권한이 차단되어 있어요. 브라우저 설정에서 허용해주세요.'
+                  : '이 브라우저는 위치 기능을 지원하지 않아요.'}
+              </p>
+            )}
+            {geoStatus === 'prompting' && (
+              <p className="typo-caption text-text-tertiary">위치 권한을 확인 중이에요...</p>
+            )}
+          </div>
+        )}
 
         {/* 경기도만 31개고 시 목록도 17개다. 높이를 묶고 목록만 스크롤시킨다 */}
         <ul className="grid max-h-[55vh] grid-cols-3 gap-2 overflow-y-auto">
@@ -114,59 +158,6 @@ export default function LocationPicker({
         </ul>
       </BottomSheet>
     </>
-  );
-}
-
-/** 현재 위치(GPS) 사용 버튼 */
-function CurrentLocationButton() {
-  const { mutate: updateLocation, isPending } = useUpdateLocation();
-  const [error, setError] = useState<string | null>(null);
-
-  const handleClick = () => {
-    setError(null);
-
-    if (!navigator.geolocation) {
-      setError('이 브라우저는 위치 기능을 지원하지 않아요.');
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        updateLocation(
-          { latitude: position.coords.latitude, longitude: position.coords.longitude },
-          {
-            onError: () => setError('위치 저장에 실패했어요. 다시 시도해주세요.'),
-          },
-        );
-      },
-      (err) => {
-        if (err.code === err.PERMISSION_DENIED) {
-          setError('위치 권한이 필요해요. 브라우저 설정에서 허용해주세요.');
-        } else {
-          setError('위치를 가져올 수 없어요. 다시 시도해주세요.');
-        }
-      },
-      { enableHighAccuracy: true, timeout: 10000 },
-    );
-  };
-
-  return (
-    <div className="mb-3 flex flex-col gap-1">
-      <button
-        type="button"
-        onClick={handleClick}
-        disabled={isPending}
-        className={cn(
-          'typo-label rounded-btn w-full border border-dashed py-2.5 transition-colors',
-          isPending
-            ? 'border-border-subtle text-text-disabled cursor-not-allowed'
-            : 'border-primary text-primary',
-        )}
-      >
-        {isPending ? '위치 확인 중...' : '현재 위치로 설정'}
-      </button>
-      {error && <p className="typo-caption text-danger">{error}</p>}
-    </div>
   );
 }
 
