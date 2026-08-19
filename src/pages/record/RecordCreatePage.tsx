@@ -39,6 +39,9 @@ function Section({
   );
 }
 
+/** 서버 `LocalFileStorageService`가 받아주는 형식. HEIC는 여기 없다 */
+const SUPPORTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
 export default function RecordCreatePage() {
   const navigate = useNavigate();
 
@@ -76,6 +79,7 @@ export default function RecordCreatePage() {
   // 입력 상태
   const [memo, setMemo] = useState('');
   const [photos, setPhotos] = useState<File[]>([]);
+  const [photoError, setPhotoError] = useState<string | null>(null);
 
   /**
    * 화면에 띄울 증상 목록.
@@ -101,10 +105,27 @@ export default function RecordCreatePage() {
     DRYNESS: undefined,
   });
 
+  /**
+   * 서버가 받아주는 형식만 통과시킨다.
+   *
+   * 아이폰 기본 설정으로 찍은 사진은 HEIC라, 올리면 서버가 400(미지원 형식)을 낸다.
+   * `accept`로 걸러도 카메라 촬영이나 드래그로는 들어올 수 있어 여기서 한 번 더 본다.
+   * 브라우저가 미리보기조차 못 그리는 형식이라, 막지 않으면 사용자는 빈 네모를 올려놓고
+   * 등록 버튼을 눌러서야 실패를 만난다.
+   */
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
     const selectedFiles = Array.from(e.target.files);
-    setPhotos((prev) => [...prev, ...selectedFiles].slice(0, 5));
+    const supported = selectedFiles.filter((file) => SUPPORTED_IMAGE_TYPES.includes(file.type));
+
+    setPhotoError(
+      supported.length === selectedFiles.length
+        ? null
+        : '아이폰 사진(HEIC)은 올릴 수 없어요. JPG 또는 PNG로 저장한 뒤 다시 골라주세요.',
+    );
+
+    if (supported.length === 0) return;
+    setPhotos((prev) => [...prev, ...supported].slice(0, 5));
   };
 
   const handleRemovePhoto = (index: number) => {
@@ -174,6 +195,11 @@ export default function RecordCreatePage() {
             onSelectPhoto={handlePhotoSelect}
             onRemovePhoto={handleRemovePhoto}
           />
+          {photoError && (
+            <p className="typo-caption text-danger mt-2" role="alert">
+              {photoError}
+            </p>
+          )}
         </Section>
 
         {/* 2. 상태 입력 블록 */}
