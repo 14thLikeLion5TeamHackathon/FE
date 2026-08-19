@@ -86,7 +86,7 @@ function ScheduleFormFields({ scheduleId, isEdit, initialSchedule }: ScheduleFor
         <p className="typo-label text-text-primary">
           날짜 <span className="text-primary">*</span>
         </p>
-        <DateField value={date} onChange={setDate} />
+        <DateField value={date} onChange={setDate} label="일정 날짜" />
       </div>
 
       <div className="flex flex-col gap-2">
