@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
 
@@ -26,7 +26,17 @@ export default function ConnectCallbackPage({ provider }: { provider: ConnectPro
   const navigate = useNavigate();
   const label = LABEL[provider];
 
-  const result = readAuthCode(window.location.search);
+  /**
+   * 인가 코드는 **첫 렌더에 한 번만 읽는다.**
+   *
+   * 렌더 본문에서 `readAuthCode(...)`를 부르면 매 렌더 새 객체가 나오고, 그게 아래 effect의
+   * 의존성이라 effect가 계속 다시 돈다. 게다가 성공 직후 `replaceState`로 주소창의 코드를
+   * 지우기 때문에, 다시 읽으면 코드가 사라진 상태가 보인다 — 값이 렌더마다 달라지는 셈이다.
+   * 화면이 "연결하는 중"에서 못 벗어나던 원인이다(요청은 200으로 성공해 있었다).
+   *
+   * 주소창은 지워도 이 값은 남아야 한다. 판단의 근거는 "처음 도착했을 때 뭐가 왔는가"다.
+   */
+  const [result] = useState(() => readAuthCode(window.location.search));
   const denied = 'error' in result && result.error === 'access_denied';
 
   const connect = useMutation({
@@ -52,6 +62,12 @@ export default function ConnectCallbackPage({ provider }: { provider: ConnectPro
     sent.current = true;
     mutate(result.code);
   }, [mutate, result]);
+
+  /*
+    `result`가 이제 안정된 값이라 이 effect는 마운트 뒤 한 번만 돈다.
+    StrictMode가 effect를 두 번 실행해도 sent 가드가 두 번째를 막는다 —
+    인가 코드는 일회용이라 두 번째 요청은 반드시 실패한다.
+  */
 
   /**
    * 상태 넷을 하나로 모은다 — 문구·아이콘·버튼이 따로 갈리면 "성공인데 재시도 버튼"처럼
