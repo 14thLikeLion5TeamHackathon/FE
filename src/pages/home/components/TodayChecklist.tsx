@@ -21,6 +21,8 @@ type TodayChecklistProps = {
   dateLabel?: string;
   onRefresh: () => void;
   isRefreshing?: boolean;
+  /** 마지막 새로고침이 실패했는지. 말하지 않으면 "눌렀는데 아무 일도 안 남"으로 보인다 */
+  refreshFailed?: boolean;
 };
 
 /**
@@ -34,6 +36,7 @@ export default function TodayChecklist({
   dateLabel,
   onRefresh,
   isRefreshing = false,
+  refreshFailed = false,
 }: TodayChecklistProps) {
   const title = dateLabel ? `${dateLabel} 케어` : '오늘의 케어';
   /*
@@ -66,6 +69,7 @@ export default function TodayChecklist({
             ? '이 날짜에 기록된 케어가 없어요.'
             : `${dateLabel ? '이 날짜에' : '오늘'} 할 케어가 없어요. 회복 기간이 끝났거나 아직 시작 전이에요.`}
         </p>
+        {refreshFailed && <RefreshFailedNote />}
       </section>
     );
   }
@@ -92,6 +96,8 @@ export default function TodayChecklist({
         <div className="bg-primary rounded-bar h-full" style={{ width: `${ratio}%` }} />
       </div>
 
+      {refreshFailed && <RefreshFailedNote />}
+
       <ul className="flex flex-col gap-3">
         {items.map((item) => (
           <li key={item.checklistId} className="flex items-center gap-3">
@@ -113,5 +119,14 @@ export default function TodayChecklist({
         ))}
       </ul>
     </section>
+  );
+}
+
+/** 새로고침 실패 한 줄. 말하지 않으면 스피너만 멈추고 화면이 그대로라 고장으로 읽힌다 */
+function RefreshFailedNote() {
+  return (
+    <p className="typo-caption text-text-tertiary" role="status">
+      새로고침하지 못했어요. 잠시 후 다시 시도해주세요.
+    </p>
   );
 }

@@ -34,7 +34,10 @@ export default function FeedbackPage() {
   const { data, isLoading, isError, error } = useFeedback(recordId);
   const cardId = data?.cardId ? String(data.cardId) : '';
   /** 문의 버튼이 열 주소. 카드 상세에만 있어서 피드백 응답과 별개로 한 번 더 받는다 */
-  const { data: cardDetail } = useCardDetail(cardId, getLocationParams());
+  const { data: cardDetail, isLoading: isStoreLoading } = useCardDetail(
+    cardId,
+    getLocationParams(),
+  );
   const storeUrl = cardDetail?.visitedStore?.url;
 
   if (isLoading) {
@@ -194,6 +197,12 @@ export default function FeedbackPage() {
                 />
               </svg>
             </a>
+          ) : isStoreLoading ? (
+            /*
+              **아직 받는 중인 것과 없는 것을 구분한다.** 카드 상세는 피드백 응답보다 늦게
+              오는데, 그 사이 "등록돼 있지 않아요"를 띄우면 잠깐이라도 그게 결론으로 읽힌다.
+            */
+            <Skeleton className="bg-surface-fill mt-1 h-11 w-full" />
           ) : (
             <p className="typo-caption text-text-tertiary mt-1">
               시술 기관 연락처가 등록돼 있지 않아요. 방문하신 곳으로 직접 문의해주세요.
