@@ -103,7 +103,7 @@ export async function getHome(): Promise<HomeResponse> {
 4. 작업 후 커밋 및 push
 5. `dev` 브랜치로 PR 생성
 6. 최소 1명 이상 리뷰 후 merge
-7. 배포 시점에만 `dev`를 `main`으로 반영 — `main`에 올라가면 Vercel이 프로덕션으로 배포합니다
+7. 배포 시점에만 `dev`에서 `main`으로 PR 생성 — `main`에 올라가면 Vercel이 프로덕션으로 배포합니다
 
 ```bash
 git checkout dev
