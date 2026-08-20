@@ -141,12 +141,12 @@ export function useCalendarEvents(startDate: string, endDate: string) {
    * 주도록 고쳐졌다(BE 확인). 그래도 막아 두는 건 연동한 적 없는 사용자에게 매번 나가는
    * 요청을 아끼려는 것뿐이고, 상태를 모르는 동안에도 막힌다 — 알게 되면 곧바로 받는다.
    */
-  const { data: connected } = useCalendarStatus();
+  const { data: calendar } = useCalendarStatus();
 
   return useQuery({
     queryKey: todayKeys.events(startDate, endDate),
     queryFn: () => getCalendarEvents(startDate, endDate),
-    enabled: connected === true,
+    enabled: calendar?.connected === true,
   });
 }
 

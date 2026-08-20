@@ -50,7 +50,7 @@ export default function MyPage() {
   const { mutate: doDeleteAccount } = useDeleteAccount();
   // 진행 상태·실패 여부를 화면에서 읽어야 해서 mutate만 꺼내지 않는다
   const disconnectKakao = useDisconnectKakao();
-  const { data: calendarConnected } = useCalendarStatus();
+  const { data: calendar } = useCalendarStatus();
   const disconnectCalendar = useDisconnectCalendar();
   // undefined = "꺼짐"이 아니라 "모름"이다 (조회 API가 없다 — hooks/notification 참고)
   const { data: kakaoStatus, isError: kakaoStatusFailed } = useKakaoStatus();
@@ -192,7 +192,7 @@ export default function MyPage() {
 
   const googleConfigured = isConnectConfigured('google');
   const kakaoConfigured = isConnectConfigured('kakao');
-  const isCalendarConnected = calendarConnected ?? false;
+  const isCalendarConnected = calendar?.connected ?? false;
 
   return (
     <div className="flex flex-col gap-3.5 px-5 pt-5 pb-6">
@@ -248,7 +248,14 @@ export default function MyPage() {
             label="구글 캘린더"
             description={
               isCalendarConnected
-                ? '일정을 불러와 오늘 브리핑에 써요. 끄면 연동이 해제돼요'
+                ? /*
+                    어느 구글 계정이 붙어 있는지 밝힌다. 계정을 여럿 쓰면 연동은 됐는데
+                    일정이 안 보이는 일이 생기는데, 그때 원인이 보이는 자리가 여기뿐이다.
+                    서버가 주소를 안 주면 그냥 빼고 쓴다 — 자리를 비워두면 잘린 문장이 된다.
+                  */
+                  calendar?.email
+                  ? `${calendar.email} · 일정을 불러와 오늘 브리핑에 써요. 끄면 연동이 해제돼요`
+                  : '일정을 불러와 오늘 브리핑에 써요. 끄면 연동이 해제돼요'
                 : googleConfigured
                   ? '켜면 구글 동의 화면으로 이동해요'
                   : '연동 키가 없어 지금은 켤 수 없어요'
