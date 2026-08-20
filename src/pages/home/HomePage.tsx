@@ -95,12 +95,10 @@ export default function HomePage() {
     return [toKey(days[0]), toKey(days[days.length - 1])];
   }, [anchor]);
 
-  const calendarConnected = briefing.data?.calendarConnected ?? false;
-
-  const markedKeys = useMarkedDates(monthStart, monthEnd, calendarConnected);
+  const markedKeys = useMarkedDates(monthStart, monthEnd);
 
   /** 캘린더 점과 같은 쿼리다 — 키가 같아 요청은 한 번만 나간다(useCalendarEvents 주석) */
-  const calendarEvents = useCalendarEvents(monthStart, monthEnd, calendarConnected);
+  const calendarEvents = useCalendarEvents(monthStart, monthEnd);
 
   /** 예보 범위 밖은 흐리게. 서버가 범위를 주지 않아 오늘부터 5일로 계산한다 */
   const { outOfForecastKeys, forecastNote } = useMemo(() => {

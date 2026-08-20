@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { getCards } from '../../api/card';
 import { getBriefing, getCalendarEvents, getChecklist, updateChecklistItem } from '../../api/today';
+import { useCalendarStatus } from '../calendar/useCalendar';
 import { addDays, startOfDay, toKey } from '../../lib/date';
 import type { TodayLocation } from '../../lib/location';
 import { getScheduleDates, subscribeScheduleDates } from '../../lib/scheduleDates';
@@ -128,20 +129,29 @@ export function forecastEnd(today: Date): Date {
  * 캘린더 점과 일정 목록이 **같은 응답을 나눠 쓴다** — 쿼리 키가 같으므로 두 곳에서 불러도
  * 요청은 한 번이다. 따로 받으면 같은 데이터를 두 번 가져오고, 한쪽만 갱신돼 어긋난다.
  */
-export function useCalendarEvents(startDate: string, endDate: string, calendarConnected: boolean) {
+export function useCalendarEvents(startDate: string, endDate: string) {
+  /**
+   * 연동 여부는 **전용 상태 API로 본다.**
+   *
+   * 한때 브리핑 응답의 `calendarConnected`를 봤는데, 그러면 브리핑이 실패하거나 예보 범위
+   * 밖이라 아예 부르지 않을 때 캘린더 일정까지 같이 사라졌다 — 서로 무관한 두 데이터가
+   * 브리핑 하나에 묶여 있었다.
+   *
+   * 미연동일 때 이 요청을 막는 건 이제 필수가 아니다. 서버가 500 대신 200과 빈 배열을
+   * 주도록 고쳐졌다(BE 확인). 그래도 막아 두는 건 연동한 적 없는 사용자에게 매번 나가는
+   * 요청을 아끼려는 것뿐이고, 상태를 모르는 동안에도 막힌다 — 알게 되면 곧바로 받는다.
+   */
+  const { data: connected } = useCalendarStatus();
+
   return useQuery({
     queryKey: todayKeys.events(startDate, endDate),
     queryFn: () => getCalendarEvents(startDate, endDate),
-    /**
-     * 미연동 상태에서 부르면 서버가 500을 낸다(빈 목록이 아니라).
-     * 브리핑이 알려주는 연동 여부로 막는다 — 그 전에는 카드 분기점만으로 점을 찍는다.
-     */
-    enabled: calendarConnected,
+    enabled: connected === true,
   });
 }
 
-export function useMarkedDates(startDate: string, endDate: string, calendarConnected: boolean) {
-  const events = useCalendarEvents(startDate, endDate, calendarConnected);
+export function useMarkedDates(startDate: string, endDate: string) {
+  const events = useCalendarEvents(startDate, endDate);
 
   const cards = useQuery({ queryKey: cardKeys.list, queryFn: getCards });
 

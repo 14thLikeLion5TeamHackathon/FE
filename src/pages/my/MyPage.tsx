@@ -212,10 +212,8 @@ export default function MyPage() {
           {data.name?.trim().charAt(0) ?? ''}
         </div>
         <div>
+          {/* 생년월일·성별은 바로 아래 개인정보 목록에 있다 — 여기서 또 쓰면 같은 걸 두 번 읽는다 */}
           <p className="typo-card-title">{data.name}</p>
-          <p className="typo-caption text-text-secondary mt-1">
-            {data.birthDate} · {genderLabel}
-          </p>
           {/*
             어느 소셜로 들어왔는지. 별도 행이 아니라 이름 아래에 붙인다 —
             한 번 보고 마는 정보라 목록에 자리를 차지할 이유가 없다.
