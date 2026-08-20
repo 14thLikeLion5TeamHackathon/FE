@@ -5,6 +5,7 @@ import { updateUserLocation } from '../../api/location';
 import {
   DEFAULT_COORDS,
   DEFAULT_LOCATION,
+  clearStoredLocation,
   getStoredLocation,
   locationCoords,
   setStoredLocation,
@@ -100,10 +101,20 @@ export function useTodayLocation() {
   return {
     location,
     selectLocation,
+    /** GPS 모드로 전환 (저장된 위치를 지우고 GPS 기준으로 돌아감) */
+    useCurrentLocation: useCallback(async () => {
+      if (!gpsCoords) return;
+      const selection = ++selectionRef.current;
+      await persist(gpsCoords);
+      if (selection !== selectionRef.current) return;
+      clearStoredLocation();
+      setPicked(false);
+    }, [gpsCoords, persist]),
     /** 날씨 조회에 쓰는 기준 좌표 */
     coords: usingGps ? gpsCoords : (locationCoords(location) ?? DEFAULT_COORDS),
     /** 지금 보는 안내가 GPS 기준인지 — 안내 문구가 이걸로 갈린다 */
     usingGps,
     geoStatus,
+    gpsCoords,
   };
 }
