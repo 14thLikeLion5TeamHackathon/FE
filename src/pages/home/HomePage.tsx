@@ -445,5 +445,35 @@ export default function HomePage() {
  * 제목은 앞뒤 공백을 털어 비교한다.
  */
 function scheduleKey(schedule: Schedule): string {
-  return `${schedule.title.trim()}|${schedule.time ?? ''}`;
+  return `${schedule.title.trim()}|${normalizeTime(schedule.time)}`;
+}
+
+/**
+ * 시각 문자열을 `HH:mm`(24시간)으로 맞춘다.
+ *
+ * **두 출처의 표기가 다르다.** 브리핑은 `"오후 7:00"`으로 오고(types/today.ts),
+ * 캘린더는 `eventTimeLabel`이 `"19:00"`으로 잘라 준다. 그대로 비교하면 같은 일정인데도
+ * 키가 갈려 중복이 하나도 안 걸러진다 — 에러가 없어서 걸러진 줄 알고 넘어가게 된다.
+ *
+ * 모르는 표기는 공백만 털어 그대로 돌려준다. 억지로 고치면 다른 일정을 같다고 볼 수 있는데,
+ * 그건 목록에서 일정이 사라지는 쪽이라 중복보다 나쁘다.
+ */
+function normalizeTime(time: string | null): string {
+  if (!time) return '';
+
+  const trimmed = time.trim();
+
+  // "오후 7:00" · "오전 9:05" — 12시간 표기
+  const korean = /^(오전|오후)\s*(\d{1,2}):(\d{2})/.exec(trimmed);
+  if (korean) {
+    const [, meridiem, rawHour, minute] = korean;
+    const hour = Number(rawHour) % 12; // 12시는 0으로 접고 아래에서 다시 세운다
+    return `${String(meridiem === '오후' ? hour + 12 : hour).padStart(2, '0')}:${minute}`;
+  }
+
+  // "19:00" · "07:00:00" — 24시간 표기. 초는 버린다
+  const digits = /^(\d{1,2}):(\d{2})/.exec(trimmed);
+  if (digits) return `${digits[1].padStart(2, '0')}:${digits[2]}`;
+
+  return trimmed;
 }
