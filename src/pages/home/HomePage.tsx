@@ -204,7 +204,12 @@ export default function HomePage() {
    * 일정 목록을 모르는 상태인지. 일정은 브리핑에 실려 오므로 브리핑이 없으면 알 수 없다.
    * 빈 배열로 넘기면 "등록한 일정이 없어요"라고 단정하게 된다 — 모르는 건 모른다고 말한다.
    */
-  const briefingUnavailable = isOutOfForecast || !data;
+  /**
+   * 직접 입력한 일정을 못 받은 상태. **아직 받는 중인 건 여기 넣지 않는다** —
+   * 로딩이 "불러올 수 없어요"로 새어 나가면 잠깐이라도 실패로 읽힌다(TodaySchedules).
+   */
+  const briefingLoading = !data && briefing.isLoading;
+  const briefingUnavailable = isOutOfForecast || (!data && !briefingLoading);
 
   /**
    * 제목 없는 일정은 버린다 — 시간만 있는 빈 줄은 목록에서 아무 뜻이 없다.
@@ -478,6 +483,7 @@ export default function HomePage() {
             */
             schedules={schedules}
             unavailable={briefingUnavailable}
+            loading={briefingLoading}
             dateLabel={blockDateLabel}
             onAdd={handleAddSchedule}
             onEdit={handleEditSchedule}
