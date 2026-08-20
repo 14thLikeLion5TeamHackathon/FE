@@ -79,12 +79,9 @@ export default function TodayChecklist({
     <section className="bg-surface-raised rounded-md flex flex-col gap-3 p-4">
       <header className="flex items-center justify-between">
         <h2 className="typo-section">{title}</h2>
-        <div className="flex items-center gap-1.5">
-          <span className="typo-caption text-text-secondary">
-            {doneCount}/{items.length}
-          </span>
-          <RefreshButton onClick={onRefresh} isRefreshing={isRefreshing} />
-        </div>
+        <span className="typo-caption text-text-secondary">
+          {doneCount}/{items.length}
+        </span>
       </header>
 
       {/* 진행률 — 트랙과 채움만 있는 단순한 막대라 별도 컴포넌트로 빼지 않았다 */}

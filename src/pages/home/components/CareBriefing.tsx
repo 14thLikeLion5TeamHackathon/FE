@@ -33,29 +33,25 @@ function Shell({
   );
 }
 
-/** 정상 */
+/**
+ * 정상.
+ *
+ * 새로고침 버튼은 없다 — react-query가 `staleTime: 0` + `refetchOnMount` +
+ * `refetchOnWindowFocus`로 이미 최신 상태를 유지해서 실효성이 없다(리뷰 피드백).
+ */
 export default function CareBriefing({
   dateLabel,
   weather,
   message,
-  onRefresh,
-  isRefreshing = false,
 }: Props & {
   /** "온흐림 26°". 서버가 날씨를 못 주면 null */
   weather: string | null;
   message: string;
-  onRefresh: () => void;
-  isRefreshing?: boolean;
 }) {
   return (
     <Shell
       dateLabel={dateLabel}
-      right={
-        <div className="flex items-center gap-1.5">
-          {weather && <span className="typo-label text-text-secondary">{weather}</span>}
-          <RefreshButton onClick={onRefresh} isRefreshing={isRefreshing} />
-        </div>
-      }
+      right={weather ? <span className="typo-label text-text-secondary">{weather}</span> : null}
     >
       <p className="typo-body text-text-primary">{message}</p>
     </Shell>
@@ -160,6 +156,8 @@ export function CareBriefingNoForecast({
   dateLabel,
   past = false,
   dday,
+  onRefresh,
+  isRefreshing = false,
 }: Props & {
   past?: boolean;
   /**
@@ -170,6 +168,8 @@ export function CareBriefingNoForecast({
    * 약속하지 않는 쪽으로 문구가 갈린다.
    */
   dday?: { treatmentName: string; label: string };
+  onRefresh: () => void;
+  isRefreshing?: boolean;
 }) {
   const reason = past
     ? '그날의 날씨·대기질 기록이 없어요.'
@@ -179,7 +179,10 @@ export function CareBriefingNoForecast({
     <Shell
       dateLabel={dateLabel}
       right={
-        <span className="typo-label text-text-secondary">{past ? '지난 날짜' : '예보 없음'}</span>
+        <div className="flex items-center gap-1.5">
+          <span className="typo-label text-text-secondary">{past ? '지난 날짜' : '예보 없음'}</span>
+          <RefreshButton onClick={onRefresh} isRefreshing={isRefreshing} />
+        </div>
       }
     >
       <p className="typo-body text-text-primary w-full">
