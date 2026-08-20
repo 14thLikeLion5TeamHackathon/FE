@@ -5,6 +5,7 @@ import { updateUserLocation } from '../../api/location';
 import {
   DEFAULT_COORDS,
   DEFAULT_LOCATION,
+  clearStoredLocation,
   getStoredLocation,
   locationCoords,
   setStoredLocation,
@@ -101,9 +102,7 @@ export function useTodayLocation() {
       const selection = ++selectionRef.current;
       await persist(gpsCoords);
       if (selection !== selectionRef.current) return;
-      setStoredLocation(null as unknown as TodayLocation);
-      // localStorage에서 제거해서 다음 진입 시에도 GPS 모드를 유지
-      localStorage.removeItem('today-location');
+      clearStoredLocation();
       setPicked(false);
     }, [gpsCoords, persist]),
     /** 날씨 조회에 쓰는 기준 좌표 */
