@@ -39,14 +39,17 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="bg-surface-canvas max-w-app mx-auto flex min-h-dvh w-full flex-col justify-between px-5 py-10">
-      <div />
-
-      <div className="flex flex-col items-center gap-2">
+    <div className="bg-surface-canvas max-w-app mx-auto flex min-h-dvh w-full flex-col px-5 py-10">
+      {/*
+        로고를 남는 공간 한가운데 세운다.
+        예전에는 빈 `<div />`와 justify-between으로 균형을 맞췄는데, 아래 버튼 수가
+        구글 노출·DEV 버튼에 따라 달라져서 그때마다 로고가 위아래로 밀렸다.
+      */}
+      <div className="flex flex-1 flex-col items-center justify-center gap-4">
         {/* 원형/사각 플레이스홀더 대신 실제 로고. Logo가 role="img" aria-label="마디"라
             h1은 여기서 접근성 이름을 얻는다 — 별도 텍스트를 두면 중복해서 읽힌다. */}
         <h1>
-          <Logo size={36} />
+          <Logo size={104} stacked />
         </h1>
         <p className="typo-body text-text-secondary">개인 맞춤 웰니스 페이스메이커</p>
       </div>

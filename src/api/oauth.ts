@@ -1,3 +1,4 @@
+import { rememberSocialProvider } from '../lib/socialProvider';
 import { setAccessToken, setRefreshToken } from './token';
 
 /**
@@ -61,14 +62,15 @@ function isIpOrigin(origin: string) {
  * 생기면 서버 목록에도 추가해야 한다.
  */
 export function startSocialLogin(provider: SocialProvider) {
+  // 돌아올 때는 어느 제공자였는지 알 수 없다 — 떠나기 전에 적어 둔다(lib/socialProvider.ts)
+  rememberSocialProvider(provider);
+
   const params = new URLSearchParams({ redirect_uri: window.location.origin });
   window.location.assign(`${OAUTH_ORIGIN}/oauth2/authorization/${provider}?${params}`);
 }
 
 export type OAuthRedirectResult =
-  | { status: 'new-user' }
-  | { status: 'logged-in' }
-  | { status: 'failed' };
+  { status: 'new-user' } | { status: 'logged-in' } | { status: 'failed' };
 
 /**
  * 서버가 돌려주는 파라미터 이름. **실제 왕복으로 확인한 값이다.**

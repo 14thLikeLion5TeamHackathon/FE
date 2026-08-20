@@ -17,8 +17,9 @@ export function useCalendarStatus() {
 /**
  * 연동 해제.
  *
- * 오늘 탭도 같이 버린다 — 일정 조회 여부를 브리핑의 `calendarConnected`로 판단하기 때문에,
- * 해제하고 오늘 탭에 돌아가면 없는 연동으로 일정을 계속 부른다(미연동이면 500이 온다).
+ * 상태와 오늘 탭을 같이 버린다. 오늘 탭의 일정 조회가 이 상태 쿼리를 보고 켜지므로
+ * (`useCalendarEvents`), 상태만 갱신하고 일정을 남겨두면 해제한 뒤에도 이전 일정이
+ * 목록에 그대로 남는다.
  */
 export function useDisconnectCalendar() {
   const queryClient = useQueryClient();

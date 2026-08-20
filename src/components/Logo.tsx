@@ -14,21 +14,35 @@ import { cn } from '../lib/cn';
  * 워드마크는 path로 뽑지 않고 Pretendard 텍스트를 그대로 쓴다(굵기 700 = typo-title).
  */
 type LogoProps = {
-  /** 심볼 마크 **높이** px. 워드마크는 typo-title 고정이라 같이 커지지 않는다. */
+  /** 심볼 마크 **높이** px. 워드마크는 `stacked`가 아니면 typo-title 고정이라 같이 커지지 않는다. */
   size?: number;
   /** 심볼만 보여준다. 자리가 좁은 곳(탭바·작은 헤더)에서 쓴다. */
   symbolOnly?: boolean;
+  /**
+   * 심볼 아래에 워드마크를 세운다. 로고가 주인공인 진입 화면용이다 —
+   * 가로로 두면 폭에 눌려 심볼을 키울 수 없다. 이때만 워드마크도 같이 커진다.
+   */
+  stacked?: boolean;
   className?: string;
 };
 
-export default function Logo({ size = 24, symbolOnly = false, className }: LogoProps) {
+export default function Logo({
+  size = 24,
+  symbolOnly = false,
+  stacked = false,
+  className,
+}: LogoProps) {
   return (
     // 워드마크가 이미지가 아니라 텍스트라 스크린리더가 "마디"를 두 번 읽지 않도록
     // 묶음 전체를 하나의 이미지로 선언하고, 안쪽 img는 감춘다.
     <span
       role="img"
       aria-label="마디"
-      className={cn('text-text-primary inline-flex items-center gap-1.5', className)}
+      className={cn(
+        'text-text-primary inline-flex items-center gap-1.5',
+        stacked && 'flex-col gap-3',
+        className,
+      )}
     >
       <img
         src={logoUrl}
@@ -39,7 +53,7 @@ export default function Logo({ size = 24, symbolOnly = false, className }: LogoP
         width={Math.round((size * 306) / 512)}
         className="shrink-0"
       />
-      {!symbolOnly && <span className="typo-title">마디</span>}
+      {!symbolOnly && <span className={stacked ? 'typo-display' : 'typo-title'}>마디</span>}
     </span>
   );
 }

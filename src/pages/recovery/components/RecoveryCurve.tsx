@@ -74,7 +74,13 @@ function PhotoFrame({
   );
 }
 
-/** 카드 선택 줄 — 카드가 여럿일 때 곡선의 기본 선택(가장 최근 진행 중 시술)을 사용자가 덮는다. */
+/**
+ * 카드 선택 줄 — 카드가 여럿일 때 곡선의 기본 선택(가장 최근 진행 중 시술)을 사용자가 덮는다.
+ *
+ * **진행 중과 완료를 갈라 보여준다.** 이름만 늘어놓으면 지금 관리 중인 시술과 끝난 시술이
+ * 구분되지 않아, 끝난 곡선을 보면서 현재 상태로 읽게 된다. 목록 순서는 진행 중이 먼저다
+ * (useRecovery에서 그렇게 합친다).
+ */
 function CardPicker({
   options,
   selectedId,
@@ -94,12 +100,33 @@ function CardPicker({
               type="button"
               onClick={() => onSelect(option.cardId)}
               aria-pressed={active}
+              /* 완료 여부를 색·굵기로만 나누지 않는다 — 그것만으로는 구분 못 하는 사용자가 있다 */
+              aria-label={`${option.treatmentName} ${option.done ? '회복 완료' : '회복 중'}`}
               className={cn(
-                'typo-caption rounded-chip border px-2.5 py-1 whitespace-nowrap',
-                active ? 'border-primary text-primary' : 'border-border-subtle text-text-secondary',
+                'typo-caption rounded-chip flex items-center gap-1.5 border px-2.5 py-1 whitespace-nowrap',
+                active
+                  ? 'border-primary text-primary'
+                  : option.done
+                    ? 'border-border-subtle text-text-tertiary'
+                    : 'border-border-subtle text-text-secondary',
               )}
             >
+              {/* 진행 중 표시는 점 하나. 칩이 좁아서 글자를 더 넣으면 이름이 잘린다 */}
+              {!option.done && (
+                <span
+                  className={cn(
+                    'size-1.5 shrink-0 rounded-full',
+                    active ? 'bg-primary' : 'bg-level-low',
+                  )}
+                  aria-hidden
+                />
+              )}
               {option.treatmentName}
+              {option.done && (
+                <span className="text-text-tertiary" aria-hidden>
+                  완료
+                </span>
+              )}
             </button>
           </li>
         );

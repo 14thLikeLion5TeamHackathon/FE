@@ -7,6 +7,8 @@ type WeekStripProps = {
   selected: Date;
   markedKeys: Set<string>;
   outOfForecastKeys: Set<string>;
+  /** 이 날짜 이전은 고를 수 없다. 경계를 모르면 null이고, 그때는 아무것도 막지 않는다 */
+  minDate?: Date | null;
   onSelect: (date: Date) => void;
 };
 
@@ -15,6 +17,7 @@ export default function WeekStrip({
   selected,
   markedKeys,
   outOfForecastKeys,
+  minDate,
   onSelect,
 }: WeekStripProps) {
   return (
@@ -29,6 +32,7 @@ export default function WeekStrip({
             selected={key === toKey(selected)}
             marked={markedKeys.has(key)}
             outOfForecast={outOfForecastKeys.has(key)}
+            disabled={minDate ? date < minDate : false}
             onSelect={onSelect}
           />
         );

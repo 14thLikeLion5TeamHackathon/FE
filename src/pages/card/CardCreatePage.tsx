@@ -17,6 +17,44 @@ import Skeleton from '../../components/Skeleton';
 const CATEGORIES = TreatmentCategory.options;
 
 /**
+ * 시술 목록 장 넘김 버튼.
+ *
+ * 셰브론은 `NavHeader`·`CalendarNav`와 같은 8×14 형태다 — 한 앱 안에서 화살표 모양이
+ * 갈리면 서로 다른 기능처럼 읽힌다. 아이콘만 있는 버튼이라 이름은 aria-label로 준다.
+ */
+function PageButton({
+  label,
+  direction,
+  disabled,
+  onClick,
+}: {
+  label: string;
+  direction: 'left' | 'right';
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      disabled={disabled}
+      onClick={onClick}
+      className="bg-surface-raised border-border-subtle text-text-secondary rounded-sm flex size-9 items-center justify-center border transition-colors disabled:opacity-40"
+    >
+      <svg viewBox="0 0 8 14" className="h-3.5 w-2" fill="none" aria-hidden>
+        <path
+          d={direction === 'left' ? 'M7 1L1 7l6 6' : 'M1 1l6 6-6 6'}
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </button>
+  );
+}
+
+/**
  * 받은 케어 등록 — 시술 검색·선택 → 시술 날짜 → 카드 생성.
  * 담당: 윤서
  */
@@ -28,16 +66,33 @@ export default function CardCreatePage() {
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [treatedAt, setTreatedAt] = useState('');
 
-  const {
-    data,
-    isLoading,
-    isError,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  } = useTreatments(category, query || undefined);
-  /** 받아온 장들을 이어 붙인다 — 화면은 한 목록으로만 다룬다 */
-  const treatments = data?.pages.flatMap((page) => page.content ?? []) ?? [];
+  const [page, setPage] = useState(0);
+
+  /**
+   * 카테고리나 검색어가 바뀌면 첫 장으로 돌아간다.
+   * 그대로 두면 3장을 보던 중 카테고리를 바꿨을 때 결과가 한 장뿐이라 빈 화면이 나온다.
+   */
+  const [pageScope, setPageScope] = useState(`${category}:${query}`);
+  if (pageScope !== `${category}:${query}`) {
+    setPageScope(`${category}:${query}`);
+    setPage(0);
+  }
+
+  const { data, isLoading, isError, isFetching } = useTreatments(
+    category,
+    query || undefined,
+    page,
+  );
+  const treatments = data?.content ?? [];
+
+  /**
+   * 끝 장인지. `hasNext`를 그대로 믿되 안 왔으면 `totalPages`로 물러나고,
+   * 둘 다 없으면 넘길 수 있게 열어 둔다 — 모른다고 막으면 있는 장을 못 보게 된다.
+   */
+  const hasNext =
+    data?.hasNext ??
+    (data?.totalPages != null ? page + 1 < data.totalPages : treatments.length > 0);
+  const totalPages = data?.totalPages ?? null;
   const { mutate: createCard, isPending } = useCreateCard();
 
   const toggleTreatment = (id: number) => {
@@ -127,39 +182,58 @@ export default function CardCreatePage() {
       {isError && <p className="typo-body text-text-secondary">시술 목록을 불러오지 못했어요.</p>}
 
       {!isLoading && !isError && treatments.length === 0 && (
-        <p className="typo-body text-text-secondary">해당 카테고리에 시술이 없어요.</p>
+        /*
+          첫 장이 비면 정말 결과가 없는 것이다. 뒷장이 비는 건 다른 상황이라 —
+          서버가 hasNext·totalPages를 둘 다 안 줘서 끝을 모르고 한 장 더 넘긴 경우다.
+          그때 "시술이 없어요"라고 쓰면 카테고리 전체가 빈 것처럼 읽힌다.
+        */
+        <p className="typo-body text-text-secondary">
+          {page === 0 ? '해당 카테고리에 시술이 없어요.' : '마지막 장이에요.'}
+        </p>
       )}
 
       {!isLoading && !isError && treatments.length > 0 && (
-        <>
-          <ul className="flex flex-col gap-2.5">
-            {treatments.map((treatment) => (
-              <li key={treatment.treatmentId}>
-                <TreatmentListItem
-                  treatment={treatment}
-                  selected={selectedIds.includes(treatment.treatmentId)}
-                  onToggle={() => toggleTreatment(treatment.treatmentId)}
-                />
-              </li>
-            ))}
-          </ul>
+        <ul className="flex flex-col gap-2.5">
+          {treatments.map((treatment) => (
+            <li key={treatment.treatmentId}>
+              <TreatmentListItem
+                treatment={treatment}
+                selected={selectedIds.includes(treatment.treatmentId)}
+                onToggle={() => toggleTreatment(treatment.treatmentId)}
+              />
+            </li>
+          ))}
+        </ul>
+      )}
 
-          {/*
-            남은 장이 있을 때만 보여준다. 자동 무한 스크롤 대신 버튼을 둔 건, 이 화면에서
-            아래쪽에 시술 날짜와 만들기 버튼이 기다리고 있어서다 — 스크롤할 때마다 목록이
-            늘어나면 그 자리에 영영 닿지 못한다.
-          */}
-          {hasNextPage && (
-            <button
-              type="button"
-              onClick={() => void fetchNextPage()}
-              disabled={isFetchingNextPage}
-              className="bg-surface-raised text-text-secondary typo-body rounded-md border-border-subtle w-full border py-3 disabled:opacity-50"
-            >
-              {isFetchingNextPage ? '불러오는 중…' : '더 보기'}
-            </button>
-          )}
-        </>
+      {/*
+            장을 이어 붙이지 않고 좌우로 넘긴다. 이 화면은 목록 아래에 시술 날짜와 만들기
+            버튼이 기다리고 있어서, 목록이 길어질수록 그 자리가 멀어진다.
+
+        한 장뿐이면 감춘다 — 누를 수 없는 버튼 두 개는 자리만 차지한다.
+
+        **목록이 비어도 그린다.** 목록 안에 두면 뒷장이 비었을 때 돌아갈 길까지 같이
+        사라져서, 사용자가 빈 화면에 갇힌다.
+      */}
+      {!isLoading && !isError && (page > 0 || hasNext) && (
+        <div className="flex items-center justify-center gap-3">
+          <PageButton
+            label="이전 시술 목록"
+            direction="left"
+            disabled={page === 0 || isFetching}
+            onClick={() => setPage((prev) => Math.max(0, prev - 1))}
+          />
+          {/* 총 장수를 서버가 안 줄 수 있다. 그때는 현재 장만 말한다 */}
+          <span className="typo-label text-text-secondary tabular-nums" aria-live="polite">
+            {totalPages ? `${page + 1} / ${totalPages}` : `${page + 1}장`}
+          </span>
+          <PageButton
+            label="다음 시술 목록"
+            direction="right"
+            disabled={!hasNext || isFetching}
+            onClick={() => setPage((prev) => prev + 1)}
+          />
+        </div>
       )}
 
       <div className="flex flex-col gap-2">

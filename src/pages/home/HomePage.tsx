@@ -6,7 +6,9 @@ import {
   forecastEnd,
   useBriefing,
   useCalendarEvents,
+  useCareStartDate,
   useChecklist,
+  useRecoveryGap,
   useHasCards,
   useMarkedDates,
   useToggleChecklistItem,
@@ -20,12 +22,14 @@ import {
   monthMatrix,
   startOfDay,
   toKey,
+  weekDays,
 } from '../../lib/date';
 import { syncScheduleDate } from '../../lib/scheduleDates';
 import { eventDateKey, eventTimeLabel, eventTitle, toLevel } from '../../types/today';
 import CalendarNav from './components/CalendarNav';
 import CareBriefing, {
   CareBriefingError,
+  CareBriefingGap,
   CareBriefingLoading,
   CareBriefingNoForecast,
 } from './components/CareBriefing';
@@ -74,6 +78,27 @@ export default function HomePage() {
   const isOutOfForecast = selected > forecastEnd(today);
 
   const hasCards = useHasCards();
+
+  /**
+   * 안내가 시작되는 날. 이 날 이전은 캘린더에서 고를 수 없다 —
+   * 카드가 없던 때라 브리핑도 체크리스트도 생길 수가 없다(useCareStartDate 주석).
+   */
+  const careStart = useCareStartDate();
+
+  /**
+   * 회복 구간 밖이면 지금이 어디쯤인지. 구간 안이면 null이고, 그때 할 말은 서버 몫이다.
+   * 카드 목록으로 계산하므로 브리핑이 없어도 답이 나온다(useRecoveryGap 주석).
+   */
+  const recoveryGap = useRecoveryGap(selected);
+
+  /**
+   * 예보가 없는 날에 대신 붙일 D-day. 그날 회복 중인 카드가 없으면 undefined다 —
+   * 그때는 브리핑 문구가 D-day를 약속하지 않는 쪽으로 갈린다(CareBriefingNoForecast).
+   */
+  const ddayNote =
+    recoveryGap?.kind === 'active'
+      ? { treatmentName: recoveryGap.treatmentName, label: `D+${recoveryGap.dday}` }
+      : undefined;
   const selectedKey = toKey(selected);
   const briefing = useBriefing(selectedKey, location, !isOutOfForecast);
   const checklist = useChecklist(selectedKey);
@@ -87,12 +112,10 @@ export default function HomePage() {
     return [toKey(days[0]), toKey(days[days.length - 1])];
   }, [anchor]);
 
-  const calendarConnected = briefing.data?.calendarConnected ?? false;
-
-  const markedKeys = useMarkedDates(monthStart, monthEnd, calendarConnected);
+  const markedKeys = useMarkedDates(monthStart, monthEnd);
 
   /** 캘린더 점과 같은 쿼리다 — 키가 같아 요청은 한 번만 나간다(useCalendarEvents 주석) */
-  const calendarEvents = useCalendarEvents(monthStart, monthEnd, calendarConnected);
+  const calendarEvents = useCalendarEvents(monthStart, monthEnd);
 
   /** 예보 범위 밖은 흐리게. 서버가 범위를 주지 않아 오늘부터 5일로 계산한다 */
   const { outOfForecastKeys, forecastNote } = useMemo(() => {
@@ -106,6 +129,20 @@ export default function HomePage() {
       forecastNote: `예보는 ${last.getMonth() + 1}월 ${last.getDate()}일까지 제공돼요`,
     };
   }, [anchor, today]);
+
+  /**
+   * 못 고르는 칸이 지금 화면에 있을 때만 이유를 말한다.
+   * 흐린 칸이 하나도 안 보이는데 설명만 뜨면 무엇을 가리키는 말인지 알 수 없다.
+   */
+  const startNote = useMemo(() => {
+    if (!careStart) return null;
+
+    const visible = mode === 'week' ? weekDays(anchor) : monthMatrix(anchor).flat().filter(Boolean);
+    const hasBlocked = visible.some((day) => day !== null && day < careStart);
+    if (!hasBlocked) return null;
+
+    return `${careStart.getMonth() + 1}월 ${careStart.getDate()}일 시술 이전은 안내가 없어요`;
+  }, [anchor, careStart, mode]);
 
   const handleSelect = (date: Date) => {
     setSelected(date);
@@ -167,7 +204,12 @@ export default function HomePage() {
    * 일정 목록을 모르는 상태인지. 일정은 브리핑에 실려 오므로 브리핑이 없으면 알 수 없다.
    * 빈 배열로 넘기면 "등록한 일정이 없어요"라고 단정하게 된다 — 모르는 건 모른다고 말한다.
    */
-  const briefingUnavailable = isOutOfForecast || !data;
+  /**
+   * 직접 입력한 일정을 못 받은 상태. **아직 받는 중인 건 여기 넣지 않는다** —
+   * 로딩이 "불러올 수 없어요"로 새어 나가면 잠깐이라도 실패로 읽힌다(TodaySchedules).
+   */
+  const briefingLoading = !data && briefing.isLoading;
+  const briefingUnavailable = isOutOfForecast || (!data && !briefingLoading);
 
   /**
    * 제목 없는 일정은 버린다 — 시간만 있는 빈 줄은 목록에서 아무 뜻이 없다.
@@ -214,10 +256,10 @@ export default function HomePage() {
    * 브리핑의 `schedules`에는 직접 입력한 일정만 온다 — 연동해 둔 사용자는 캘린더에 점만
    * 찍히고 목록은 비어 있어서, 일정이 있는 날인데 "등록한 일정이 없어요"를 읽게 됐다.
    *
-   * 이쪽은 **`editable: false`다.** 이 응답은 구글 일정만 담기 때문에 출처를 확실히 안다.
-   * 위의 브리핑 쪽은 여전히 모른다 — 거기에 캘린더 일정이 섞여 오는지 확인되지 않았다(#111).
+   * 이쪽은 **`editable: false`다.** 이 응답은 구글 일정만 담는다.
    *
-   * 그 불확실성 때문에 아래에서 **중복을 걸러낸다.** 섞여 온다면 같은 일정이 두 줄이 된다.
+   * 겹칠 걱정은 없다 — 서버는 구글 일정을 저장하지 않고 조회할 때마다 구글에서 받아온다.
+   * 브리핑은 저장된 일정 표만 읽으므로 거기 담기는 건 직접 입력한 것뿐이다(BE 확인, #111).
    */
   const eventSchedules: Schedule[] = (calendarEvents.data ?? []).flatMap((event, index) => {
     if (eventDateKey(event) !== selectedKey) return [];
@@ -227,8 +269,12 @@ export default function HomePage() {
 
     return [
       {
-        // 식별자가 없을 수 있어 순번으로 물러난다. 수정하지 않으므로 목록 key로만 쓰인다.
-        id: `calendar-${String(event.eventId ?? event.id ?? index)}`,
+        /*
+          순번을 쓴다. 응답의 `scheduleId`는 저장된 식별자가 아니라 그 응답 안에서 1부터
+          세는 값이라 요청마다 다른 일정에 같은 번호가 붙는다(BE 확인). 어차피 수정하지
+          않으므로 목록 key로만 쓰인다.
+        */
+        id: `calendar-${index}`,
         title,
         date: fromDateInputValue(selectedKey),
         time: eventTimeLabel(event),
@@ -238,26 +284,10 @@ export default function HomePage() {
     ];
   });
 
-  /**
-   * 브리핑에 이미 있는 일정은 캘린더 쪽에서 뺀다.
-   *
-   * 브리핑의 `schedules`에 캘린더 일정이 섞여 오는지가 확정돼 있지 않다(#111·#127).
-   * 섞여 온다면 같은 일정이 두 줄로 뜬다 — 하나는 눌러서 수정 화면에 갔다가 서버에
-   * 거절당하는 줄, 하나는 "캘린더" 배지가 붙은 줄. 사용자에겐 앱이 고장난 것으로 보인다.
-   *
-   * **브리핑 쪽을 남긴다.** 거기에는 `scheduleId`가 있어 수정 진입이 되고, 캘린더 쪽은
-   * 어차피 읽기 전용이라 잃는 게 없다. 직접 입력한 일정과 캘린더 일정이 우연히 제목·시각이
-   * 같은 경우에도 한 줄로 합쳐지는데, 그건 사용자 눈에 원래 같은 일정이다.
-   *
-   * 출처 필드가 내려오면(#111) 이 추측은 사라진다.
-   */
-  const manualKeys = new Set(manualSchedules.map((schedule) => scheduleKey(schedule)));
-
   /** 종일(시간 없음)을 위로. 나머지는 시각순 — 시간이 뒤죽박죽이면 목록을 훑을 수 없다 */
-  const schedules: Schedule[] = [
-    ...manualSchedules,
-    ...eventSchedules.filter((schedule) => !manualKeys.has(scheduleKey(schedule))),
-  ].sort((a, b) => (a.time ?? '').localeCompare(b.time ?? ''));
+  const schedules: Schedule[] = [...manualSchedules, ...eventSchedules].sort((a, b) =>
+    (a.time ?? '').localeCompare(b.time ?? ''),
+  );
 
   /** 고른 날짜를 넘겨 추가 화면의 날짜칸을 채운다 — 안 넘기면 매번 다시 고르게 된다 */
   const handleAddSchedule = () =>
@@ -289,7 +319,9 @@ export default function HomePage() {
           mode={mode}
           markedKeys={markedKeys}
           outOfForecastKeys={outOfForecastKeys}
+          minDate={careStart}
           forecastNote={forecastNote}
+          startNote={startNote}
           onAnchorChange={setAnchor}
           onSelect={handleSelect}
           onModeChange={setMode}
@@ -302,7 +334,7 @@ export default function HomePage() {
       {isOutOfForecast ? (
         /* 예보 범위 밖은 오류가 아니라 정상 상태다 — 로딩·에러보다 먼저 잡아야
            서버가 내는 400이 "불러오지 못했어요"로 새어 나가지 않는다 */
-        <CareBriefingNoForecast dateLabel={dateLabel} past={false} />
+        <CareBriefingNoForecast dateLabel={dateLabel} past={false} dday={ddayNote} />
       ) : isPast && briefing.isError && !data ? (
         /*
           지난 날짜는 물어보되, 실패하면 오류라고 말하지 않는다.
@@ -310,7 +342,22 @@ export default function HomePage() {
           것과 구분되지 않는다 — 이미 지나간 날이라 다시 시도해도 달라질 게 없으므로
           "그날은 안내가 없어요"로 받는다. 오늘·앞날은 그대로 오류 카드를 띄운다.
         */
-        <CareBriefingNoForecast dateLabel={dateLabel} past />
+        recoveryGap && recoveryGap.kind !== 'active' ? (
+          /*
+            지난 날짜라 브리핑을 못 받았어도, 그날 회복 중인 카드가 없었다는 건 카드 목록만으로
+            안다. "안내가 없어요"보다 왜 없는지를 말하는 편이 낫다.
+          */
+          <CareBriefingGap
+            dateLabel={dateLabel}
+            weather={weatherText}
+            kind={recoveryGap.kind}
+            treatmentName={recoveryGap.treatmentName}
+            dateText={formatShortDayLabel(recoveryGap.date)}
+            onCreateCard={() => navigate('/cards/new')}
+          />
+        ) : (
+          <CareBriefingNoForecast dateLabel={dateLabel} past dday={ddayNote} />
+        )
       ) : isEmpty ? (
         <>
           {/*
@@ -344,6 +391,20 @@ export default function HomePage() {
         <CareBriefingError dateLabel={dateLabel} onRetry={() => void briefing.refetch()} />
       ) : !data ? (
         <CareBriefingLoading dateLabel={dateLabel} />
+      ) : !data.cardJudgement && recoveryGap && recoveryGap.kind !== 'active' ? (
+        /*
+          서버가 판단을 못 준 건 그 날짜에 진행 중인 카드가 없어서다. 기본 문구로 얼버무리면
+          카드를 만들어 둔 사용자에게 앱이 고장난 것처럼 보인다 — 카드 목록으로 계산한
+          맥락을 대신 말한다.
+        */
+        <CareBriefingGap
+          dateLabel={dateLabel}
+          weather={weatherText}
+          kind={recoveryGap.kind}
+          treatmentName={recoveryGap.treatmentName}
+          dateText={formatShortDayLabel(recoveryGap.date)}
+          onCreateCard={() => navigate('/cards/new')}
+        />
       ) : (
         <CareBriefing
           dateLabel={dateLabel}
@@ -422,6 +483,7 @@ export default function HomePage() {
             */
             schedules={schedules}
             unavailable={briefingUnavailable}
+            loading={briefingLoading}
             dateLabel={blockDateLabel}
             onAdd={handleAddSchedule}
             onEdit={handleEditSchedule}
@@ -435,45 +497,4 @@ export default function HomePage() {
       )}
     </div>
   );
-}
-
-/**
- * 같은 일정인지 가르는 값. 제목과 시각만 본다.
- *
- * `scheduleId`로는 못 가른다 — 브리핑과 캘린더가 서로 다른 체계의 식별자를 쓴다.
- * 장소는 빼뒀다. 한쪽에만 들어 있는 경우가 흔해서, 넣으면 같은 일정을 다르다고 보게 된다.
- * 제목은 앞뒤 공백을 털어 비교한다.
- */
-function scheduleKey(schedule: Schedule): string {
-  return `${schedule.title.trim()}|${normalizeTime(schedule.time)}`;
-}
-
-/**
- * 시각 문자열을 `HH:mm`(24시간)으로 맞춘다.
- *
- * **두 출처의 표기가 다르다.** 브리핑은 `"오후 7:00"`으로 오고(types/today.ts),
- * 캘린더는 `eventTimeLabel`이 `"19:00"`으로 잘라 준다. 그대로 비교하면 같은 일정인데도
- * 키가 갈려 중복이 하나도 안 걸러진다 — 에러가 없어서 걸러진 줄 알고 넘어가게 된다.
- *
- * 모르는 표기는 공백만 털어 그대로 돌려준다. 억지로 고치면 다른 일정을 같다고 볼 수 있는데,
- * 그건 목록에서 일정이 사라지는 쪽이라 중복보다 나쁘다.
- */
-function normalizeTime(time: string | null): string {
-  if (!time) return '';
-
-  const trimmed = time.trim();
-
-  // "오후 7:00" · "오전 9:05" — 12시간 표기
-  const korean = /^(오전|오후)\s*(\d{1,2}):(\d{2})/.exec(trimmed);
-  if (korean) {
-    const [, meridiem, rawHour, minute] = korean;
-    const hour = Number(rawHour) % 12; // 12시는 0으로 접고 아래에서 다시 세운다
-    return `${String(meridiem === '오후' ? hour + 12 : hour).padStart(2, '0')}:${minute}`;
-  }
-
-  // "19:00" · "07:00:00" — 24시간 표기. 초는 버린다
-  const digits = /^(\d{1,2}):(\d{2})/.exec(trimmed);
-  if (digits) return `${digits[1].padStart(2, '0')}:${digits[2]}`;
-
-  return trimmed;
 }
