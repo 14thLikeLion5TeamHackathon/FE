@@ -6,6 +6,8 @@ type MonthGridProps = {
   selected: Date;
   markedKeys: Set<string>;
   outOfForecastKeys: Set<string>;
+  /** 이 날짜 이전은 고를 수 없다. 경계를 모르면 null이고, 그때는 아무것도 막지 않는다 */
+  minDate?: Date | null;
   onSelect: (date: Date) => void;
 };
 
@@ -15,6 +17,7 @@ export default function MonthGrid({
   selected,
   markedKeys,
   outOfForecastKeys,
+  minDate,
   onSelect,
 }: MonthGridProps) {
   return (
@@ -37,6 +40,7 @@ export default function MonthGrid({
                 selected={toKey(date) === toKey(selected)}
                 marked={markedKeys.has(toKey(date))}
                 outOfForecast={outOfForecastKeys.has(toKey(date))}
+                disabled={minDate ? date < minDate : false}
                 onSelect={onSelect}
               />
             ) : (

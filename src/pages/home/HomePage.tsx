@@ -6,6 +6,7 @@ import {
   forecastEnd,
   useBriefing,
   useCalendarEvents,
+  useCareStartDate,
   useChecklist,
   useHasCards,
   useMarkedDates,
@@ -20,6 +21,7 @@ import {
   monthMatrix,
   startOfDay,
   toKey,
+  weekDays,
 } from '../../lib/date';
 import { syncScheduleDate } from '../../lib/scheduleDates';
 import { eventDateKey, eventTimeLabel, eventTitle, toLevel } from '../../types/today';
@@ -74,6 +76,12 @@ export default function HomePage() {
   const isOutOfForecast = selected > forecastEnd(today);
 
   const hasCards = useHasCards();
+
+  /**
+   * 안내가 시작되는 날. 이 날 이전은 캘린더에서 고를 수 없다 —
+   * 카드가 없던 때라 브리핑도 체크리스트도 생길 수가 없다(useCareStartDate 주석).
+   */
+  const careStart = useCareStartDate();
   const selectedKey = toKey(selected);
   const briefing = useBriefing(selectedKey, location, !isOutOfForecast);
   const checklist = useChecklist(selectedKey);
@@ -106,6 +114,20 @@ export default function HomePage() {
       forecastNote: `예보는 ${last.getMonth() + 1}월 ${last.getDate()}일까지 제공돼요`,
     };
   }, [anchor, today]);
+
+  /**
+   * 못 고르는 칸이 지금 화면에 있을 때만 이유를 말한다.
+   * 흐린 칸이 하나도 안 보이는데 설명만 뜨면 무엇을 가리키는 말인지 알 수 없다.
+   */
+  const startNote = useMemo(() => {
+    if (!careStart) return null;
+
+    const visible = mode === 'week' ? weekDays(anchor) : monthMatrix(anchor).flat().filter(Boolean);
+    const hasBlocked = visible.some((day) => day !== null && day < careStart);
+    if (!hasBlocked) return null;
+
+    return `${careStart.getMonth() + 1}월 ${careStart.getDate()}일 시술 이전은 안내가 없어요`;
+  }, [anchor, careStart, mode]);
 
   const handleSelect = (date: Date) => {
     setSelected(date);
@@ -289,7 +311,9 @@ export default function HomePage() {
           mode={mode}
           markedKeys={markedKeys}
           outOfForecastKeys={outOfForecastKeys}
+          minDate={careStart}
           forecastNote={forecastNote}
+          startNote={startNote}
           onAnchorChange={setAnchor}
           onSelect={handleSelect}
           onModeChange={setMode}

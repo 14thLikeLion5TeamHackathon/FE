@@ -8,6 +8,11 @@ type DayCellProps = {
   marked?: boolean;
   /** 예보 범위 밖. 흐리게 처리한다 */
   outOfForecast?: boolean;
+  /**
+   * 안내가 시작되기 전 날짜. 흐리게 처리하고 **아예 누를 수 없게** 한다 —
+   * 예보 범위 밖과 달리 여기는 골라도 보여줄 게 생길 수 없다.
+   */
+  disabled?: boolean;
   /** 요일 줄 노출 여부. 주 모드는 켜고 월 모드는 상단에 따로 있어 끈다 */
   showDow?: boolean;
   onSelect?: (date: Date) => void;
@@ -19,6 +24,7 @@ export default function DayCell({
   selected = false,
   marked = false,
   outOfForecast = false,
+  disabled = false,
   showDow = false,
   onSelect,
 }: DayCellProps) {
@@ -31,6 +37,7 @@ export default function DayCell({
     formatDayLabel(date),
     marked ? '케어 주의일' : null,
     outOfForecast ? '예보 범위 밖' : null,
+    disabled ? '안내 시작 전' : null,
   ]
     .filter(Boolean)
     .join(', ');
@@ -39,12 +46,13 @@ export default function DayCell({
     <button
       type="button"
       onClick={() => onSelect?.(date)}
+      disabled={disabled}
       aria-pressed={selected}
       aria-label={label}
       className={cn(
         'rounded-sm flex flex-col items-center gap-1 p-2 transition-colors',
         selected && 'bg-primary',
-        outOfForecast && !selected && 'opacity-35',
+        (outOfForecast || disabled) && !selected && 'opacity-35',
       )}
     >
       {showDow && (

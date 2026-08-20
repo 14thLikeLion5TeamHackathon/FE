@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { getCards } from '../../api/card';
 import { getBriefing, getCalendarEvents, getChecklist, updateChecklistItem } from '../../api/today';
-import { addDays, toKey } from '../../lib/date';
+import { addDays, startOfDay, toKey } from '../../lib/date';
 import type { TodayLocation } from '../../lib/location';
 import { getScheduleDates, subscribeScheduleDates } from '../../lib/scheduleDates';
 import { eventDateKey } from '../../types/today';
@@ -73,6 +73,34 @@ export function useToggleChecklistItem() {
 export function useHasCards(): boolean | null {
   const { data } = useQuery({ queryKey: cardKeys.list, queryFn: getCards });
   return data ? data.length > 0 : null;
+}
+
+/**
+ * 안내가 시작되는 날 — **가장 이른 케어카드의 시술일**. 카드가 없으면 null이다.
+ *
+ * 그 이전 날짜는 브리핑도 체크리스트도 나올 수 없다. 안내를 만들어내는 게 결국 카드라서,
+ * 카드가 생기기 전에는 서버에 물어볼 것 자체가 없다.
+ *
+ * 처음에는 **가입일**로 막으려 했는데 프론트가 그 날짜를 알 방법이 없다 —
+ * `OnboardingResponse.createdAt`은 가입 순간 한 번 오고 저장하지 않으며,
+ * `MyProfile`에는 아예 필드가 없다. 시술일은 뜻으로도 더 맞고, 카드 목록은
+ * 캘린더 점을 찍느라 이미 받고 있어 요청도 늘지 않는다.
+ *
+ * **카드가 없으면 아무것도 막지 않는다.** 경계를 모르는 것과 경계가 오늘인 것은 다르다 —
+ * 목록이 아직 안 왔을 때 과거를 통째로 잠그면, 잠깐이지만 앱이 고장난 것처럼 보인다.
+ */
+export function useCareStartDate(): Date | null {
+  const { data } = useQuery({ queryKey: cardKeys.list, queryFn: getCards });
+
+  return useMemo(() => {
+    // 시술일은 "2026-08-15" 고정 폭이라 문자열 비교로 가장 이른 날을 고를 수 있다
+    let earliest: string | null = null;
+    for (const card of data ?? []) {
+      if (!card.treatmentDate) continue;
+      if (earliest === null || card.treatmentDate < earliest) earliest = card.treatmentDate;
+    }
+    return earliest ? startOfDay(new Date(`${earliest}T00:00:00`)) : null;
+  }, [data]);
 }
 
 /**
