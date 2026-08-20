@@ -33,7 +33,9 @@ export default function FeedbackPage() {
   const navigate = useNavigate();
   const { data, isLoading, isError, error } = useFeedback(recordId);
   const cardId = data?.cardId ? String(data.cardId) : '';
+  /** 문의 버튼이 열 주소. 카드 상세에만 있어서 피드백 응답과 별개로 한 번 더 받는다 */
   const { data: cardDetail } = useCardDetail(cardId, getLocationParams());
+  const storeUrl = cardDetail?.visitedStore?.url;
 
   if (isLoading) {
     return (
@@ -164,18 +166,39 @@ export default function FeedbackPage() {
           {data.advice.criteria && (
             <p className="typo-caption text-text-tertiary">판정 기준: {data.advice.criteria}</p>
           )}
-          <button
-            type="button"
-            className="bg-danger typo-label rounded-btn mt-1 py-3 text-white"
-            onClick={() => {
-              const storeUrl = cardDetail?.visitedStore?.url;
-              if (storeUrl) {
-                window.open(storeUrl, '_blank', 'noopener,noreferrer');
-              }
-            }}
-          >
-            시술 기관에 문의하기
-          </button>
+          {/*
+            **버튼이 아니라 링크다.** `window.open`을 부르는 버튼으로 두면 우클릭·새 탭으로
+            열기·링크 주소 복사가 전부 막히고, 낭독기도 "버튼"이라고만 읽어 어디로 가는지
+            모른다. 같은 이유로 카드 상세의 매장 바로가기도 링크로 바꿨다(StoreGuide).
+
+            주소를 모르면 링크를 그리지 않는다. 눌러도 아무 일이 없는 버튼은 사용자에게
+            고장으로 읽히는데, 여기는 "문의하라"고 권해 놓은 자리라 더 나쁘다.
+          */}
+          {storeUrl ? (
+            <a
+              href={storeUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-danger typo-label rounded-btn mt-1 flex items-center justify-center gap-1.5 py-3 text-white"
+              aria-label="시술 기관 홈페이지 열기 (새 창)"
+            >
+              시술 기관에 문의하기
+              {/* 새 창으로 나간다는 관습적 표시 — 상자 밖으로 빠지는 화살표 */}
+              <svg viewBox="0 0 12 12" className="size-3" fill="none" aria-hidden>
+                <path
+                  d="M4.5 2H2.5V9.5H10V7.5M7 2H10V5M10 2L5.5 6.5"
+                  stroke="currentColor"
+                  strokeWidth="1.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </a>
+          ) : (
+            <p className="typo-caption text-text-tertiary mt-1">
+              시술 기관 연락처가 등록돼 있지 않아요. 방문하신 곳으로 직접 문의해주세요.
+            </p>
+          )}
         </section>
       ) : (
         <p className="bg-surface-fill rounded-md typo-caption text-text-tertiary p-4">

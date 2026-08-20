@@ -62,7 +62,15 @@ export default function HomePage() {
 
   const navigate = useNavigate();
   // 기준 좌표는 GPS와 직접 선택 중 하나로 정해진다 — 규칙은 useTodayLocation 주석 참고
-  const { location, selectLocation, coords, usingGps, geoStatus, gpsCoords, useCurrentLocation: resetToGps } = useTodayLocation();
+  const {
+    location,
+    selectLocation,
+    coords,
+    usingGps,
+    geoStatus,
+    gpsCoords,
+    useCurrentLocation: resetToGps,
+  } = useTodayLocation();
 
   /** 오늘 날짜는 한 번만 구해 공유한다 — 곳곳에서 new Date()를 부르면 서로 어긋난다 */
   const today = useMemo(() => startOfDay(new Date()), []);
@@ -345,7 +353,7 @@ export default function HomePage() {
           dateLabel={dateLabel}
           past={false}
           dday={ddayNote}
-          onRefresh={() => doRefreshBriefing(selectedKey)}
+          onRefresh={() => doRefreshBriefing({ date: selectedKey, location })}
           isRefreshing={isBriefingRefreshing}
         />
       ) : isPast && briefing.isError && !data ? (
@@ -376,7 +384,7 @@ export default function HomePage() {
             dateLabel={dateLabel}
             past
             dday={ddayNote}
-            onRefresh={() => doRefreshBriefing(selectedKey)}
+            onRefresh={() => doRefreshBriefing({ date: selectedKey, location })}
             isRefreshing={isBriefingRefreshing}
           />
         )
@@ -410,7 +418,10 @@ export default function HomePage() {
           />
         </>
       ) : briefing.isError && !data ? (
-        <CareBriefingError dateLabel={dateLabel} onRetry={() => doRefreshBriefing(selectedKey)} />
+        <CareBriefingError
+          dateLabel={dateLabel}
+          onRetry={() => doRefreshBriefing({ date: selectedKey, location })}
+        />
       ) : !data ? (
         <CareBriefingLoading dateLabel={dateLabel} />
       ) : !data.cardJudgement && recoveryGap && recoveryGap.kind !== 'active' ? (
@@ -437,7 +448,7 @@ export default function HomePage() {
             data.cardJudgement?.actionSentence ??
             '이 날짜에 예정된 회복 관리는 없어요. 평소 루틴을 유지하시면 돼요.'
           }
-          onRefresh={() => doRefreshBriefing(selectedKey)}
+          onRefresh={() => doRefreshBriefing({ date: selectedKey, location })}
           isRefreshing={isBriefingRefreshing}
         />
       )}
