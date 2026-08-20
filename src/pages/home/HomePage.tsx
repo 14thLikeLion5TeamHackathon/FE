@@ -62,7 +62,15 @@ export default function HomePage() {
 
   const navigate = useNavigate();
   // 기준 좌표는 GPS와 직접 선택 중 하나로 정해진다 — 규칙은 useTodayLocation 주석 참고
-  const { location, selectLocation, coords, usingGps, geoStatus, gpsCoords, useCurrentLocation: resetToGps } = useTodayLocation();
+  const {
+    location,
+    selectLocation,
+    coords,
+    usingGps,
+    geoStatus,
+    gpsCoords,
+    useCurrentLocation: resetToGps,
+  } = useTodayLocation();
 
   /** 오늘 날짜는 한 번만 구해 공유한다 — 곳곳에서 new Date()를 부르면 서로 어긋난다 */
   const today = useMemo(() => startOfDay(new Date()), []);
@@ -105,8 +113,28 @@ export default function HomePage() {
   const briefing = useBriefing(selectedKey, location, !isOutOfForecast);
   const checklist = useChecklist(selectedKey);
   const { mutate: toggleItem } = useToggleChecklistItem();
-  const { mutate: doRefreshChecklist, isPending: isChecklistRefreshing } = useRefreshChecklist();
-  const { mutate: doRefreshBriefing, isPending: isBriefingRefreshing } = useRefreshBriefing();
+  const {
+    mutate: doRefreshChecklist,
+    isPending: checklistRefreshPending,
+    isError: checklistRefreshError,
+    variables: checklistRefreshDate,
+  } = useRefreshChecklist();
+  const {
+    mutate: doRefreshBriefing,
+    isPending: briefingRefreshPending,
+    isError: briefingRefreshError,
+    variables: briefingRefreshVars,
+  } = useRefreshBriefing();
+
+  /*
+    뮤테이션 상태는 **날짜를 모른다.** 마지막 한 번의 결과만 들고 있어서, 그대로 쓰면
+    8월 20일에서 실패한 안내가 8월 21일로 넘어가도 그대로 붙어 있다 — 그 날짜에서는
+    새로고침을 누른 적도 없는데 실패했다고 말하게 된다. 지금 보는 날짜의 결과일 때만 쓴다.
+  */
+  const isChecklistRefreshing = checklistRefreshPending && checklistRefreshDate === selectedKey;
+  const checklistRefreshFailed = checklistRefreshError && checklistRefreshDate === selectedKey;
+  const isBriefingRefreshing = briefingRefreshPending && briefingRefreshVars?.date === selectedKey;
+  const briefingRefreshFailed = briefingRefreshError && briefingRefreshVars?.date === selectedKey;
 
   /** 일정은 보이는 달 전체를 한 번에 받아 둔다 — 날짜를 옮길 때마다 다시 부르지 않으려고 */
   const [monthStart, monthEnd] = useMemo(() => {
@@ -341,13 +369,11 @@ export default function HomePage() {
       {isOutOfForecast ? (
         /* 예보 범위 밖은 오류가 아니라 정상 상태다 — 로딩·에러보다 먼저 잡아야
            서버가 내는 400이 "불러오지 못했어요"로 새어 나가지 않는다 */
-        <CareBriefingNoForecast
-          dateLabel={dateLabel}
-          past={false}
-          dday={ddayNote}
-          onRefresh={() => doRefreshBriefing(selectedKey)}
-          isRefreshing={isBriefingRefreshing}
-        />
+        /*
+          여기엔 새로고침을 주지 않는다. 예보 범위 밖은 서버에 아직 값이 없는 상태라
+          다시 물어도 400이 돌아온다 — 성공할 수 없는 버튼은 누를수록 고장으로 읽힌다.
+        */
+        <CareBriefingNoForecast dateLabel={dateLabel} past={false} dday={ddayNote} />
       ) : isPast && briefing.isError && !data ? (
         /*
           지난 날짜는 물어보되, 실패하면 오류라고 말하지 않는다.
@@ -376,8 +402,9 @@ export default function HomePage() {
             dateLabel={dateLabel}
             past
             dday={ddayNote}
-            onRefresh={() => doRefreshBriefing(selectedKey)}
+            onRefresh={() => doRefreshBriefing({ date: selectedKey, location })}
             isRefreshing={isBriefingRefreshing}
+            refreshFailed={briefingRefreshFailed}
           />
         )
       ) : isEmpty ? (
@@ -410,7 +437,10 @@ export default function HomePage() {
           />
         </>
       ) : briefing.isError && !data ? (
-        <CareBriefingError dateLabel={dateLabel} onRetry={() => doRefreshBriefing(selectedKey)} />
+        <CareBriefingError
+          dateLabel={dateLabel}
+          onRetry={() => doRefreshBriefing({ date: selectedKey, location })}
+        />
       ) : !data ? (
         <CareBriefingLoading dateLabel={dateLabel} />
       ) : !data.cardJudgement && recoveryGap && recoveryGap.kind !== 'active' ? (
@@ -437,8 +467,9 @@ export default function HomePage() {
             data.cardJudgement?.actionSentence ??
             '이 날짜에 예정된 회복 관리는 없어요. 평소 루틴을 유지하시면 돼요.'
           }
-          onRefresh={() => doRefreshBriefing(selectedKey)}
+          onRefresh={() => doRefreshBriefing({ date: selectedKey, location })}
           isRefreshing={isBriefingRefreshing}
+          refreshFailed={briefingRefreshFailed}
         />
       )}
 
@@ -489,6 +520,7 @@ export default function HomePage() {
                 onToggle={(checklistId, completed) => toggleItem({ checklistId, completed })}
                 onRefresh={() => doRefreshChecklist(selectedKey)}
                 isRefreshing={isChecklistRefreshing}
+                refreshFailed={checklistRefreshFailed}
               />
             )
           )}

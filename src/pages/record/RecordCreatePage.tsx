@@ -52,7 +52,7 @@ const UNSUPPORTED_EXTENSIONS = ['.heic', '.heif'];
  * 그러면 목록에 없다는 이유로 멀쩡한 사진이 거절된다 — 갤럭시에서 촬영이 안 되던 원인 중 하나다.
  * 그래서 "허용 목록에 있으면 통과"가 아니라 **"못 쓰는 게 확실할 때만 거절"**로 뒤집는다.
  * 형식을 알 수 없으면 일단 받는다. 서버가 거절하면 그때 오류가 뜨는 편이,
- * 찍은 사진이 이유 없이 사라지는 것보다 낫다. 
+ * 찍은 사진이 이유 없이 사라지는 것보다 낫다.
  */
 function isUploadable(file: File): boolean {
   const name = file.name.toLowerCase();

@@ -2,7 +2,14 @@ import { useMemo, useSyncExternalStore } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { getCards } from '../../api/card';
-import { getBriefing, getCalendarEvents, getChecklist, refreshBriefing, refreshChecklist, updateChecklistItem } from '../../api/today';
+import {
+  getBriefing,
+  getCalendarEvents,
+  getChecklist,
+  refreshBriefing,
+  refreshChecklist,
+  updateChecklistItem,
+} from '../../api/today';
 import { useCalendarStatus } from '../calendar/useCalendar';
 import { addDays, startOfDay, toKey } from '../../lib/date';
 import type { TodayLocation } from '../../lib/location';
@@ -62,26 +69,40 @@ export function useToggleChecklistItem() {
   });
 }
 
-/** POST /api/v1/today/checklist/refresh — 체크리스트 재생성 */
+/**
+ * POST /api/v1/today/checklist/refresh — 체크리스트 재생성.
+ *
+ * **응답을 그대로 캐시에 꽂는다.** 무효화만 하면 방금 받은 새 목록을 버리고 GET을 한 번 더
+ * 쏘게 된다 — 재생성은 서버가 항목을 지우고 다시 만드는 무거운 작업이라 그 왕복이 그대로
+ * 사용자 대기 시간이 된다. 화면이 바뀌는 시점도 그만큼 늦어진다.
+ */
 export function useRefreshChecklist() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (date: string) => refreshChecklist(date),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: todayKeys.checklistAll() });
+    onSuccess: (result, date) => {
+      queryClient.setQueryData(todayKeys.checklist(date), result);
     },
   });
 }
 
-/** GET /api/v1/today/briefing?refresh=true — 브리핑 재생성 */
+/**
+ * GET /api/v1/today/briefing?refresh=true — 브리핑 재생성.
+ *
+ * 캐시 키에 위치가 들어가므로(useBriefing 주석) 날짜만으로는 어디에 꽂을지 정할 수 없다.
+ * 그래서 호출부가 기준 위치를 같이 넘긴다.
+ *
+ * 위 체크리스트와 같은 이유로 응답을 그대로 꽂는다. 이쪽은 AI 판단을 다시 만드는
+ * 요청이라 왕복이 더 비싸다.
+ */
 export function useRefreshBriefing() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (date: string) => refreshBriefing(date),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['today', 'briefing'] });
+    mutationFn: ({ date }: { date: string; location: TodayLocation }) => refreshBriefing(date),
+    onSuccess: (result, { date, location }) => {
+      queryClient.setQueryData(todayKeys.briefing(date, location), result);
     },
   });
 }

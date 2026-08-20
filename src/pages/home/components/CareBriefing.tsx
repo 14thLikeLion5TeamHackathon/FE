@@ -17,6 +17,20 @@ type Props = {
   dateLabel: string;
 };
 
+/**
+ * 새로고침이 실패했을 때의 한 줄.
+ *
+ * 실패를 말하지 않으면 스피너가 멈추고 화면이 그대로라, 사용자에게는 "눌렀는데 아무 일도
+ * 안 일어남"으로 보인다 — 버튼이 고장난 것과 구분되지 않는다.
+ */
+function RefreshFailed() {
+  return (
+    <p className="typo-caption text-text-tertiary" role="status">
+      새로고침하지 못했어요. 잠시 후 다시 시도해주세요.
+    </p>
+  );
+}
+
 function Shell({
   dateLabel,
   right,
@@ -36,8 +50,8 @@ function Shell({
 /**
  * 정상.
  *
- * 새로고침 버튼은 없다 — react-query가 `staleTime: 0` + `refetchOnMount` +
- * `refetchOnWindowFocus`로 이미 최신 상태를 유지해서 실효성이 없다(리뷰 피드백).
+ * 새로고침은 단순 재조회가 아니라 **재생성**이다(`?refresh=true`). 서버가 캐시를 건너뛰고
+ * AI 판단을 새로 만들기 때문에, 이미 최신인 화면에서도 누를 이유가 있다.
  */
 export default function CareBriefing({
   dateLabel,
@@ -45,12 +59,15 @@ export default function CareBriefing({
   message,
   onRefresh,
   isRefreshing = false,
+  refreshFailed = false,
 }: Props & {
   /** "온흐림 26°". 서버가 날씨를 못 주면 null */
   weather: string | null;
   message: string;
   onRefresh: () => void;
   isRefreshing?: boolean;
+  /** 마지막 새로고침이 실패했는지 */
+  refreshFailed?: boolean;
 }) {
   return (
     <Shell
@@ -63,6 +80,7 @@ export default function CareBriefing({
       }
     >
       <p className="typo-body text-text-primary">{message}</p>
+      {refreshFailed && <RefreshFailed />}
     </Shell>
   );
 }
@@ -167,6 +185,7 @@ export function CareBriefingNoForecast({
   dday,
   onRefresh,
   isRefreshing = false,
+  refreshFailed = false,
 }: Props & {
   past?: boolean;
   /**
@@ -177,8 +196,14 @@ export function CareBriefingNoForecast({
    * 약속하지 않는 쪽으로 문구가 갈린다.
    */
   dday?: { treatmentName: string; label: string };
-  onRefresh: () => void;
+  /**
+   * **없으면 버튼을 그리지 않는다.** 예보 범위 밖처럼 다시 불러도 서버에 줄 게 없는
+   * 자리가 있다 — 거기 버튼을 두면 눌러도 실패만 하고, 사용자는 앱이 고장난 줄 안다.
+   */
+  onRefresh?: () => void;
   isRefreshing?: boolean;
+  /** 마지막 새로고침이 실패했는지 */
+  refreshFailed?: boolean;
 }) {
   const reason = past
     ? '그날의 날씨·대기질 기록이 없어요.'
@@ -190,7 +215,7 @@ export function CareBriefingNoForecast({
       right={
         <div className="flex items-center gap-1.5">
           <span className="typo-label text-text-secondary">{past ? '지난 날짜' : '예보 없음'}</span>
-          <RefreshButton onClick={onRefresh} isRefreshing={isRefreshing} />
+          {onRefresh && <RefreshButton onClick={onRefresh} isRefreshing={isRefreshing} />}
         </div>
       }
     >
@@ -202,6 +227,7 @@ export function CareBriefingNoForecast({
           {dday.treatmentName} {dday.label}
         </p>
       )}
+      {refreshFailed && <RefreshFailed />}
     </Shell>
   );
 }
