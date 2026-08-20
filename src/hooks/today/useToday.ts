@@ -114,12 +114,15 @@ export function useCareStartDate(): Date | null {
  * 답은 이미 받아 둔 카드 목록에 있다. 시술일과 회복 기간으로 구간을 세우면
  * 지금이 그 앞인지 뒤인지 사이인지 정확히 말할 수 있다. **서버에 더 물을 게 없다.**
  *
- * 구간 안이면 null이다 — 그때는 서버 브리핑이 할 말이 있다.
+ * 구간 **안**이면 `active`로 알린다. 서버 브리핑이 오면 그쪽이 이기지만, 브리핑이 실패한
+ * 날에는 이것만이라도 말할 수 있어야 한다 — "D-day 기준으로 안내드릴게요"라고 써 놓고
+ * 정작 D-day를 못 보여주면 약속을 어기는 화면이 된다.
  */
 export type RecoveryGap =
   | { kind: 'before'; treatmentName: string; date: Date }
   | { kind: 'between'; treatmentName: string; date: Date }
-  | { kind: 'after'; treatmentName: string; date: Date };
+  | { kind: 'after'; treatmentName: string; date: Date }
+  | { kind: 'active'; treatmentName: string; date: Date; dday: number };
 
 export function useRecoveryGap(selected: Date): RecoveryGap | null {
   const { data } = useQuery({ queryKey: cardKeys.list, queryFn: getCards });
@@ -138,8 +141,20 @@ export function useRecoveryGap(selected: Date): RecoveryGap | null {
     });
 
     if (spans.length === 0) return null;
-    // 구간 안이면 할 말은 서버 몫이다
-    if (spans.some((span) => selected >= span.start && selected <= span.end)) return null;
+
+    /*
+      구간 안이면 그 카드를 알린다. 여럿 겹치면 가장 최근에 시작한 것을 고른다 —
+      회복 초기일수록 주의가 크고, 사용자도 방금 받은 시술을 먼저 떠올린다.
+    */
+    const running = spans
+      .filter((span) => selected >= span.start && selected <= span.end)
+      .sort((a, b) => b.start.getTime() - a.start.getTime())[0];
+
+    if (running) {
+      // 서버가 시술일을 D+0으로 센다(useMarkedDates 주석) — 여기도 같은 기준을 쓴다
+      const dday = Math.round((selected.getTime() - running.start.getTime()) / 86_400_000);
+      return { kind: 'active', treatmentName: running.name, date: running.start, dday };
+    }
 
     const upcoming = spans
       .filter((span) => span.start > selected)

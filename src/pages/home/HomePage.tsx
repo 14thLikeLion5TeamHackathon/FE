@@ -90,6 +90,15 @@ export default function HomePage() {
    * 카드 목록으로 계산하므로 브리핑이 없어도 답이 나온다(useRecoveryGap 주석).
    */
   const recoveryGap = useRecoveryGap(selected);
+
+  /**
+   * 예보가 없는 날에 대신 붙일 D-day. 그날 회복 중인 카드가 없으면 undefined다 —
+   * 그때는 브리핑 문구가 D-day를 약속하지 않는 쪽으로 갈린다(CareBriefingNoForecast).
+   */
+  const ddayNote =
+    recoveryGap?.kind === 'active'
+      ? { treatmentName: recoveryGap.treatmentName, label: `D+${recoveryGap.dday}` }
+      : undefined;
   const selectedKey = toKey(selected);
   const briefing = useBriefing(selectedKey, location, !isOutOfForecast);
   const checklist = useChecklist(selectedKey);
@@ -320,7 +329,7 @@ export default function HomePage() {
       {isOutOfForecast ? (
         /* 예보 범위 밖은 오류가 아니라 정상 상태다 — 로딩·에러보다 먼저 잡아야
            서버가 내는 400이 "불러오지 못했어요"로 새어 나가지 않는다 */
-        <CareBriefingNoForecast dateLabel={dateLabel} past={false} />
+        <CareBriefingNoForecast dateLabel={dateLabel} past={false} dday={ddayNote} />
       ) : isPast && briefing.isError && !data ? (
         /*
           지난 날짜는 물어보되, 실패하면 오류라고 말하지 않는다.
@@ -328,7 +337,22 @@ export default function HomePage() {
           것과 구분되지 않는다 — 이미 지나간 날이라 다시 시도해도 달라질 게 없으므로
           "그날은 안내가 없어요"로 받는다. 오늘·앞날은 그대로 오류 카드를 띄운다.
         */
-        <CareBriefingNoForecast dateLabel={dateLabel} past />
+        recoveryGap && recoveryGap.kind !== 'active' ? (
+          /*
+            지난 날짜라 브리핑을 못 받았어도, 그날 회복 중인 카드가 없었다는 건 카드 목록만으로
+            안다. "안내가 없어요"보다 왜 없는지를 말하는 편이 낫다.
+          */
+          <CareBriefingGap
+            dateLabel={dateLabel}
+            weather={weatherText}
+            kind={recoveryGap.kind}
+            treatmentName={recoveryGap.treatmentName}
+            dateText={formatShortDayLabel(recoveryGap.date)}
+            onCreateCard={() => navigate('/cards/new')}
+          />
+        ) : (
+          <CareBriefingNoForecast dateLabel={dateLabel} past dday={ddayNote} />
+        )
       ) : isEmpty ? (
         <>
           {/*
@@ -362,7 +386,7 @@ export default function HomePage() {
         <CareBriefingError dateLabel={dateLabel} onRetry={() => void briefing.refetch()} />
       ) : !data ? (
         <CareBriefingLoading dateLabel={dateLabel} />
-      ) : !data.cardJudgement && recoveryGap ? (
+      ) : !data.cardJudgement && recoveryGap && recoveryGap.kind !== 'active' ? (
         /*
           서버가 판단을 못 준 건 그 날짜에 진행 중인 카드가 없어서다. 기본 문구로 얼버무리면
           카드를 만들어 둔 사용자에게 앱이 고장난 것처럼 보인다 — 카드 목록으로 계산한

@@ -145,7 +145,25 @@ export function CareBriefingError({ dateLabel, onRetry }: Props & { onRetry: () 
  * `past`는 이제 "지난 날짜라서 안 부른다"가 아니라 **"불렀는데 그날 기록이 없었다"**는 뜻이다.
  * 지난 날짜도 서버에 물어본다 — DB에 그날 날씨가 남아 있으면 브리핑이 정상으로 온다.
  */
-export function CareBriefingNoForecast({ dateLabel, past = false }: Props & { past?: boolean }) {
+export function CareBriefingNoForecast({
+  dateLabel,
+  past = false,
+  dday,
+}: Props & {
+  past?: boolean;
+  /**
+   * 그날 회복 중이던 시술과 경과일. 없으면 넘기지 않는다.
+   *
+   * **문구가 약속을 지키게 하는 값이다.** "D-day 기준으로 안내드릴게요"라고 써 놓고
+   * 아래에 아무것도 없으면 화면이 말만 하고 만 것처럼 보인다. 줄 게 없으면 아예
+   * 약속하지 않는 쪽으로 문구가 갈린다.
+   */
+  dday?: { treatmentName: string; label: string };
+}) {
+  const reason = past
+    ? '그날의 날씨·대기질 기록이 없어요.'
+    : '이 날짜는 아직 날씨·대기질 예보가 없어요.';
+
   return (
     <Shell
       dateLabel={dateLabel}
@@ -154,10 +172,13 @@ export function CareBriefingNoForecast({ dateLabel, past = false }: Props & { pa
       }
     >
       <p className="typo-body text-text-primary w-full">
-        {past
-          ? '그날의 날씨·대기질 기록이 없어요. 시술 D-day 기준으로만 안내드릴게요.'
-          : '이 날짜는 아직 날씨·대기질 예보가 없어요. 시술 D-day 기준으로만 안내드릴게요.'}
+        {dday ? `${reason} 시술 D-day 기준으로만 안내드릴게요.` : reason}
       </p>
+      {dday && (
+        <p className="typo-label text-text-secondary">
+          {dday.treatmentName} {dday.label}
+        </p>
+      )}
     </Shell>
   );
 }
