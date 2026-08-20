@@ -59,7 +59,10 @@ export default function SettingRow({
         <p className={cn('typo-body', tone === 'danger' ? 'text-danger' : 'text-text-primary')}>
           {label}
         </p>
-        {description && <p className="typo-caption text-text-tertiary mt-0.5">{description}</p>}
+        {/* 연동된 구글 계정 주소처럼 띄어쓰기 없는 긴 문자열이 들어온다 — 안 끊으면 행을 뚫는다 */}
+        {description && (
+          <p className="typo-caption text-text-tertiary mt-0.5 break-words">{description}</p>
+        )}
       </div>
 
       {value && <span className="typo-body text-text-secondary truncate">{value}</span>}

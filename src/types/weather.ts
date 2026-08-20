@@ -36,7 +36,8 @@ export type Weather = {
 };
 
 export function toWeather(raw: WeatherResponse): Weather {
-  const temp = raw.temperature === null || raw.temperature === undefined ? NaN : Number(raw.temperature);
+  const temp =
+    raw.temperature === null || raw.temperature === undefined ? NaN : Number(raw.temperature);
 
   return {
     temp: Number.isNaN(temp) ? null : temp,
