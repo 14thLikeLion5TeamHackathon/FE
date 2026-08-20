@@ -115,14 +115,26 @@ export default function HomePage() {
   const { mutate: toggleItem } = useToggleChecklistItem();
   const {
     mutate: doRefreshChecklist,
-    isPending: isChecklistRefreshing,
-    isError: checklistRefreshFailed,
+    isPending: checklistRefreshPending,
+    isError: checklistRefreshError,
+    variables: checklistRefreshDate,
   } = useRefreshChecklist();
   const {
     mutate: doRefreshBriefing,
-    isPending: isBriefingRefreshing,
-    isError: briefingRefreshFailed,
+    isPending: briefingRefreshPending,
+    isError: briefingRefreshError,
+    variables: briefingRefreshVars,
   } = useRefreshBriefing();
+
+  /*
+    뮤테이션 상태는 **날짜를 모른다.** 마지막 한 번의 결과만 들고 있어서, 그대로 쓰면
+    8월 20일에서 실패한 안내가 8월 21일로 넘어가도 그대로 붙어 있다 — 그 날짜에서는
+    새로고침을 누른 적도 없는데 실패했다고 말하게 된다. 지금 보는 날짜의 결과일 때만 쓴다.
+  */
+  const isChecklistRefreshing = checklistRefreshPending && checklistRefreshDate === selectedKey;
+  const checklistRefreshFailed = checklistRefreshError && checklistRefreshDate === selectedKey;
+  const isBriefingRefreshing = briefingRefreshPending && briefingRefreshVars?.date === selectedKey;
+  const briefingRefreshFailed = briefingRefreshError && briefingRefreshVars?.date === selectedKey;
 
   /** 일정은 보이는 달 전체를 한 번에 받아 둔다 — 날짜를 옮길 때마다 다시 부르지 않으려고 */
   const [monthStart, monthEnd] = useMemo(() => {
