@@ -15,8 +15,21 @@ type IconProps = { className?: string };
 function TodayIcon({ className }: IconProps) {
   return (
     <svg viewBox="0 0 20 20" className={className} fill="none" aria-hidden>
-      <rect x="2.75" y="4.25" width="14.5" height="13" rx="2.5" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M2.75 8.25h14.5M6.75 2.75v3M13.25 2.75v3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <rect
+        x="2.75"
+        y="4.25"
+        width="14.5"
+        height="13"
+        rx="2.5"
+        stroke="currentColor"
+        strokeWidth="1.5"
+      />
+      <path
+        d="M2.75 8.25h14.5M6.75 2.75v3M13.25 2.75v3"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
@@ -25,7 +38,13 @@ function TodayIcon({ className }: IconProps) {
 function RecoveryIcon({ className }: IconProps) {
   return (
     <svg viewBox="0 0 20 20" className={className} fill="none" aria-hidden>
-      <path d="M2.75 14.5c3.5 0 4.5-9 7-9s3.5 5 7.5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M2.75 14.5c3.5 0 4.5-9 7-9s3.5 5 7.5 5"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
       <path d="M2.75 17.25h14.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   );
@@ -36,7 +55,12 @@ function MyIcon({ className }: IconProps) {
   return (
     <svg viewBox="0 0 20 20" className={className} fill="none" aria-hidden>
       <circle cx="10" cy="6.75" r="3.25" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M3.75 16.75c0-3 2.8-4.75 6.25-4.75s6.25 1.75 6.25 4.75" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path
+        d="M3.75 16.75c0-3 2.8-4.75 6.25-4.75s6.25 1.75 6.25 4.75"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
@@ -99,11 +123,15 @@ export default function TabBar({ onRecord }: TabBarProps) {
           aria-haspopup="dialog"
           className="bg-primary text-primary-on shadow-fab absolute -top-[9px] flex size-11 items-center justify-center rounded-full"
         >
+          {/*
+            탭 아이콘(1.5)보다 굵다. 이건 탭이 아니라 주요 액션이라 같은 굵기로 두면
+            떠 있는 원형 버튼인데도 옆 탭들과 같은 무게로 읽힌다.
+          */}
           <svg viewBox="0 0 20 20" className="size-5" fill="none" aria-hidden>
             <path
               d="M10 4v12M4 10h12"
               stroke="currentColor"
-              strokeWidth="2"
+              strokeWidth="2.4"
               strokeLinecap="round"
             />
           </svg>

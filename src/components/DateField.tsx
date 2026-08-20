@@ -23,6 +23,15 @@ type DateFieldProps = {
  *
  * 지금은 입력 자체가 터치 영역이라 브라우저가 알아서 연다 — JS 지원 여부와 무관하다.
  * 보이는 부분은 `pointer-events-none`이라 탭이 그대로 밑의 입력으로 내려간다.
+ *
+ * **데스크톱은 탭만으로 열리지 않는다.** 모바일 브라우저는 날짜 입력을 어디를 누르든 피커를
+ * 열지만, 데스크톱 크롬·엣지는 오른쪽 끝 달력 아이콘을 눌렀을 때만 연다. 그 아이콘이
+ * `opacity-0` 아래로 들어가 있어 누를 자리가 없어졌고, 맥북 크롬에서 클릭해도 포커스 테두리만
+ * 생기고 달력이 안 뜨는 상태가 됐다.
+ *
+ * 그래서 클릭에 `showPicker()`를 붙인다. #107에서 걷어낸 그 함수지만 조건이 다르다 —
+ * 그때는 `sr-only`로 숨긴 입력에 걸어서 iOS가 무시했고, 지금은 화면에 렌더되는 입력이라
+ * 정상 동작한다. 모바일은 이 호출이 없어도 이미 열리므로, 실패하면 조용히 넘긴다.
  */
 export default function DateField({
   value,
@@ -45,6 +54,18 @@ export default function DateField({
         aria-label={label}
         value={value ? toDateInputValue(value) : ''}
         onChange={(e) => onChange(e.target.value ? fromDateInputValue(e.target.value) : '')}
+        /*
+          데스크톱에서 달력을 여는 유일한 경로다. 지원하지 않는 브라우저(구형 사파리)나
+          이미 열리는 중인 모바일에서는 예외가 날 수 있는데, 그때 막아야 할 건 아무것도 없다 —
+          네이티브 동작이 그대로 남아 있으므로 삼키고 지나간다.
+        */
+        onClick={(e) => {
+          try {
+            e.currentTarget.showPicker();
+          } catch {
+            /* 네이티브 동작에 맡긴다 */
+          }
+        }}
         className="peer absolute inset-0 h-full w-full cursor-pointer appearance-none bg-transparent opacity-0"
       />
 

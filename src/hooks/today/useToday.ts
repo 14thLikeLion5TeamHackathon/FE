@@ -1,10 +1,12 @@
-import { useMemo } from 'react';
+import { useMemo, useSyncExternalStore } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { getCards } from '../../api/card';
 import { getBriefing, getCalendarEvents, getChecklist, updateChecklistItem } from '../../api/today';
-import { addDays, toKey } from '../../lib/date';
+import { useCalendarStatus } from '../calendar/useCalendar';
+import { addDays, startOfDay, toKey } from '../../lib/date';
 import type { TodayLocation } from '../../lib/location';
+import { getScheduleDates, subscribeScheduleDates } from '../../lib/scheduleDates';
 import { eventDateKey } from '../../types/today';
 
 /** 카드 목록은 카드 도메인과 같은 캐시를 쓴다 — 같은 리소스를 두 번 받지 않으려는 것 */
@@ -75,6 +77,106 @@ export function useHasCards(): boolean | null {
 }
 
 /**
+ * 안내가 시작되는 날 — **가장 이른 케어카드의 시술일**. 카드가 없으면 null이다.
+ *
+ * 그 이전 날짜는 브리핑도 체크리스트도 나올 수 없다. 안내를 만들어내는 게 결국 카드라서,
+ * 카드가 생기기 전에는 서버에 물어볼 것 자체가 없다.
+ *
+ * 처음에는 **가입일**로 막으려 했는데 프론트가 그 날짜를 알 방법이 없다 —
+ * `OnboardingResponse.createdAt`은 가입 순간 한 번 오고 저장하지 않으며,
+ * `MyProfile`에는 아예 필드가 없다. 시술일은 뜻으로도 더 맞고, 카드 목록은
+ * 캘린더 점을 찍느라 이미 받고 있어 요청도 늘지 않는다.
+ *
+ * **카드가 없으면 아무것도 막지 않는다.** 경계를 모르는 것과 경계가 오늘인 것은 다르다 —
+ * 목록이 아직 안 왔을 때 과거를 통째로 잠그면, 잠깐이지만 앱이 고장난 것처럼 보인다.
+ */
+export function useCareStartDate(): Date | null {
+  const { data } = useQuery({ queryKey: cardKeys.list, queryFn: getCards });
+
+  return useMemo(() => {
+    // 시술일은 "2026-08-15" 고정 폭이라 문자열 비교로 가장 이른 날을 고를 수 있다
+    let earliest: string | null = null;
+    for (const card of data ?? []) {
+      if (!card.treatmentDate) continue;
+      if (earliest === null || card.treatmentDate < earliest) earliest = card.treatmentDate;
+    }
+    return earliest ? startOfDay(new Date(`${earliest}T00:00:00`)) : null;
+  }, [data]);
+}
+
+/**
+ * 회복 구간 **밖**일 때 지금이 어디쯤인지.
+ *
+ * 카드는 있는데 그 날짜에 진행 중인 게 없으면 서버가 `cardJudgement: null`을 준다.
+ * 그때 화면이 "회복 기간이 끝났거나 아직 시작 전이에요"라고만 하면 둘 중 뭔지 알 수 없어,
+ * 카드를 만들어 둔 사용자는 등록이 잘못됐나 의심하게 된다 — 고장으로 읽히는 자리다.
+ *
+ * 답은 이미 받아 둔 카드 목록에 있다. 시술일과 회복 기간으로 구간을 세우면
+ * 지금이 그 앞인지 뒤인지 사이인지 정확히 말할 수 있다. **서버에 더 물을 게 없다.**
+ *
+ * 구간 **안**이면 `active`로 알린다. 서버 브리핑이 오면 그쪽이 이기지만, 브리핑이 실패한
+ * 날에는 이것만이라도 말할 수 있어야 한다 — "D-day 기준으로 안내드릴게요"라고 써 놓고
+ * 정작 D-day를 못 보여주면 약속을 어기는 화면이 된다.
+ */
+export type RecoveryGap =
+  | { kind: 'between'; treatmentName: string; date: Date }
+  | { kind: 'after'; treatmentName: string; date: Date }
+  | { kind: 'active'; treatmentName: string; date: Date; dday: number };
+
+export function useRecoveryGap(selected: Date): RecoveryGap | null {
+  const { data } = useQuery({ queryKey: cardKeys.list, queryFn: getCards });
+
+  return useMemo(() => {
+    if (!data || data.length === 0) return null;
+
+    const spans = data.flatMap((card) => {
+      if (!card.treatmentDate) return [];
+      const start = startOfDay(new Date(`${card.treatmentDate}T00:00:00`));
+      if (Number.isNaN(start.getTime())) return [];
+
+      // 기간을 모르면 시술 당일만 구간으로 본다 — 임의로 늘리면 없는 회복을 있다고 말하게 된다
+      const end = addDays(start, card.recoveryTotalDays ?? 0);
+      return [{ name: card.treatmentName ?? '시술', start, end }];
+    });
+
+    if (spans.length === 0) return null;
+
+    /*
+      구간 안이면 그 카드를 알린다. 여럿 겹치면 가장 최근에 시작한 것을 고른다 —
+      회복 초기일수록 주의가 크고, 사용자도 방금 받은 시술을 먼저 떠올린다.
+    */
+    const running = spans
+      .filter((span) => selected >= span.start && selected <= span.end)
+      .sort((a, b) => b.start.getTime() - a.start.getTime())[0];
+
+    if (running) {
+      // 서버가 시술일을 D+0으로 센다(useMarkedDates 주석) — 여기도 같은 기준을 쓴다
+      const dday = Math.round((selected.getTime() - running.start.getTime()) / 86_400_000);
+      return { kind: 'active', treatmentName: running.name, date: running.start, dday };
+    }
+
+    const upcoming = spans
+      .filter((span) => span.start > selected)
+      .sort((a, b) => a.start.getTime() - b.start.getTime())[0];
+    const finished = spans
+      .filter((span) => span.end < selected)
+      .sort((a, b) => b.end.getTime() - a.end.getTime())[0];
+
+    /*
+      **첫 시술보다 앞선 날짜는 다루지 않는다.** 캘린더에서 아예 못 고르게 막아 뒀고
+      (useCareStartDate), 그 경계도 여기와 같은 카드 목록에서 나온다 — 목록이 안 왔으면
+      막지도 못하지만 이 함수도 null이라 앞뒤가 맞는다. 지나간 회복이 있어야 "사이"다.
+    */
+    if (upcoming && finished) {
+      return { kind: 'between', treatmentName: upcoming.name, date: upcoming.start };
+    }
+
+    // 남은 건 전부 끝난 경우. 가장 마지막에 끝난 회복을 말한다.
+    return finished ? { kind: 'after', treatmentName: finished.name, date: finished.end } : null;
+  }, [data, selected]);
+}
+
+/**
  * 예보 제공 일수. 오늘 포함 5일이고, 그 뒤 날짜는 캘린더에서 흐리게 처리한다.
  * 서버가 범위를 알려주지 않아 프론트 상수로 둔다 — BE에 문의 중이다.
  */
@@ -88,26 +190,54 @@ export function forecastEnd(today: Date): Date {
 /**
  * 캘린더에 점을 찍을 날짜들.
  *
- * 서버가 날짜별 marked를 주지 않아서 두 곳에서 모아 조립한다 —
- * 구글 캘린더 일정이 있는 날, 그리고 카드의 회복 분기점(시술일·회복 종료일).
- * 캘린더를 연동하지 않은 사용자에게도 점이 보이려면 카드 쪽이 필요하다.
+ * 서버가 날짜별 marked를 주지 않아서 **세 곳에서** 모아 조립한다 —
+ * 구글 캘린더 일정이 있는 날, 카드의 회복 분기점(시술일·회복 종료일),
+ * 그리고 직접 입력한 일정이 있는 날.
+ * 캘린더를 연동하지 않은 사용자에게도 점이 보이려면 뒤의 둘이 필요하다.
  */
-export function useMarkedDates(startDate: string, endDate: string, calendarConnected: boolean) {
-  const events = useQuery({
+/**
+ * 연동된 구글 캘린더 일정. 보이는 달 전체를 한 번에 받는다.
+ *
+ * 캘린더 점과 일정 목록이 **같은 응답을 나눠 쓴다** — 쿼리 키가 같으므로 두 곳에서 불러도
+ * 요청은 한 번이다. 따로 받으면 같은 데이터를 두 번 가져오고, 한쪽만 갱신돼 어긋난다.
+ */
+export function useCalendarEvents(startDate: string, endDate: string) {
+  /**
+   * 연동 여부는 **전용 상태 API로 본다.**
+   *
+   * 한때 브리핑 응답의 `calendarConnected`를 봤는데, 그러면 브리핑이 실패하거나 예보 범위
+   * 밖이라 아예 부르지 않을 때 캘린더 일정까지 같이 사라졌다 — 서로 무관한 두 데이터가
+   * 브리핑 하나에 묶여 있었다.
+   *
+   * 미연동일 때 이 요청을 막는 건 이제 필수가 아니다. 서버가 500 대신 200과 빈 배열을
+   * 주도록 고쳐졌다(BE 확인). 그래도 막아 두는 건 연동한 적 없는 사용자에게 매번 나가는
+   * 요청을 아끼려는 것뿐이고, 상태를 모르는 동안에도 막힌다 — 알게 되면 곧바로 받는다.
+   */
+  const { data: calendar } = useCalendarStatus();
+
+  return useQuery({
     queryKey: todayKeys.events(startDate, endDate),
     queryFn: () => getCalendarEvents(startDate, endDate),
-    /**
-     * 미연동 상태에서 부르면 서버가 500을 낸다(빈 목록이 아니라).
-     * 브리핑이 알려주는 연동 여부로 막는다 — 그 전에는 카드 분기점만으로 점을 찍는다.
-     */
-    enabled: calendarConnected,
+    enabled: calendar?.connected === true,
   });
+}
+
+export function useMarkedDates(startDate: string, endDate: string) {
+  const events = useCalendarEvents(startDate, endDate);
 
   const cards = useQuery({ queryKey: cardKeys.list, queryFn: getCards });
+
+  /**
+   * 직접 입력한 일정이 있는 날짜. 쿼리가 아니라 로컬 저장소에서 온다 —
+   * 서버에 날짜 범위로 물을 방법이 없어서다(lib/scheduleDates.ts 주석).
+   */
+  const manualDates = useSyncExternalStore(subscribeScheduleDates, getScheduleDates);
 
   // 매 렌더 새 Set을 만들면 이걸 받는 캘린더의 메모이제이션이 무력화된다.
   return useMemo(() => {
     const marked = new Set<string>();
+
+    for (const date of manualDates) marked.add(date);
 
     for (const event of events.data ?? []) {
       const key = eventDateKey(event);
@@ -129,5 +259,5 @@ export function useMarkedDates(startDate: string, endDate: string, calendarConne
     }
 
     return marked;
-  }, [events.data, cards.data]);
+  }, [events.data, cards.data, manualDates]);
 }

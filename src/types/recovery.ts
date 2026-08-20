@@ -40,4 +40,9 @@ export type RecoveryCurve = {
 export type RecoveryCardOption = {
   cardId: number;
   treatmentName: string;
+  /**
+   * 회복이 끝난 카드인지. 진행 중인 것과 섞여 있어서 이름만으로는 구분이 안 된다 —
+   * 끝난 시술의 곡선을 보면서 지금 관리 중인 줄 알면 안내를 반대로 읽게 된다.
+   */
+  done: boolean;
 };

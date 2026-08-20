@@ -34,7 +34,7 @@ export const BriefingSchedule = z.object({
   /** 목록 키라서 이것만 필수로 둔다 — 없으면 그 일정을 그릴 수가 없다 */
   scheduleId: z.number(),
   title: z.string().nullish(),
-  /** "오후 7:00". 종일 일정이면 null */
+  /** "19:00" 또는 "19:00:30"(서버가 LocalTime을 그대로 문자열로 낸다). 종일이면 null */
   time: z.string().nullish(),
   location: z.string().nullish(),
 });
@@ -100,25 +100,49 @@ export type TodayChecklistResponse = z.infer<typeof TodayChecklistResponse>;
 
 /**
  * 연동된 구글 캘린더 일정.
- * 스웨거에 응답 모양이 비어 있어(`additionalProperties: object`) 실제 응답을 보고 좁혀야 한다.
- * 그때까지는 날짜만 꺼낼 수 있으면 되므로 나머지 필드를 통과시킨다.
+ *
+ * 스웨거 응답이 `additionalProperties: object`라 한동안 필드 이름을 몰라 후보를 넓게
+ * 받았는데, **서버 코드로 확정했다** — `eventDate`(YYYY-MM-DD), `eventTime`(HH:mm:ss),
+ * `title`, `location`. 값은 여전히 느슨하게 받는다(응답 DTO에 required가 없는 관행).
+ *
+ * **`scheduleId`는 일부러 안 받는다.** 응답에 있긴 한데 저장된 식별자가 아니라 그 응답
+ * 안에서 1부터 세는 순번이다. 목록 key로 쓰면 요청마다 다른 일정에 같은 번호가 붙는다.
  */
 export const CalendarEvent = z
   .object({
-    /** 계약상 이름은 `eventDate`. "2026-08-15" 또는 "2026-08-15T19:00:00" */
-    eventDate: z.string().optional(),
-    // 미연동 상태라 실제 응답을 못 봤다. 계약이 어긋나도 점은 찍히게 후보를 남겨 둔다.
-    date: z.string().optional(),
-    startDate: z.string().optional(),
-    start: z.string().optional(),
+    /** "2026-08-15" */
+    eventDate: z.string().nullish(),
+    title: z.string().nullish(),
+    /** "19:00:00". 종일이면 없다 */
+    eventTime: z.string().nullish(),
+    location: z.string().nullish(),
   })
   .passthrough();
 export type CalendarEvent = z.infer<typeof CalendarEvent>;
 
-/** 위 후보 중 실제로 온 필드에서 YYYY-MM-DD만 뽑는다 */
+/** 제목이 없으면 null — 제목 없는 줄은 목록에서 뜻이 없다 */
+export function eventTitle(event: CalendarEvent): string | null {
+  return event.title?.trim() ? event.title : null;
+}
+
+/**
+ * "19:00" 꼴의 시각. 날짜만 온 종일 일정이면 null이다.
+ *
+ * 날짜 필드에 시간이 붙어 오는 경우("2026-08-15T19:00:00")도 있어서 거기서도 뽑는다 —
+ * 전용 시간 필드가 없는 응답을 봤을 때 종일로 잘못 읽지 않으려는 것.
+ */
+export function eventTimeLabel(event: CalendarEvent): string | null {
+  // "19:00:00" → "19:00". 초까지 보여줄 이유가 없다
+  return event.eventTime?.trim() ? event.eventTime.slice(0, 5) : null;
+}
+
+/**
+ * YYYY-MM-DD만 뽑는다.
+ * 서버는 날짜만 담아 보내지만, 시각이 붙어 와도(`2026-08-15T19:00:00`) 앞부분만 쓴다 —
+ * 이 값은 날짜끼리 맞춰 보는 데만 쓰이므로 뒤가 붙으면 어느 날에도 안 걸린다.
+ */
 export function eventDateKey(event: CalendarEvent): string | null {
-  const raw = event.eventDate ?? event.date ?? event.startDate ?? event.start;
-  if (!raw) return null;
-  const match = /^\d{4}-\d{2}-\d{2}/.exec(raw);
+  if (!event.eventDate) return null;
+  const match = /^\d{4}-\d{2}-\d{2}/.exec(event.eventDate);
   return match ? match[0] : null;
 }

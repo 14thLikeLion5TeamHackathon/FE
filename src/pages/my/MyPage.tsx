@@ -14,6 +14,7 @@ import { useDeleteAccount, useDisconnectKakao, useMyProfile } from '../../hooks/
 import { useLogout } from '../../hooks/auth/useAuth';
 import { useKakaoStatus, useUpdateKakaoConsent } from '../../hooks/notification/useNotification';
 import { clearAccessToken } from '../../api/token';
+import { socialProviderLabel } from '../../lib/socialProvider';
 import { GENDER_LABEL, type Gender } from '../../types/user';
 import SettingRow from './components/SettingRow';
 import Skeleton from '../../components/Skeleton';
@@ -47,8 +48,9 @@ export default function MyPage() {
   const { data, isLoading, isError } = useMyProfile();
   const { mutate: doLogout } = useLogout();
   const { mutate: doDeleteAccount } = useDeleteAccount();
-  const { mutate: doDisconnectKakao } = useDisconnectKakao();
-  const { data: calendarConnected } = useCalendarStatus();
+  // 진행 상태·실패 여부를 화면에서 읽어야 해서 mutate만 꺼내지 않는다
+  const disconnectKakao = useDisconnectKakao();
+  const { data: calendar } = useCalendarStatus();
   const disconnectCalendar = useDisconnectCalendar();
   // undefined = "꺼짐"이 아니라 "모름"이다 (조회 API가 없다 — hooks/notification 참고)
   const { data: kakaoStatus, isError: kakaoStatusFailed } = useKakaoStatus();
@@ -100,6 +102,9 @@ export default function MyPage() {
 
   const genderLabel = GENDER_LABEL[data.gender as Gender] ?? data.gender;
 
+  /** 로그인에 쓴 소셜 제공자. 서버가 안 알려줘서 로그인 직전에 적어 둔 값이다 */
+  const providerLabel = socialProviderLabel();
+
   /**
    * 로그아웃.
    *
@@ -126,9 +131,16 @@ export default function MyPage() {
     });
   };
 
+  /**
+   * 카카오 알림 **연동 해제**(DELETE). 수신 on/off와 다르다 — 다시 켜려면 동의 화면을 거쳐야 한다.
+   *
+   * 요청이 날아가는 동안 행을 잠근다. 연타하면 같은 DELETE가 두 번 나가고, 첫 요청이
+   * 연동을 지운 뒤라 두 번째는 404가 된다 — 해제는 됐는데 화면은 실패로 보인다.
+   */
   const handleDisconnectKakao = () => {
+    if (disconnectKakao.isPending) return;
     if (!window.confirm('카카오 알림 연동을 해제하시겠어요?')) return;
-    doDisconnectKakao();
+    disconnectKakao.mutate();
   };
 
   /*
@@ -180,7 +192,7 @@ export default function MyPage() {
 
   const googleConfigured = isConnectConfigured('google');
   const kakaoConfigured = isConnectConfigured('kakao');
-  const isCalendarConnected = calendarConnected ?? false;
+  const isCalendarConnected = calendar?.connected ?? false;
 
   return (
     <div className="flex flex-col gap-3.5 px-5 pt-5 pb-6">
@@ -188,12 +200,30 @@ export default function MyPage() {
 
       {/* 프로필 요약 */}
       <Card className="flex items-center gap-3">
-        <div className="bg-surface-elevated size-11 shrink-0 rounded-full" aria-hidden />
+        {/*
+          프로필 사진 자리였는데 계약에 이미지 필드가 없다. 빈 원을 그대로 두면
+          "아직 안 불러온 사진"으로 읽혀서, 이름 첫 글자로 채운다 —
+          이름은 프로필이 완성된 사용자에게 항상 있다(위 isProfileIncomplete 가드).
+        */}
+        <div
+          className="bg-primary-tint text-primary typo-card-title flex size-11 shrink-0 items-center justify-center rounded-full"
+          aria-hidden
+        >
+          {data.name?.trim().charAt(0) ?? ''}
+        </div>
         <div>
+          {/* 생년월일·성별은 바로 아래 개인정보 목록에 있다 — 여기서 또 쓰면 같은 걸 두 번 읽는다 */}
           <p className="typo-card-title">{data.name}</p>
-          <p className="typo-caption text-text-secondary mt-1">
-            {data.birthDate} · {genderLabel}
-          </p>
+          {/*
+            어느 소셜로 들어왔는지. 별도 행이 아니라 이름 아래에 붙인다 —
+            한 번 보고 마는 정보라 목록에 자리를 차지할 이유가 없다.
+
+            모르면 아예 감춘다. 저장소를 지웠거나 다른 기기에서 로그인했으면 알 방법이
+            없는데, 추측해서 적으면 틀린 계정을 알려주게 된다(lib/socialProvider.ts).
+          */}
+          {providerLabel && (
+            <p className="typo-caption text-text-tertiary mt-1">{providerLabel} 로그인</p>
+          )}
         </div>
       </Card>
 
@@ -218,7 +248,14 @@ export default function MyPage() {
             label="구글 캘린더"
             description={
               isCalendarConnected
-                ? '일정을 불러와 오늘 브리핑에 써요. 끄면 연동이 해제돼요'
+                ? /*
+                    어느 구글 계정이 붙어 있는지 밝힌다. 계정을 여럿 쓰면 연동은 됐는데
+                    일정이 안 보이는 일이 생기는데, 그때 원인이 보이는 자리가 여기뿐이다.
+                    서버가 주소를 안 주면 그냥 빼고 쓴다 — 자리를 비워두면 잘린 문장이 된다.
+                  */
+                  calendar?.email
+                  ? `${calendar.email} · 일정을 불러와 오늘 브리핑에 써요. 끄면 연동이 해제돼요`
+                  : '일정을 불러와 오늘 브리핑에 써요. 끄면 연동이 해제돼요'
                 : googleConfigured
                   ? '켜면 구글 동의 화면으로 이동해요'
                   : '연동 키가 없어 지금은 켤 수 없어요'
@@ -268,9 +305,27 @@ export default function MyPage() {
             }
           />
 
-          {/* 연동이 있다고 확인된 뒤에만 보여준다 — 연동한 적 없는 사람에게 해제를 권하지 않는다 */}
+          {/*
+            연동이 있다고 확인된 뒤에만 보여준다 — 연동한 적 없는 사람에게 해제를 권하지 않는다.
+
+            실패하면 행에 남아 말한다. 토스트가 없어서 이 자리 말고는 알릴 데가 없고,
+            아무 말도 안 하면 사용자는 눌렀는데 아무 일도 안 일어난 것으로 본다 —
+            연동은 그대로인데 해제된 줄 알고 떠나는 쪽이 더 나쁘다.
+          */}
           {kakaoConnected && (
-            <SettingRow label="카카오톡 알림 연동 해제" onClick={handleDisconnectKakao} chevron />
+            <SettingRow
+              label="카카오톡 알림 연동 해제"
+              description={
+                disconnectKakao.isPending
+                  ? '해제하고 있어요'
+                  : disconnectKakao.isError
+                    ? '해제하지 못했어요. 잠시 후 다시 시도해주세요'
+                    : undefined
+              }
+              onClick={handleDisconnectKakao}
+              disabled={disconnectKakao.isPending}
+              chevron
+            />
           )}
         </Card>
       </Group>

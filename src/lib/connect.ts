@@ -53,16 +53,21 @@ export function isConnectConfigured(provider: ConnectProvider): boolean {
 /**
  * 구글 캘린더 동의 화면으로 이동.
  *
- * 스코프는 읽기 전용이다 — 일정을 가져와 브리핑에 쓸 뿐 만들거나 지우지 않는다(BE 확인).
+ * 캘린더 스코프는 읽기 전용이다 — 일정을 가져와 브리핑에 쓸 뿐 만들거나 지우지 않는다(BE 확인).
  * `access_type=offline`과 `prompt=consent`를 붙여야 refresh token이 온다.
  * BE가 나중에 사용자 없이 일정을 다시 읽으려면 그게 필요하다.
+ *
+ * **`email` 스코프도 함께 받는다.** 서버가 연동 직후 이 토큰으로 구글 userinfo를 불러
+ * 계정 주소를 저장하는데(CalendarService.fetchGoogleEmail), 캘린더 스코프만 주면 그 호출이
+ * 403으로 막힌다. 서버는 그 실패를 삼키고 null을 넣으므로 **에러 없이 주소만 빈 채로 남는다** —
+ * 마이 탭에서 어느 계정이 붙었는지 영영 알 수 없게 된다.
  */
 export function startGoogleCalendarConnect(): void {
   const params = new URLSearchParams({
     client_id: GOOGLE_CLIENT_ID,
     redirect_uri: redirectUri('google'),
     response_type: 'code',
-    scope: 'https://www.googleapis.com/auth/calendar.readonly',
+    scope: 'https://www.googleapis.com/auth/calendar.readonly email',
     access_type: 'offline',
     prompt: 'consent',
   });

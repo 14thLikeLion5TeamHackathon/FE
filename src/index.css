@@ -116,6 +116,13 @@
  * 타이포는 유틸 클래스로 고정 → 컴포넌트에서 font-size 직접 지정 금지.
  * 값은 A안 메인페이지·케어카드 실측 기준. 디자인 시스템 프레임 확정 시 재확인 필요.
  */
+/* 진입 화면 워드마크 전용. 본문 스케일과 섞이지 않게 가장 위에만 둔다 */
+.typo-display {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 34px;
+}
+
 .typo-title {
   font-size: 20px;
   font-weight: 700;

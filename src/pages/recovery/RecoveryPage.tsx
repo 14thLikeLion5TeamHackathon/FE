@@ -69,6 +69,7 @@ export default function RecoveryPage() {
   const cardOptions = curveCards.map((card) => ({
     cardId: card.cardId,
     treatmentName: card.treatmentName ?? NO_TREATMENT_NAME,
+    done: card.status === 'DONE',
   }));
 
   return (
