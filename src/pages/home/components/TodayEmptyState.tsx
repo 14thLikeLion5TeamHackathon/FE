@@ -18,8 +18,8 @@ type TodayEmptyStateProps = {
  * 결론으로 쓸 게 없다. 그래서 브리핑·체크리스트·근거 대신 이 화면으로 통째로 갈아탄다.
  * 시안대로 캘린더도 이 화면에서는 감춘다 — 고를 날짜에 아무 정보가 없다.
  *
- * 공용 `EmptyStateCard`를 쓰지 않은 이유: 그 컴포넌트는 제목 + 가운데 정렬 + `rounded-card`(20px)인데,
- * 이 시안은 제목 없이 본문만 왼쪽 정렬하고 `rounded-md`(10px)에 테두리를 준다.
+ * 시안이 제목 없이 본문만 왼쪽 정렬하고 `rounded-md`(10px)에 테두리를 주는 형태라
+ * 다른 빈 상태와 모양이 달라서 공용으로 빼지 않았다.
  */
 export default function TodayEmptyState({
   calendarConnected,

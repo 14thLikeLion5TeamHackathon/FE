@@ -11,13 +11,6 @@ import { daysSince } from '../lib/date';
 export const Level = z.enum(['LOW', 'MODERATE', 'HIGH', 'SEVERE']);
 export type Level = z.infer<typeof Level>;
 
-export const LEVEL_LABEL: Record<Level, string> = {
-  LOW: '좋음',
-  MODERATE: '보통',
-  HIGH: '나쁨',
-  SEVERE: '매우 나쁨',
-};
-
 /** 기록하는 증상 4종. 회복 곡선과 AI 피드백 비교가 같은 키를 쓴다. */
 export const SymptomKey = z.enum(['SWELLING', 'PAIN', 'REDNESS', 'DRYNESS']);
 export type SymptomKey = z.infer<typeof SymptomKey>;

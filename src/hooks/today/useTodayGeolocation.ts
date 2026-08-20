@@ -5,12 +5,7 @@ import { useEffect, useState } from 'react';
  * 'unavailable'은 권한은 막히지 않았는데 측위가 실패한 경우다 —
  * 거부와 같은 문구를 쓰면 권한을 이미 준 사용자에게 거짓말이 된다.
  */
-export type GeolocationStatus =
-  | 'prompting'
-  | 'granted'
-  | 'denied'
-  | 'unavailable'
-  | 'unsupported';
+export type GeolocationStatus = 'prompting' | 'granted' | 'denied' | 'unavailable' | 'unsupported';
 
 export type Coords = {
   latitude: number;

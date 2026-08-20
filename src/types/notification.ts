@@ -17,9 +17,3 @@ export const KakaoNotificationResponse = z.object({
   connected: z.boolean().nullish(),
 });
 export type KakaoNotificationResponse = z.infer<typeof KakaoNotificationResponse>;
-
-/** PATCH 요청 본문. consent만 필수다 */
-export const KakaoConsentRequest = z.object({
-  consent: z.boolean(),
-});
-export type KakaoConsentRequest = z.infer<typeof KakaoConsentRequest>;

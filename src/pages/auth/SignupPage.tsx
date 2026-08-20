@@ -11,7 +11,7 @@ import Segment from '../../components/Segment';
 import { useOnboarding } from '../../hooks/user/useUser';
 import { cn } from '../../lib/cn';
 import { toDateInputValue } from '../../lib/date';
-import { TERMS, type Term, type TermId } from '../../lib/terms';
+import { REQUIRED_TERM_IDS, TERMS, type Term, type TermId } from '../../lib/terms';
 import { GENDER_LABEL, type Gender } from '../../types/user';
 import AgreementItem from './components/AgreementItem';
 import LabeledField from './components/LabeledField';
@@ -58,7 +58,7 @@ export default function SignupPage() {
 
   const isAllAgreed = TERMS.every((term) => agreements[term.id]);
   /** 가입 조건은 **필수 약관만**이다. 선택 약관까지 요구하면 동의를 강제하는 게 된다. */
-  const isStep2Valid = TERMS.every((term) => !term.required || agreements[term.id]);
+  const isStep2Valid = REQUIRED_TERM_IDS.every((id) => agreements[id]);
 
   const toggleAgreement = (key: TermId) => () => {
     setAgreements((prev) => ({ ...prev, [key]: !prev[key] }));

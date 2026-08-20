@@ -1,7 +1,13 @@
 import axios, { type AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
 
 import { postTokenRefresh } from './refresh';
-import { clearAccessToken, getAccessToken, getRefreshToken, setAccessToken, setRefreshToken } from './token';
+import {
+  clearAccessToken,
+  getAccessToken,
+  getRefreshToken,
+  setAccessToken,
+  setRefreshToken,
+} from './token';
 import { HttpStatus, type ApiError, type ApiResponse } from './types';
 import { notifyUnauthorized } from './unauthorized';
 
@@ -99,7 +105,8 @@ axiosInstance.interceptors.response.use(
         // "직전 토큰 재사용"으로 탐지돼 전원 로그아웃이 될 수 있다.
         const sent = String(config.headers.Authorization ?? '').replace('Bearer ', '');
         const current = getAccessToken();
-        const accessToken = sent && current && sent !== current ? current : await refreshAccessToken();
+        const accessToken =
+          sent && current && sent !== current ? current : await refreshAccessToken();
 
         config.headers.Authorization = `Bearer ${accessToken}`;
         return await axiosInstance(config);
@@ -107,7 +114,11 @@ axiosInstance.interceptors.response.use(
         // 네트워크 장애로 갱신이 실패한 것뿐이면 토큰을 지우지 않는다 —
         // 멀쩡한 리프레시 토큰을 버리고 재로그인을 강요하게 된다.
         const status = (refreshError as { response?: { status?: number } })?.response?.status;
-        if (status !== undefined && status !== HttpStatus.UNAUTHORIZED && status !== HttpStatus.FORBIDDEN) {
+        if (
+          status !== undefined &&
+          status !== HttpStatus.UNAUTHORIZED &&
+          status !== HttpStatus.FORBIDDEN
+        ) {
           return Promise.reject(apiError);
         }
       }
