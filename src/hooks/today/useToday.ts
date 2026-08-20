@@ -119,7 +119,6 @@ export function useCareStartDate(): Date | null {
  * 정작 D-day를 못 보여주면 약속을 어기는 화면이 된다.
  */
 export type RecoveryGap =
-  | { kind: 'before'; treatmentName: string; date: Date }
   | { kind: 'between'; treatmentName: string; date: Date }
   | { kind: 'after'; treatmentName: string; date: Date }
   | { kind: 'active'; treatmentName: string; date: Date; dday: number };
@@ -163,13 +162,13 @@ export function useRecoveryGap(selected: Date): RecoveryGap | null {
       .filter((span) => span.end < selected)
       .sort((a, b) => b.end.getTime() - a.end.getTime())[0];
 
-    // 앞으로 올 시술이 있으면 그걸 가리킨다. 지나간 게 있으면 "사이", 없으면 "시작 전".
-    if (upcoming) {
-      return {
-        kind: finished ? 'between' : 'before',
-        treatmentName: upcoming.name,
-        date: upcoming.start,
-      };
+    /*
+      **첫 시술보다 앞선 날짜는 다루지 않는다.** 캘린더에서 아예 못 고르게 막아 뒀고
+      (useCareStartDate), 그 경계도 여기와 같은 카드 목록에서 나온다 — 목록이 안 왔으면
+      막지도 못하지만 이 함수도 null이라 앞뒤가 맞는다. 지나간 회복이 있어야 "사이"다.
+    */
+    if (upcoming && finished) {
+      return { kind: 'between', treatmentName: upcoming.name, date: upcoming.start };
     }
 
     // 남은 건 전부 끝난 경우. 가장 마지막에 끝난 회복을 말한다.
