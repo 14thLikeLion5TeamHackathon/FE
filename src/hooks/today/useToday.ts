@@ -2,7 +2,7 @@ import { useMemo, useSyncExternalStore } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { getCards } from '../../api/card';
-import { getBriefing, getCalendarEvents, getChecklist, updateChecklistItem } from '../../api/today';
+import { getBriefing, getCalendarEvents, getChecklist, refreshBriefing, refreshChecklist, updateChecklistItem } from '../../api/today';
 import { useCalendarStatus } from '../calendar/useCalendar';
 import { addDays, startOfDay, toKey } from '../../lib/date';
 import type { TodayLocation } from '../../lib/location';
@@ -58,6 +58,30 @@ export function useToggleChecklistItem() {
     /** 서버 응답이 온 뒤 목록을 다시 받는다. 낙관적 반영은 아직 없다 — 완료 수도 서버가 센다. */
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: todayKeys.checklistAll() });
+    },
+  });
+}
+
+/** POST /api/v1/today/checklist/refresh — 체크리스트 재생성 */
+export function useRefreshChecklist() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (date: string) => refreshChecklist(date),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: todayKeys.checklistAll() });
+    },
+  });
+}
+
+/** GET /api/v1/today/briefing?refresh=true — 브리핑 재생성 */
+export function useRefreshBriefing() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (date: string) => refreshBriefing(date),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['today', 'briefing'] });
     },
   });
 }

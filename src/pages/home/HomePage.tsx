@@ -12,6 +12,8 @@ import {
   useHasCards,
   useMarkedDates,
   useToggleChecklistItem,
+  useRefreshChecklist,
+  useRefreshBriefing,
 } from '../../hooks/today/useToday';
 import { useTodayLocation } from '../../hooks/today/useTodayLocation';
 import { useWeather } from '../../hooks/weather/useWeather';
@@ -103,6 +105,8 @@ export default function HomePage() {
   const briefing = useBriefing(selectedKey, location, !isOutOfForecast);
   const checklist = useChecklist(selectedKey);
   const { mutate: toggleItem } = useToggleChecklistItem();
+  const { mutate: doRefreshChecklist, isPending: isChecklistRefreshing } = useRefreshChecklist();
+  const { mutate: doRefreshBriefing, isPending: isBriefingRefreshing } = useRefreshBriefing();
 
   /** 일정은 보이는 달 전체를 한 번에 받아 둔다 — 날짜를 옮길 때마다 다시 부르지 않으려고 */
   const [monthStart, monthEnd] = useMemo(() => {
@@ -341,8 +345,8 @@ export default function HomePage() {
           dateLabel={dateLabel}
           past={false}
           dday={ddayNote}
-          onRefresh={() => void briefing.refetch()}
-          isRefreshing={briefing.isFetching}
+          onRefresh={() => doRefreshBriefing(selectedKey)}
+          isRefreshing={isBriefingRefreshing}
         />
       ) : isPast && briefing.isError && !data ? (
         /*
@@ -372,8 +376,8 @@ export default function HomePage() {
             dateLabel={dateLabel}
             past
             dday={ddayNote}
-            onRefresh={() => void briefing.refetch()}
-            isRefreshing={briefing.isFetching}
+            onRefresh={() => doRefreshBriefing(selectedKey)}
+            isRefreshing={isBriefingRefreshing}
           />
         )
       ) : isEmpty ? (
@@ -406,7 +410,7 @@ export default function HomePage() {
           />
         </>
       ) : briefing.isError && !data ? (
-        <CareBriefingError dateLabel={dateLabel} onRetry={() => void briefing.refetch()} />
+        <CareBriefingError dateLabel={dateLabel} onRetry={() => doRefreshBriefing(selectedKey)} />
       ) : !data ? (
         <CareBriefingLoading dateLabel={dateLabel} />
       ) : !data.cardJudgement && recoveryGap && recoveryGap.kind !== 'active' ? (
@@ -433,6 +437,8 @@ export default function HomePage() {
             data.cardJudgement?.actionSentence ??
             '이 날짜에 예정된 회복 관리는 없어요. 평소 루틴을 유지하시면 돼요.'
           }
+          onRefresh={() => doRefreshBriefing(selectedKey)}
+          isRefreshing={isBriefingRefreshing}
         />
       )}
 
@@ -481,8 +487,8 @@ export default function HomePage() {
                 past={isPast}
                 dateLabel={blockDateLabel}
                 onToggle={(checklistId, completed) => toggleItem({ checklistId, completed })}
-                onRefresh={() => void checklist.refetch()}
-                isRefreshing={checklist.isFetching}
+                onRefresh={() => doRefreshChecklist(selectedKey)}
+                isRefreshing={isChecklistRefreshing}
               />
             )
           )}

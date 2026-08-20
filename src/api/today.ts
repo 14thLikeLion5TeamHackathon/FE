@@ -44,6 +44,22 @@ export async function updateChecklistItem(
   return ChecklistItem.parse(getResult(res));
 }
 
+/** POST /api/v1/today/checklist/refresh — 체크리스트 새로고침 (재생성) */
+export async function refreshChecklist(date: string): Promise<TodayChecklistResponse> {
+  const res = await axiosInstance.post<ApiResponse>('/api/v1/today/checklist/refresh', null, {
+    params: { date },
+  });
+  return TodayChecklistResponse.parse(getResult(res));
+}
+
+/** GET /api/v1/today/briefing?refresh=true — 브리핑 새로고침 */
+export async function refreshBriefing(date: string): Promise<BriefingResponse> {
+  const res = await axiosInstance.get<ApiResponse>('/api/v1/today/briefing', {
+    params: { date, refresh: true },
+  });
+  return BriefingResponse.parse(getResult(res));
+}
+
 /**
  * 연동된 구글 캘린더 일정. 캘린더에 점을 찍는 데 쓴다 —
  * 서버가 날짜별 marked를 따로 주지 않아서 프론트가 조립해야 한다.
