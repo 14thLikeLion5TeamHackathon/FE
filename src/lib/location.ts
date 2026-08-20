@@ -47,6 +47,11 @@ export function setStoredLocation(location: TodayLocation): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(location));
 }
 
+/** 저장된 위치를 지운다 — GPS 모드로 되돌릴 때 사용 */
+export function clearStoredLocation(): void {
+  localStorage.removeItem(STORAGE_KEY);
+}
+
 /* ── 시·구 데이터 (LocationPicker용) ─────────────────────── */
 
 /**
