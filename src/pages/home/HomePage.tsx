@@ -437,6 +437,8 @@ export default function HomePage() {
             data.cardJudgement?.actionSentence ??
             '이 날짜에 예정된 회복 관리는 없어요. 평소 루틴을 유지하시면 돼요.'
           }
+          onRefresh={() => doRefreshBriefing(selectedKey)}
+          isRefreshing={isBriefingRefreshing}
         />
       )}
 
