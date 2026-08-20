@@ -334,7 +334,13 @@ export default function HomePage() {
       {isOutOfForecast ? (
         /* 예보 범위 밖은 오류가 아니라 정상 상태다 — 로딩·에러보다 먼저 잡아야
            서버가 내는 400이 "불러오지 못했어요"로 새어 나가지 않는다 */
-        <CareBriefingNoForecast dateLabel={dateLabel} past={false} dday={ddayNote} />
+        <CareBriefingNoForecast
+          dateLabel={dateLabel}
+          past={false}
+          dday={ddayNote}
+          onRefresh={() => void briefing.refetch()}
+          isRefreshing={briefing.isFetching}
+        />
       ) : isPast && briefing.isError && !data ? (
         /*
           지난 날짜는 물어보되, 실패하면 오류라고 말하지 않는다.
@@ -346,6 +352,9 @@ export default function HomePage() {
           /*
             지난 날짜라 브리핑을 못 받았어도, 그날 회복 중인 카드가 없었다는 건 카드 목록만으로
             안다. "안내가 없어요"보다 왜 없는지를 말하는 편이 낫다.
+
+            여기엔 새로고침을 붙이지 않는다 — 이 카드는 브리핑이 아니라 카드 목록에서
+            계산된 내용이라 다시 불러도 달라질 게 없다.
           */
           <CareBriefingGap
             dateLabel={dateLabel}
@@ -356,7 +365,13 @@ export default function HomePage() {
             onCreateCard={() => navigate('/cards/new')}
           />
         ) : (
-          <CareBriefingNoForecast dateLabel={dateLabel} past dday={ddayNote} />
+          <CareBriefingNoForecast
+            dateLabel={dateLabel}
+            past
+            dday={ddayNote}
+            onRefresh={() => void briefing.refetch()}
+            isRefreshing={briefing.isFetching}
+          />
         )
       ) : isEmpty ? (
         <>
@@ -463,6 +478,8 @@ export default function HomePage() {
                 past={isPast}
                 dateLabel={blockDateLabel}
                 onToggle={(checklistId, completed) => toggleItem({ checklistId, completed })}
+                onRefresh={() => void checklist.refetch()}
+                isRefreshing={checklist.isFetching}
               />
             )
           )}

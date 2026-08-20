@@ -1,4 +1,5 @@
 import Checkbox from '../../../components/Checkbox';
+import RefreshButton from '../../../components/RefreshButton';
 import { cn } from '../../../lib/cn';
 import type { ChecklistItem } from '../../../types/today';
 
@@ -18,6 +19,8 @@ type TodayChecklistProps = {
    * 어떻게 설명할지의 판단이다. 앞날도 오늘이 아니라 이 값이 붙는다.
    */
   dateLabel?: string;
+  onRefresh: () => void;
+  isRefreshing?: boolean;
 };
 
 /**
@@ -29,6 +32,8 @@ export default function TodayChecklist({
   onToggle,
   past = false,
   dateLabel,
+  onRefresh,
+  isRefreshing = false,
 }: TodayChecklistProps) {
   const title = dateLabel ? `${dateLabel} 케어` : '오늘의 케어';
   /*
@@ -47,7 +52,10 @@ export default function TodayChecklist({
   if (items.length === 0) {
     return (
       <section className="bg-surface-raised rounded-md flex flex-col gap-1.5 p-4">
-        <h2 className="typo-section">{title}</h2>
+        <header className="flex items-center justify-between">
+          <h2 className="typo-section">{title}</h2>
+          <RefreshButton onClick={onRefresh} isRefreshing={isRefreshing} />
+        </header>
         <p className="typo-body text-text-secondary">
           {/*
             셋을 구분한다. 지난 날짜는 "기록된" 것만 말한다 — 원인을 모르는 채로 참인
