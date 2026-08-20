@@ -236,10 +236,10 @@ export default function HomePage() {
    * 브리핑의 `schedules`에는 직접 입력한 일정만 온다 — 연동해 둔 사용자는 캘린더에 점만
    * 찍히고 목록은 비어 있어서, 일정이 있는 날인데 "등록한 일정이 없어요"를 읽게 됐다.
    *
-   * 이쪽은 **`editable: false`다.** 이 응답은 구글 일정만 담기 때문에 출처를 확실히 안다.
-   * 위의 브리핑 쪽은 여전히 모른다 — 거기에 캘린더 일정이 섞여 오는지 확인되지 않았다(#111).
+   * 이쪽은 **`editable: false`다.** 이 응답은 구글 일정만 담는다.
    *
-   * 그 불확실성 때문에 아래에서 **중복을 걸러낸다.** 섞여 온다면 같은 일정이 두 줄이 된다.
+   * 겹칠 걱정은 없다 — 서버는 구글 일정을 저장하지 않고 조회할 때마다 구글에서 받아온다.
+   * 브리핑은 저장된 일정 표만 읽으므로 거기 담기는 건 직접 입력한 것뿐이다(BE 확인, #111).
    */
   const eventSchedules: Schedule[] = (calendarEvents.data ?? []).flatMap((event, index) => {
     if (eventDateKey(event) !== selectedKey) return [];
@@ -249,8 +249,12 @@ export default function HomePage() {
 
     return [
       {
-        // 식별자가 없을 수 있어 순번으로 물러난다. 수정하지 않으므로 목록 key로만 쓰인다.
-        id: `calendar-${String(event.eventId ?? event.id ?? index)}`,
+        /*
+          순번을 쓴다. 응답의 `scheduleId`는 저장된 식별자가 아니라 그 응답 안에서 1부터
+          세는 값이라 요청마다 다른 일정에 같은 번호가 붙는다(BE 확인). 어차피 수정하지
+          않으므로 목록 key로만 쓰인다.
+        */
+        id: `calendar-${index}`,
         title,
         date: fromDateInputValue(selectedKey),
         time: eventTimeLabel(event),
@@ -260,26 +264,10 @@ export default function HomePage() {
     ];
   });
 
-  /**
-   * 브리핑에 이미 있는 일정은 캘린더 쪽에서 뺀다.
-   *
-   * 브리핑의 `schedules`에 캘린더 일정이 섞여 오는지가 확정돼 있지 않다(#111·#127).
-   * 섞여 온다면 같은 일정이 두 줄로 뜬다 — 하나는 눌러서 수정 화면에 갔다가 서버에
-   * 거절당하는 줄, 하나는 "캘린더" 배지가 붙은 줄. 사용자에겐 앱이 고장난 것으로 보인다.
-   *
-   * **브리핑 쪽을 남긴다.** 거기에는 `scheduleId`가 있어 수정 진입이 되고, 캘린더 쪽은
-   * 어차피 읽기 전용이라 잃는 게 없다. 직접 입력한 일정과 캘린더 일정이 우연히 제목·시각이
-   * 같은 경우에도 한 줄로 합쳐지는데, 그건 사용자 눈에 원래 같은 일정이다.
-   *
-   * 출처 필드가 내려오면(#111) 이 추측은 사라진다.
-   */
-  const manualKeys = new Set(manualSchedules.map((schedule) => scheduleKey(schedule)));
-
   /** 종일(시간 없음)을 위로. 나머지는 시각순 — 시간이 뒤죽박죽이면 목록을 훑을 수 없다 */
-  const schedules: Schedule[] = [
-    ...manualSchedules,
-    ...eventSchedules.filter((schedule) => !manualKeys.has(scheduleKey(schedule))),
-  ].sort((a, b) => (a.time ?? '').localeCompare(b.time ?? ''));
+  const schedules: Schedule[] = [...manualSchedules, ...eventSchedules].sort((a, b) =>
+    (a.time ?? '').localeCompare(b.time ?? ''),
+  );
 
   /** 고른 날짜를 넘겨 추가 화면의 날짜칸을 채운다 — 안 넘기면 매번 다시 고르게 된다 */
   const handleAddSchedule = () =>
@@ -459,45 +447,4 @@ export default function HomePage() {
       )}
     </div>
   );
-}
-
-/**
- * 같은 일정인지 가르는 값. 제목과 시각만 본다.
- *
- * `scheduleId`로는 못 가른다 — 브리핑과 캘린더가 서로 다른 체계의 식별자를 쓴다.
- * 장소는 빼뒀다. 한쪽에만 들어 있는 경우가 흔해서, 넣으면 같은 일정을 다르다고 보게 된다.
- * 제목은 앞뒤 공백을 털어 비교한다.
- */
-function scheduleKey(schedule: Schedule): string {
-  return `${schedule.title.trim()}|${normalizeTime(schedule.time)}`;
-}
-
-/**
- * 시각 문자열을 `HH:mm`(24시간)으로 맞춘다.
- *
- * **두 출처의 표기가 다르다.** 브리핑은 `"오후 7:00"`으로 오고(types/today.ts),
- * 캘린더는 `eventTimeLabel`이 `"19:00"`으로 잘라 준다. 그대로 비교하면 같은 일정인데도
- * 키가 갈려 중복이 하나도 안 걸러진다 — 에러가 없어서 걸러진 줄 알고 넘어가게 된다.
- *
- * 모르는 표기는 공백만 털어 그대로 돌려준다. 억지로 고치면 다른 일정을 같다고 볼 수 있는데,
- * 그건 목록에서 일정이 사라지는 쪽이라 중복보다 나쁘다.
- */
-function normalizeTime(time: string | null): string {
-  if (!time) return '';
-
-  const trimmed = time.trim();
-
-  // "오후 7:00" · "오전 9:05" — 12시간 표기
-  const korean = /^(오전|오후)\s*(\d{1,2}):(\d{2})/.exec(trimmed);
-  if (korean) {
-    const [, meridiem, rawHour, minute] = korean;
-    const hour = Number(rawHour) % 12; // 12시는 0으로 접고 아래에서 다시 세운다
-    return `${String(meridiem === '오후' ? hour + 12 : hour).padStart(2, '0')}:${minute}`;
-  }
-
-  // "19:00" · "07:00:00" — 24시간 표기. 초는 버린다
-  const digits = /^(\d{1,2}):(\d{2})/.exec(trimmed);
-  if (digits) return `${digits[1].padStart(2, '0')}:${digits[2]}`;
-
-  return trimmed;
 }
