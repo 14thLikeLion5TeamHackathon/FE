@@ -16,39 +16,6 @@ type RecoveryCurveProps = {
   onRecord: () => void;
 };
 
-/** 비교할 시점을 고르는 칩. 지금은 목록을 순환하고, 드롭다운은 시안 확정 후 붙인다. */
-function PeriodChip({
-  label,
-  slotLabel,
-  disabled,
-  onClick,
-}: {
-  label: string;
-  slotLabel: string;
-  disabled: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      aria-label={`${slotLabel} ${label}${disabled ? '' : ', 눌러서 변경'}`}
-      className={cn(
-        'bg-surface-fill border-border-subtle rounded-chip flex items-center gap-1 border px-3 py-1.5',
-        disabled && 'opacity-60',
-      )}
-    >
-      <span className="typo-label text-text-primary">{label}</span>
-      {!disabled && (
-        <span className="typo-caption text-text-secondary" aria-hidden>
-          ⌄
-        </span>
-      )}
-    </button>
-  );
-}
-
 /** 사진이 없는 기록이 섞이므로 자리는 항상 잡아 두고 있을 때만 채운다 — 있고 없고에 따라 높이가 튀지 않게. */
 function PhotoFrame({
   url,
@@ -151,10 +118,16 @@ export default function RecoveryCurve({
   const { points } = curve;
 
   /**
+   * 비교 중인 두 시점. **고른 순서대로 담는다** — 앞이 먼저 고른 쪽이다.
+   *
+   * 화면에 그릴 때는 아래에서 시간순으로 다시 세우므로 이 순서는 눈에 보이지 않는다.
+   * 순서를 들고 있는 이유는 하나뿐이다: 세 번째를 고를 때 **먼저 고른 것을 뺀다.**
+   * 그래야 방금 고른 사진은 남고, 무엇이 빠질지도 예측할 수 있다.
+   *
    * 비교 시점을 서버가 정해 주지 않는다(그런 응답이 애초에 없다).
    * 처음↔마지막이 기본값인 이유는 그게 "얼마나 좋아졌나"에 가장 곧바로 답하기 때문이다.
    */
-  const [compared, setCompared] = useState<[number, number]>([0, Math.max(0, points.length - 1)]);
+  const [selection, setSelection] = useState<[number, number]>([0, Math.max(0, points.length - 1)]);
 
   /**
    * 기록을 저장하거나 카드를 바꾸면 points가 통째로 갈린다. useState는 첫 렌더 값만 쓰므로
@@ -163,11 +136,9 @@ export default function RecoveryCurve({
   const [knownCurve, setKnownCurve] = useState(`${curve.cardId}:${points.length}`);
   if (knownCurve !== `${curve.cardId}:${points.length}`) {
     setKnownCurve(`${curve.cardId}:${points.length}`);
-    setCompared([0, Math.max(0, points.length - 1)]);
+    setSelection([0, Math.max(0, points.length - 1)]);
   }
 
-  /** 선택지가 둘뿐이면 시점을 바꿀 여지가 없다 */
-  const canCycle = points.length > 2;
   const showPicker = cardOptions.length > 1;
 
   // 기록이 1개 이하면 추세가 성립하지 않는다. 곡선 대신 기록을 유도한다.
@@ -197,20 +168,23 @@ export default function RecoveryCurve({
     );
   }
 
-  /** 칩을 누르면 다음 시점으로 넘긴다. 상대 시점은 건너뛴다. */
-  const cycle = (slot: 0 | 1) => {
-    setCompared((prev) => {
-      const other = prev[slot === 0 ? 1 : 0];
-      let next = (prev[slot] + 1) % points.length;
-      if (next === other) next = (next + 1) % points.length;
-      return slot === 0 ? [next, prev[1]] : [prev[0], next];
-    });
+  /**
+   * 타임라인에서 고른다. **선택은 항상 둘이다.**
+   *
+   * 셋째를 고르면 먼저 고른 것이 빠지고 방금 고른 것이 들어온다. 이미 고른 것을 다시 누르면
+   * 그대로 둔다 — 하나만 남기면 비교가 성립하지 않아서, 뺄 수 있게 만들면 화면이 무너진다.
+   */
+  const toggle = (index: number) => {
+    setSelection(([older, newer]) =>
+      index === older || index === newer ? [older, newer] : [newer, index],
+    );
   };
 
-  /** 타임라인에서 고르면 비교의 '나중' 시점이 된다. 이미 선택된 항목이면 그대로 둔다. */
-  const pickFromTimeline = (index: number) => {
-    setCompared(([a, b]) => (index === a || index === b ? [a, b] : [a, index]));
-  };
+  /**
+   * 그릴 때는 시간순으로 세운다. 고른 순서를 그대로 쓰면 왼쪽이 D+14, 오른쪽이 D+3처럼
+   * 거꾸로 놓여, 사이의 화살표가 실제와 반대를 가리킨다.
+   */
+  const [start, end] = selection[0] <= selection[1] ? selection : [selection[1], selection[0]];
 
   return (
     <section className="bg-surface-raised rounded-md flex flex-col gap-3 p-4">
@@ -225,28 +199,9 @@ export default function RecoveryCurve({
         <p className="typo-caption text-text-secondary">{curve.treatmentName}</p>
       )}
 
-      {/* 기간 선택 — 비교할 두 시점 */}
-      <div className="flex items-center gap-2">
-        <PeriodChip
-          slotLabel="비교 시작"
-          label={points[compared[0]].ddayLabel}
-          disabled={!canCycle}
-          onClick={() => cycle(0)}
-        />
-        <span className="typo-label text-text-tertiary" aria-hidden>
-          →
-        </span>
-        <PeriodChip
-          slotLabel="비교 끝"
-          label={points[compared[1]].ddayLabel}
-          disabled={!canCycle}
-          onClick={() => cycle(1)}
-        />
-      </div>
-
-      {/* 두 시점 사진 비교 */}
+      {/* 두 시점 사진 비교 — 라벨은 아래 캡션이 담당한다 */}
       <div className="flex gap-2">
-        {compared.map((index) => {
+        {[start, end].map((index) => {
           const point = points[index];
           return (
             <figure key={point.recordId} className="flex flex-1 flex-col gap-1.5">
@@ -268,17 +223,23 @@ export default function RecoveryCurve({
 
       {/* 전체 기록 타임라인 — 항목이 폭을 넘으면 가로 스크롤 */}
       <div className="flex flex-col gap-2">
-        <p className="typo-label text-text-secondary">전체 기록</p>
+        <div className="flex items-baseline justify-between gap-2">
+          <p className="typo-label text-text-secondary">전체 기록</p>
+          {/* 누를 수 있다는 걸 어디에서도 알려주지 않았다. 선택지가 둘뿐이면 고를 게 없어 감춘다 */}
+          {points.length > 2 && (
+            <p className="typo-caption text-text-tertiary">눌러서 비교할 시점을 바꿔요</p>
+          )}
+        </div>
         <ul className="no-scrollbar flex gap-1.5 overflow-x-auto">
           {points.map((point, index) => {
-            const active = compared.includes(index);
+            const active = index === start || index === end;
             return (
               <li key={point.recordId}>
                 <button
                   type="button"
-                  onClick={() => pickFromTimeline(index)}
+                  onClick={() => toggle(index)}
                   aria-pressed={active}
-                  aria-label={`${point.ddayLabel} ${point.dateLabel} 기록`}
+                  aria-label={`${point.ddayLabel} ${point.dateLabel} 기록, 비교에 ${active ? '선택됨' : '넣기'}`}
                   className="flex flex-col items-center gap-1"
                 >
                   <PhotoFrame
