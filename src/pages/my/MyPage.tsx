@@ -216,6 +216,16 @@ export default function MyPage() {
           <p className="typo-caption text-text-secondary mt-1">
             {data.birthDate} · {genderLabel}
           </p>
+          {/*
+            어느 소셜로 들어왔는지. 별도 행이 아니라 이름 아래에 붙인다 —
+            한 번 보고 마는 정보라 목록에 자리를 차지할 이유가 없다.
+
+            모르면 아예 감춘다. 저장소를 지웠거나 다른 기기에서 로그인했으면 알 방법이
+            없는데, 추측해서 적으면 틀린 계정을 알려주게 된다(lib/socialProvider.ts).
+          */}
+          {providerLabel && (
+            <p className="typo-caption text-text-tertiary mt-1">{providerLabel} 로그인</p>
+          )}
         </div>
       </Card>
 
@@ -226,11 +236,6 @@ export default function MyPage() {
           <SettingRow label="생년월일" value={data.birthDate ?? ''} />
           <SettingRow label="성별" value={genderLabel} />
           <SettingRow label="개인정보 수정" onClick={() => navigate('/my/edit')} chevron />
-          {/*
-            어느 소셜로 들어왔는지. 모르면 행을 감춘다 — 저장소를 지웠거나 다른 기기에서
-            로그인했으면 알 방법이 없고, 추측해서 적으면 틀린 계정을 알려주게 된다.
-          */}
-          {providerLabel && <SettingRow label="로그인 계정" value={providerLabel} />}
         </Card>
       </Group>
 

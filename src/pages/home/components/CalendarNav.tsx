@@ -115,15 +115,23 @@ export default function CalendarNav({
 
   return (
     <section className="flex flex-col gap-2">
-      <header className="flex items-center justify-between">
-        <IconButton label={mode === 'week' ? '이전 주' : '이전 달'} onClick={() => move(-1)}>
-          <Chevron direction="left" />
-        </IconButton>
+      {/*
+        3열 격자다. justify-between으로 두면 `오늘` 버튼이 나타날 때 오른쪽이 넓어지면서
+        가운데 월 표시가 왼쪽으로 밀린다 — 날짜를 옮길 때마다 제목이 흔들려 보인다.
+        양옆을 1fr로 같게 잡으면 가운데는 버튼 유무와 무관하게 제자리에 있는다.
+      */}
+      <header className="grid grid-cols-[1fr_auto_1fr] items-center">
+        {/* 격자 칸이 1fr이라 감싸지 않으면 버튼이 칸 너비만큼 늘어난다 */}
+        <div className="flex justify-start">
+          <IconButton label={mode === 'week' ? '이전 주' : '이전 달'} onClick={() => move(-1)}>
+            <Chevron direction="left" />
+          </IconButton>
+        </div>
 
         <button
           type="button"
           onClick={() => onModeChange(mode === 'week' ? 'month' : 'week')}
-          className="rounded-sm hover:bg-surface-elevated flex items-center gap-1.5 px-2 py-1 transition-colors active:opacity-60"
+          className="rounded-sm hover:bg-surface-elevated flex items-center gap-2.5 px-2 py-1 transition-colors active:opacity-60"
           aria-expanded={mode === 'month'}
           aria-label={mode === 'week' ? '월 단위로 보기' : '주 단위로 보기'}
         >
@@ -141,7 +149,7 @@ export default function CalendarNav({
           </span>
         </button>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center justify-end gap-1">
           {showTodayButton && (
             <button
               type="button"
