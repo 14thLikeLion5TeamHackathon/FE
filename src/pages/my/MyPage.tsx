@@ -14,6 +14,7 @@ import { useDeleteAccount, useDisconnectKakao, useMyProfile } from '../../hooks/
 import { useLogout } from '../../hooks/auth/useAuth';
 import { useKakaoStatus, useUpdateKakaoConsent } from '../../hooks/notification/useNotification';
 import { clearAccessToken } from '../../api/token';
+import { socialProviderLabel } from '../../lib/socialProvider';
 import { GENDER_LABEL, type Gender } from '../../types/user';
 import SettingRow from './components/SettingRow';
 import Skeleton from '../../components/Skeleton';
@@ -100,6 +101,9 @@ export default function MyPage() {
   }
 
   const genderLabel = GENDER_LABEL[data.gender as Gender] ?? data.gender;
+
+  /** 로그인에 쓴 소셜 제공자. 서버가 안 알려줘서 로그인 직전에 적어 둔 값이다 */
+  const providerLabel = socialProviderLabel();
 
   /**
    * 로그아웃.
@@ -196,7 +200,17 @@ export default function MyPage() {
 
       {/* 프로필 요약 */}
       <Card className="flex items-center gap-3">
-        <div className="bg-surface-elevated size-11 shrink-0 rounded-full" aria-hidden />
+        {/*
+          프로필 사진 자리였는데 계약에 이미지 필드가 없다. 빈 원을 그대로 두면
+          "아직 안 불러온 사진"으로 읽혀서, 이름 첫 글자로 채운다 —
+          이름은 프로필이 완성된 사용자에게 항상 있다(위 isProfileIncomplete 가드).
+        */}
+        <div
+          className="bg-primary-tint text-primary typo-card-title flex size-11 shrink-0 items-center justify-center rounded-full"
+          aria-hidden
+        >
+          {data.name?.trim().charAt(0) ?? ''}
+        </div>
         <div>
           <p className="typo-card-title">{data.name}</p>
           <p className="typo-caption text-text-secondary mt-1">
@@ -212,6 +226,11 @@ export default function MyPage() {
           <SettingRow label="생년월일" value={data.birthDate ?? ''} />
           <SettingRow label="성별" value={genderLabel} />
           <SettingRow label="개인정보 수정" onClick={() => navigate('/my/edit')} chevron />
+          {/*
+            어느 소셜로 들어왔는지. 모르면 행을 감춘다 — 저장소를 지웠거나 다른 기기에서
+            로그인했으면 알 방법이 없고, 추측해서 적으면 틀린 계정을 알려주게 된다.
+          */}
+          {providerLabel && <SettingRow label="로그인 계정" value={providerLabel} />}
         </Card>
       </Group>
 

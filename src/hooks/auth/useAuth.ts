@@ -2,6 +2,7 @@ import { useSyncExternalStore } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { logout } from '../../api/user';
+import { clearSocialProvider } from '../../lib/socialProvider';
 import {
   clearAccessToken,
   getAccessToken,
@@ -36,6 +37,8 @@ export function useLogout() {
     mutationFn: logout,
     onSettled: () => {
       clearAccessToken();
+      // 다음 사람이 이 기기에서 다른 계정으로 들어올 수 있다 — 남겨두면 남의 제공자를 보게 된다
+      clearSocialProvider();
       // 이전 사용자의 응답이 다음 로그인에 섞이지 않도록 캐시를 비운다.
       queryClient.clear();
     },
