@@ -37,10 +37,11 @@ export async function getCardRecords(cardId: string): Promise<RecordTimelineResp
 /**
  * 한 번에 받아올 시술 수.
  *
- * 서버 기본값은 6이다. 그대로 두면 카테고리를 누를 때마다 여섯 줄만 나와 "더 보기"를
- * 반복해서 눌러야 한다 — 고르는 화면이라 한눈에 훑을 수 있어야 해서 넉넉히 요청한다.
+ * 한때 20이었다. 목록을 이어 붙이던 시절엔 "더 보기"를 덜 누르려고 넉넉히 받았는데,
+ * 지금은 한 장씩 넘겨 보므로 **한 화면에 담기는 편이 낫다** — 20줄이면 아래 시술 날짜와
+ * 만들기 버튼이 매번 화면 밖으로 밀린다.
  */
-const TREATMENT_PAGE_SIZE = 20;
+const TREATMENT_PAGE_SIZE = 8;
 
 /**
  * 카드 생성 화면의 시술 목록. category·keyword로 좁히고 page 단위로 받는다.

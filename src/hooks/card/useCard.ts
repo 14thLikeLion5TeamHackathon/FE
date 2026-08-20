@@ -1,4 +1,4 @@
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { createCard, getCardDetail, getCardRecords, getCards, getTreatments } from '../../api/card';
 import type { TreatmentCategory } from '../../types/card';
@@ -11,7 +11,11 @@ const cardKeys = {
   detail: (cardId: string, city: string, district: string) =>
     ['card', 'detail', cardId, city, district] as const,
   records: (cardId: string) => ['card', 'records', cardId] as const,
-  treatments: (category?: TreatmentCategory, keyword?: string) => ['card', 'treatments', category, keyword] as const,
+  treatments: (
+    category: TreatmentCategory | undefined,
+    keyword: string | undefined,
+    page: number,
+  ) => ['card', 'treatments', category, keyword, page] as const,
 };
 
 /** GET /api/v1/cards — 케어카드 목록 */
@@ -38,26 +42,24 @@ export function useCardRecords(cardId: string) {
 }
 
 /**
- * 카드 생성 화면의 시술 목록. 카테고리 칩·검색어로 좁힌다.
+ * 카드 생성 화면의 시술 목록. 카테고리 칩·검색어로 좁히고 **한 장씩** 본다.
  *
- * 서버가 페이징으로 바뀌어 한 번에 전부 오지 않는다. 남은 장을 이어 붙여야 해서
- * `useInfiniteQuery`를 쓴다 — 카테고리·검색어가 바뀌면 쿼리 키가 갈려 1장부터 다시 받는다.
+ * 한때 `useInfiniteQuery`로 장을 이어 붙였는데, 이 화면은 목록 아래에 시술 날짜와
+ * 만들기 버튼이 기다리고 있어서 목록이 길어질수록 그 자리가 멀어졌다. 좌우로 넘기면
+ * 목록 길이가 일정하게 유지된다.
+ *
+ * `placeholderData`로 이전 장을 남겨 둔다 — 없으면 넘길 때마다 목록이 통째로 사라졌다가
+ * 다시 그려져서, 화면이 깜빡이고 스크롤 위치도 튄다.
  */
-export function useTreatments(category?: TreatmentCategory, keyword?: string) {
-  return useInfiniteQuery({
-    queryKey: cardKeys.treatments(category, keyword),
-    queryFn: ({ pageParam }) => getTreatments({ category, keyword, page: pageParam }),
-    initialPageParam: 0,
-    /**
-     * `hasNext`를 그대로 믿되, 안 왔을 때는 `totalPages`로 물러난다.
-     * 둘 다 없으면 멈춘다 — 끝을 모르는 채 계속 요청하면 같은 장을 무한히 받는다.
-     */
-    getNextPageParam: (lastPage, allPages) => {
-      const next = (lastPage.page ?? allPages.length - 1) + 1;
-      if (lastPage.hasNext != null) return lastPage.hasNext ? next : undefined;
-      if (lastPage.totalPages != null) return next < lastPage.totalPages ? next : undefined;
-      return undefined;
-    },
+export function useTreatments(
+  category: TreatmentCategory | undefined,
+  keyword: string | undefined,
+  page: number,
+) {
+  return useQuery({
+    queryKey: cardKeys.treatments(category, keyword, page),
+    queryFn: () => getTreatments({ category, keyword, page }),
+    placeholderData: keepPreviousData,
   });
 }
 
