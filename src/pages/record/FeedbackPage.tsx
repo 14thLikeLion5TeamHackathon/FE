@@ -4,6 +4,8 @@ import { HttpStatus, type ApiError } from '../../api/types';
 import Chip from '../../components/Chip';
 import NavHeader from '../../components/NavHeader';
 import { useFeedback } from '../../hooks/feedback/useFeedback';
+import { useCardDetail } from '../../hooks/card/useCard';
+import { getLocationParams } from '../../lib/location';
 import { mediaUrl } from '../../lib/mediaUrl';
 import SymptomDeltaList from './components/SymptomDeltaList';
 import Skeleton from '../../components/Skeleton';
@@ -30,6 +32,8 @@ export default function FeedbackPage() {
   const { recordId = '' } = useParams();
   const navigate = useNavigate();
   const { data, isLoading, isError, error } = useFeedback(recordId);
+  const cardId = data?.cardId ? String(data.cardId) : '';
+  const { data: cardDetail } = useCardDetail(cardId, getLocationParams());
 
   if (isLoading) {
     return (
@@ -163,7 +167,12 @@ export default function FeedbackPage() {
           <button
             type="button"
             className="bg-danger typo-label rounded-btn mt-1 py-3 text-white"
-            onClick={() => {}}
+            onClick={() => {
+              const storeUrl = cardDetail?.visitedStore?.url;
+              if (storeUrl) {
+                window.open(storeUrl, '_blank', 'noopener,noreferrer');
+              }
+            }}
           >
             시술 기관에 문의하기
           </button>
