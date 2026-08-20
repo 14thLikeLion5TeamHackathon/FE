@@ -53,6 +53,55 @@ export default function CareBriefing({
 }
 
 /**
+ * 회복 구간 밖. **카드는 있는데 그 날짜에 진행 중인 게 없는 상태다.**
+ *
+ * 서버가 `cardJudgement: null`을 주는 자리인데, 그대로 "예정된 관리가 없어요"라고만 쓰면
+ * 카드를 만들어 둔 사용자에게는 앱이 아무것도 못 하는 것으로 보인다. 지금이 회복의 앞인지
+ * 뒤인지 사이인지 밝히고, 끝난 경우에는 다음 걸음까지 준다 — 빈 화면에서 갈 데가 없는
+ * 게 이 상태의 진짜 문제다.
+ */
+export function CareBriefingGap({
+  dateLabel,
+  weather,
+  kind,
+  treatmentName,
+  dateText,
+  onCreateCard,
+}: Props & {
+  weather: string | null;
+  kind: 'before' | 'between' | 'after';
+  treatmentName: string;
+  /** "8월 22일" */
+  dateText: string;
+  onCreateCard: () => void;
+}) {
+  const message =
+    kind === 'after'
+      ? `${treatmentName} 회복이 ${dateText}에 끝났어요. 지금은 관리 기간이 아니에요.`
+      : kind === 'before'
+        ? `${dateText} ${treatmentName} 시술 전이에요. 회복 안내는 시술일부터 시작돼요.`
+        : `다음 회복은 ${dateText} ${treatmentName}부터예요.`;
+
+  return (
+    <Shell
+      dateLabel={dateLabel}
+      right={weather && <span className="typo-label text-text-secondary">{weather}</span>}
+    >
+      <p className="typo-body text-text-primary">{message}</p>
+      {/*
+        회복이 끝난 경우에만 등록을 권한다. 앞두고 있거나 사이인 경우에는 이미 등록해 둔
+        카드가 기다리고 있어서, 또 만들라고 하면 같은 시술을 두 번 등록하게 된다.
+      */}
+      {kind === 'after' && (
+        <Button variant="secondary" className="w-full py-2.5" onClick={onCreateCard}>
+          새 케어 등록하기
+        </Button>
+      )}
+    </Shell>
+  );
+}
+
+/**
  * 불러오는 중. 날짜는 이미 알고 있으므로 그대로 두고 나머지만 스켈레톤으로.
  *
  * 색은 `bg-surface-fill`로 덮는다 — Skeleton 기본색이 이 카드 배경과 같아서

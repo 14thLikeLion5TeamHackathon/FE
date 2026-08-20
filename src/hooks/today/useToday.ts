@@ -105,6 +105,64 @@ export function useCareStartDate(): Date | null {
 }
 
 /**
+ * 회복 구간 **밖**일 때 지금이 어디쯤인지.
+ *
+ * 카드는 있는데 그 날짜에 진행 중인 게 없으면 서버가 `cardJudgement: null`을 준다.
+ * 그때 화면이 "회복 기간이 끝났거나 아직 시작 전이에요"라고만 하면 둘 중 뭔지 알 수 없어,
+ * 카드를 만들어 둔 사용자는 등록이 잘못됐나 의심하게 된다 — 고장으로 읽히는 자리다.
+ *
+ * 답은 이미 받아 둔 카드 목록에 있다. 시술일과 회복 기간으로 구간을 세우면
+ * 지금이 그 앞인지 뒤인지 사이인지 정확히 말할 수 있다. **서버에 더 물을 게 없다.**
+ *
+ * 구간 안이면 null이다 — 그때는 서버 브리핑이 할 말이 있다.
+ */
+export type RecoveryGap =
+  | { kind: 'before'; treatmentName: string; date: Date }
+  | { kind: 'between'; treatmentName: string; date: Date }
+  | { kind: 'after'; treatmentName: string; date: Date };
+
+export function useRecoveryGap(selected: Date): RecoveryGap | null {
+  const { data } = useQuery({ queryKey: cardKeys.list, queryFn: getCards });
+
+  return useMemo(() => {
+    if (!data || data.length === 0) return null;
+
+    const spans = data.flatMap((card) => {
+      if (!card.treatmentDate) return [];
+      const start = startOfDay(new Date(`${card.treatmentDate}T00:00:00`));
+      if (Number.isNaN(start.getTime())) return [];
+
+      // 기간을 모르면 시술 당일만 구간으로 본다 — 임의로 늘리면 없는 회복을 있다고 말하게 된다
+      const end = addDays(start, card.recoveryTotalDays ?? 0);
+      return [{ name: card.treatmentName ?? '시술', start, end }];
+    });
+
+    if (spans.length === 0) return null;
+    // 구간 안이면 할 말은 서버 몫이다
+    if (spans.some((span) => selected >= span.start && selected <= span.end)) return null;
+
+    const upcoming = spans
+      .filter((span) => span.start > selected)
+      .sort((a, b) => a.start.getTime() - b.start.getTime())[0];
+    const finished = spans
+      .filter((span) => span.end < selected)
+      .sort((a, b) => b.end.getTime() - a.end.getTime())[0];
+
+    // 앞으로 올 시술이 있으면 그걸 가리킨다. 지나간 게 있으면 "사이", 없으면 "시작 전".
+    if (upcoming) {
+      return {
+        kind: finished ? 'between' : 'before',
+        treatmentName: upcoming.name,
+        date: upcoming.start,
+      };
+    }
+
+    // 남은 건 전부 끝난 경우. 가장 마지막에 끝난 회복을 말한다.
+    return finished ? { kind: 'after', treatmentName: finished.name, date: finished.end } : null;
+  }, [data, selected]);
+}
+
+/**
  * 예보 제공 일수. 오늘 포함 5일이고, 그 뒤 날짜는 캘린더에서 흐리게 처리한다.
  * 서버가 범위를 알려주지 않아 프론트 상수로 둔다 — BE에 문의 중이다.
  */

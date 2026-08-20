@@ -8,6 +8,7 @@ import {
   useCalendarEvents,
   useCareStartDate,
   useChecklist,
+  useRecoveryGap,
   useHasCards,
   useMarkedDates,
   useToggleChecklistItem,
@@ -28,6 +29,7 @@ import { eventDateKey, eventTimeLabel, eventTitle, toLevel } from '../../types/t
 import CalendarNav from './components/CalendarNav';
 import CareBriefing, {
   CareBriefingError,
+  CareBriefingGap,
   CareBriefingLoading,
   CareBriefingNoForecast,
 } from './components/CareBriefing';
@@ -82,6 +84,12 @@ export default function HomePage() {
    * 카드가 없던 때라 브리핑도 체크리스트도 생길 수가 없다(useCareStartDate 주석).
    */
   const careStart = useCareStartDate();
+
+  /**
+   * 회복 구간 밖이면 지금이 어디쯤인지. 구간 안이면 null이고, 그때 할 말은 서버 몫이다.
+   * 카드 목록으로 계산하므로 브리핑이 없어도 답이 나온다(useRecoveryGap 주석).
+   */
+  const recoveryGap = useRecoveryGap(selected);
   const selectedKey = toKey(selected);
   const briefing = useBriefing(selectedKey, location, !isOutOfForecast);
   const checklist = useChecklist(selectedKey);
@@ -354,6 +362,20 @@ export default function HomePage() {
         <CareBriefingError dateLabel={dateLabel} onRetry={() => void briefing.refetch()} />
       ) : !data ? (
         <CareBriefingLoading dateLabel={dateLabel} />
+      ) : !data.cardJudgement && recoveryGap ? (
+        /*
+          서버가 판단을 못 준 건 그 날짜에 진행 중인 카드가 없어서다. 기본 문구로 얼버무리면
+          카드를 만들어 둔 사용자에게 앱이 고장난 것처럼 보인다 — 카드 목록으로 계산한
+          맥락을 대신 말한다.
+        */
+        <CareBriefingGap
+          dateLabel={dateLabel}
+          weather={weatherText}
+          kind={recoveryGap.kind}
+          treatmentName={recoveryGap.treatmentName}
+          dateText={formatShortDayLabel(recoveryGap.date)}
+          onCreateCard={() => navigate('/cards/new')}
+        />
       ) : (
         <CareBriefing
           dateLabel={dateLabel}
